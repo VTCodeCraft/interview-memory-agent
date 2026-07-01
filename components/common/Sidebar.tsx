@@ -58,12 +58,12 @@ export default function Sidebar({ currentRole = "Software Engineer" }: SidebarPr
           <div className="w-10 h-10 rounded-full bg-primary-container/20 flex items-center justify-center overflow-hidden shrink-0">
             <img
               className="w-full h-full object-cover"
-              alt="Samarth profile"
+              alt="User profile"
               src="https://lh3.googleusercontent.com/aida-public/AB6AXuBu2xcTJEgh6AeExYKNVFDMOSh0Knu6LiRMsLDoz4vAvwajF27spYC3JauQygEccryBsB30Pq8qym7M-NMJGPcmoyZvfFqhKNJ3qoU0KNaCBZLkuOUmX12eJjWsKjkkkBi8GRNWC0BkYALt2RRLw36A5r1ZIhSPLsUibRXQzQV1Ag6MnhI-Nimz6RVF0buLAXowvM64TtjgbIWGm3hgPLBtuK9iCwZtBhJkLrAChsx0JecwCh95QWWQSeXRbDgF9sK3M5iCIdi6gxGN"
             />
           </div>
           <div className="min-w-0">
-            <p className="text-sm font-bold truncate text-on-surface">Samarth</p>
+            <p className="text-sm font-bold truncate text-on-surface">User</p>
             <p className="text-[10px] text-on-surface-muted font-medium truncate">{currentRole}</p>
           </div>
         </div>

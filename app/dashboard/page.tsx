@@ -50,7 +50,7 @@ export default function DashboardPage() {
             {/* Welcome Section */}
             <section className="flex flex-col md:flex-row md:items-end justify-between gap-md py-md">
               <div>
-                <h2 className="text-2xl md:text-3xl font-extrabold text-on-surface">Welcome back, Samarth.</h2>
+                <h2 className="text-2xl md:text-3xl font-extrabold text-on-surface">Welcome back, User.</h2>
                 <p className="text-on-surface-variant text-base mt-1">You&apos;re in the top 5% of candidates this week. Keep up the momentum!</p>
               </div>
               <div className="flex gap-xl">
@@ -260,7 +260,7 @@ export default function DashboardPage() {
                     <tr className="hover:bg-surface-container-low transition-colors">
                       <td className="px-lg py-4 flex items-center gap-3">
                         <div className="w-8 h-8 rounded-lg bg-surface-container flex items-center justify-center font-bold text-on-surface-variant">A</div>
-                        Amazon
+                        JOB
                       </td>
                       <td className="px-lg py-4">SDE II (L5)</td>
                       <td className="px-lg py-4">Oct 24, 2026</td>
@@ -377,7 +377,7 @@ export default function DashboardPage() {
                   <span className="material-symbols-outlined text-primary">event</span>
                 </div>
                 <div>
-                  <h4 className="text-sm font-bold text-on-surface">Amazon SDE</h4>
+                  <h4 className="text-sm font-bold text-on-surface">JOB SDE</h4>
                   <p className="text-xs text-on-surface-variant">Tomorrow, 10:00 AM</p>
                 </div>
               </div>

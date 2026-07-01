@@ -15,7 +15,7 @@ export default function MemoryPage() {
   // Next steps checklist toggles
   const [checklist, setChecklist] = useState([
     { id: 1, text: "Practice System Design: Focus on Load Balancers", checked: false },
-    { id: 2, text: "Take Amazon full-length mock session", checked: false },
+    { id: 2, text: "Take JOB full-length mock session", checked: false },
     { id: 3, text: "Review 'Complexity Analysis' for recent solutions", checked: false },
     { id: 4, text: "Refine behavioral answers using the STAR method", checked: false }
   ]);
@@ -97,7 +97,7 @@ export default function MemoryPage() {
               <div className="grid grid-cols-2 md:grid-cols-3 gap-6 text-sm font-semibold">
                 <div>
                   <p className="text-[10px] font-bold text-on-surface-variant mb-1 uppercase tracking-wider">Target Company</p>
-                  <p className="text-base text-primary">Amazon</p>
+                  <p className="text-base text-primary">JOB</p>
                 </div>
                 <div>
                   <p className="text-[10px] font-bold text-on-surface-variant mb-1 uppercase tracking-wider">Strong Skill</p>
@@ -186,7 +186,7 @@ export default function MemoryPage() {
                   </div>
                   <div className="bg-white border border-outline-variant/30 p-6 rounded-2xl shadow-sm hover:shadow-md transition-shadow group-hover:border-primary/30">
                     <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">June 22</span>
-                    <h4 className="text-sm font-bold text-on-surface mt-1">Amazon Mock Session</h4>
+                    <h4 className="text-sm font-bold text-on-surface mt-1">JOB Mock Session</h4>
                     <div className="mt-3 space-y-2 text-xs">
                       <div className="flex justify-between font-semibold">
                         <span>Overall Score</span>
@@ -229,7 +229,7 @@ export default function MemoryPage() {
                       <span className="w-2 h-2 bg-error rounded-full"></span> System Design
                     </div>
                     <div className="absolute top-1/2 right-1/4 bg-primary text-white p-2 rounded-lg shadow-md flex items-center gap-2 text-xs font-bold">
-                      <span className="w-2 h-2 bg-white rounded-full"></span> Amazon
+                      <span className="w-2 h-2 bg-white rounded-full"></span> JOB
                     </div>
                     <div className="absolute bottom-1/4 right-1/3 bg-white p-2 rounded-lg shadow-sm border border-outline-variant/30 flex items-center gap-2 text-xs font-bold">
                       <span className="w-2 h-2 bg-success-green rounded-full"></span> Communication
@@ -360,7 +360,7 @@ export default function MemoryPage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-lg text-xs font-semibold">
               <div className="bg-white p-6 rounded-2xl border border-outline-variant/30 shadow-sm space-y-2">
                 <div className="flex justify-between items-center">
-                  <span className="tracking-wider uppercase text-on-surface-variant">Amazon</span>
+                  <span className="tracking-wider uppercase text-on-surface-variant">JOB</span>
                   <span className="font-bold text-primary">82%</span>
                 </div>
                 <div className="w-full h-2.5 bg-surface-container rounded-full overflow-hidden">

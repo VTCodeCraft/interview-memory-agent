@@ -1,36 +1,89 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useSettingsStore } from "@/store/useSettingsStore";
 import { ROUTES } from "@/lib/utils/constants";
 
+const ALLOWED_TYPES = ["application/pdf", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"];
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
+
 export default function OnboardingPage() {
   const router = useRouter();
   const { targetRole, setTargetRole } = useSettingsStore();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [name, setName] = useState("Alex Chen");
   const [role, setRole] = useState(targetRole || "Software Engineer");
   const [company, setCompany] = useState("Stanford University");
   const [experience, setExperience] = useState("3-5 Years");
-  const [resumeName, setResumeName] = useState("resume_final_2024.pdf");
+  const [resumeFile, setResumeFile] = useState<File | null>(null);
+  const [resumeError, setResumeError] = useState("");
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [uploadError, setUploadError] = useState("");
 
-  // Stepper state
   const [step, setStep] = useState(1);
 
-  const handleComplete = () => {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setResumeError("");
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      setResumeError("Only PDF and DOCX files are accepted.");
+      return;
+    }
+    if (file.size > MAX_FILE_SIZE) {
+      setResumeError("File exceeds 10 MB limit.");
+      return;
+    }
+    setResumeFile(file);
+  };
+
+  const handleDropZoneClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleComplete = async () => {
     setLoading(true);
+    setUploadError("");
     setTargetRole(role);
+
+    try {
+      if (resumeFile) {
+        const formData = new FormData();
+        formData.append("name", name);
+        formData.append("role", role);
+        formData.append("company", company);
+        formData.append("experience", experience);
+        formData.append("resume", resumeFile);
+
+        const res = await fetch("/api/user/onboarding", {
+          method: "POST",
+          body: formData,
+        });
+
+        const body = await res.json();
+        if (!body.ok) {
+          throw new Error(body.error || "Upload failed");
+        }
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Something went wrong";
+      setUploadError(msg);
+      setLoading(false);
+      return;
+    }
+
     setTimeout(() => {
       setLoading(false);
       setSuccess(true);
       setTimeout(() => {
         router.push(ROUTES.dashboard);
       }, 800);
-    }, 1200);
+    }, 500);
   };
 
   return (
@@ -130,19 +183,32 @@ export default function OnboardingPage() {
                   {/* Resume Upload */}
                   <div className="space-y-2">
                     <label className="block text-xs font-bold text-on-surface-variant px-1 uppercase tracking-wider">Resume Upload</label>
-                    <div className="border-2 border-dashed border-outline-variant rounded-xl p-6 flex flex-col items-center justify-center bg-surface-container-low hover:bg-surface-container transition-colors cursor-pointer group">
+                    <div
+                      className="border-2 border-dashed border-outline-variant rounded-xl p-6 flex flex-col items-center justify-center bg-surface-container-low hover:bg-surface-container transition-colors cursor-pointer group"
+                      onClick={handleDropZoneClick}
+                    >
                       <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
                         <span className="material-symbols-outlined text-primary">upload_file</span>
                       </div>
                       <p className="text-sm text-on-surface font-semibold">Click to upload or drag and drop</p>
                       <p className="text-xs text-on-surface-variant mt-1">PDF, DOCX up to 10MB</p>
-                      {resumeName && (
+                      {resumeFile && (
                         <div className="mt-3 bg-white px-3 py-1.5 rounded-lg border border-outline-variant flex items-center gap-2">
                           <span className="material-symbols-outlined text-red-500 text-sm">description</span>
-                          <span className="text-xs text-on-surface-variant">{resumeName}</span>
-                          <button onClick={(e) => { e.stopPropagation(); setResumeName(""); }} className="text-xs text-on-surface-variant hover:text-error ml-2 cursor-pointer font-bold">×</button>
+                          <span className="text-xs text-on-surface-variant">{resumeFile.name}</span>
+                          <button onClick={(e) => { e.stopPropagation(); setResumeFile(null); }} className="text-xs text-on-surface-variant hover:text-error ml-2 cursor-pointer font-bold">×</button>
                         </div>
                       )}
+                      {resumeError && (
+                        <p className="mt-2 text-xs text-error">{resumeError}</p>
+                      )}
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept=".pdf,.docx"
+                        className="hidden"
+                        onChange={handleFileChange}
+                      />
                     </div>
                   </div>
                 </div>
@@ -205,7 +271,7 @@ export default function OnboardingPage() {
                       <span className="text-on-surface-variant font-medium">Uploaded Resume</span>
                       <span className="font-bold text-on-surface flex items-center gap-1">
                         <span className="material-symbols-outlined text-red-500 text-xs">description</span>
-                        {resumeName || "None"}
+                        {resumeFile?.name || "None"}
                       </span>
                     </div>
                   </div>
@@ -242,6 +308,9 @@ export default function OnboardingPage() {
                   )}
                 </button>
               </footer>
+              {uploadError && (
+                <p className="mt-4 text-xs text-error text-center">{uploadError}</p>
+              )}
             </div>
           </div>
 

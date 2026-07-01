@@ -15,13 +15,13 @@ export default function SettingsPage() {
     setVoiceEnabled,
   } = useSettingsStore();
 
-  const [fullName, setFullName] = useState("Samarth");
+  const [fullName, setFullName] = useState("User");
   const [title, setTitle] = useState("Senior Frontend Engineer");
   const [bio, setBio] = useState(
     "Passionate about building performant web applications and mastering system design. Currently focused on React ecosystems and distributed systems."
   );
-  const [linkedin, setLinkedin] = useState("linkedin.com/in/samarth");
-  const [github, setGithub] = useState("@samarth-dev");
+  const [linkedin, setLinkedin] = useState("linkedin.com/in/User");
+  const [github, setGithub] = useState("@User-dev");
   const [activeTab, setActiveTab] = useState("profile");
 
   const [persistentContext, setPersistentContext] = useState(true);
