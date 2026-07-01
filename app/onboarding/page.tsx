@@ -7,24 +7,48 @@ import { useSettingsStore } from "@/store/useSettingsStore";
 import { ROUTES } from "@/lib/utils/constants";
 
 const ALLOWED_TYPES = ["application/pdf", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"];
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
+const MAX_FILE_SIZE = 10 * 1024 * 1024;
 
 export default function OnboardingPage() {
   const router = useRouter();
-  const { targetRole, setTargetRole } = useSettingsStore();
+  const { setTargetRole } = useSettingsStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [name, setName] = useState("Alex Chen");
-  const [role, setRole] = useState(targetRole || "Software Engineer");
-  const [company, setCompany] = useState("Stanford University");
+  const [currentRole, setCurrentRole] = useState("Software Engineer");
   const [experience, setExperience] = useState("3-5 Years");
+  const [targetRole, setTargetRoleLocal] = useState("Senior Software Engineer");
+  const [githubUrl, setGithubUrl] = useState("");
+  const [linkedinUrl, setLinkedinUrl] = useState("");
+
   const [resumeFile, setResumeFile] = useState<File | null>(null);
   const [resumeError, setResumeError] = useState("");
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [parsing, setParsing] = useState(false);
+  const [parsingProgress, setParsingProgress] = useState(0);
+  const [parsed, setParsed] = useState(false);
+  const [parsedData, setParsedData] = useState<{
+    skills: string[];
+    projects: unknown[];
+    charactersExtracted: number;
+    pages: number;
+  } | null>(null);
+
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
-  const [uploadError, setUploadError] = useState("");
-
   const [step, setStep] = useState(1);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const validateUrl = (url: string): boolean => {
+    if (!url) return true;
+    try {
+      new URL(url);
+      return true;
+    } catch {
+      return false;
+    }
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setResumeError("");
@@ -46,45 +70,165 @@ export default function OnboardingPage() {
     fileInputRef.current?.click();
   };
 
-  const handleComplete = async () => {
-    setLoading(true);
-    setUploadError("");
-    setTargetRole(role);
+  const handleUploadResume = async () => {
+    if (!resumeFile) return;
+    setUploading(true);
+    setUploadProgress(0);
+    setParsing(false);
+    setParsingProgress(0);
+    setParsed(false);
+    setErrors({});
+
+    const formData = new FormData();
+    formData.append("file", resumeFile);
 
     try {
-      if (resumeFile) {
-        const formData = new FormData();
-        formData.append("name", name);
-        formData.append("role", role);
-        formData.append("company", company);
-        formData.append("experience", experience);
-        formData.append("resume", resumeFile);
+      const xhr = new XMLHttpRequest();
 
-        const res = await fetch("/api/user/onboarding", {
-          method: "POST",
-          body: formData,
+      const result = await new Promise<{
+        resumeId: string;
+        charactersExtracted: number;
+        pages: number;
+      }>((resolve, reject) => {
+        xhr.upload.addEventListener("progress", (e) => {
+          if (e.lengthComputable) {
+            const pct = Math.round((e.loaded / e.total) * 50);
+            setUploadProgress(pct);
+          }
         });
 
-        const body = await res.json();
-        if (!body.ok) {
-          throw new Error(body.error || "Upload failed");
-        }
+        xhr.addEventListener("load", () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            try {
+              const body = JSON.parse(xhr.responseText);
+              if (body.success) {
+                resolve(body);
+              } else {
+                reject(new Error(body.error || "Upload failed"));
+              }
+            } catch {
+              reject(new Error("Invalid response from server"));
+            }
+          } else {
+            try {
+              const body = JSON.parse(xhr.responseText);
+              reject(new Error(body.error || "Upload failed"));
+            } catch {
+              reject(new Error(`Upload failed with status ${xhr.status}`));
+            }
+          }
+        });
+        xhr.addEventListener("error", () => reject(new Error("Network error")));
+
+        xhr.open("POST", "/api/user/resume");
+        xhr.send(formData);
+      });
+
+      setUploadProgress(50);
+
+      setParsing(true);
+
+      const progressInterval = setInterval(() => {
+        setParsingProgress((prev) => {
+          if (prev >= 90) {
+            clearInterval(progressInterval);
+            return 90;
+          }
+          return prev + 10;
+        });
+      }, 300);
+
+      setTimeout(() => {
+        clearInterval(progressInterval);
+
+        setParsingProgress(100);
+        setParsed(true);
+        setParsedData({
+          skills: [],
+          projects: [],
+          charactersExtracted: result.charactersExtracted,
+          pages: result.pages,
+        });
+        setUploading(false);
+        setParsing(false);
+      }, 500);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Upload failed";
+      setResumeError(msg);
+      setUploading(false);
+      setParsing(false);
+    }
+  };
+
+  const validateStep1 = (): boolean => {
+    const newErrors: Record<string, string> = {};
+    if (!currentRole.trim()) newErrors.currentRole = "Current role is required";
+    if (!experience) newErrors.experience = "Experience is required";
+    if (!targetRole.trim()) newErrors.targetRole = "Target role is required";
+    if (githubUrl && !validateUrl(githubUrl)) newErrors.githubUrl = "Invalid GitHub URL";
+    if (linkedinUrl && !validateUrl(linkedinUrl)) newErrors.linkedinUrl = "Invalid LinkedIn URL";
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleNext = async () => {
+    if (step === 1) {
+      if (!validateStep1()) return;
+      setStep(2);
+    } else if (step === 2) {
+      if (!resumeFile) {
+        setErrors({ resume: "Please upload a resume" });
+        return;
+      }
+      if (!parsed) {
+        await handleUploadResume();
+      }
+      if (parsed) {
+        setStep(3);
+      }
+    }
+  };
+
+  const handleComplete = async () => {
+    setLoading(true);
+    setTargetRole(targetRole);
+
+    try {
+      const res = await fetch("/api/user/onboarding", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          currentRole,
+          experience,
+          githubUrl: githubUrl || "",
+          linkedinUrl: linkedinUrl || "",
+          targetRole,
+          preferredInterviewMode: "VOICE",
+          preferredDifficulty: "MEDIUM",
+          targetCompanies: [],
+          interviewTypes: [],
+        }),
+      });
+
+      const body = await res.json();
+      if (!body.success) {
+        throw new Error(body.message || "Onboarding failed");
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Something went wrong";
-      setUploadError(msg);
+      setErrors({ form: msg });
       setLoading(false);
       return;
     }
 
+    setLoading(false);
+    setSuccess(true);
     setTimeout(() => {
-      setLoading(false);
-      setSuccess(true);
-      setTimeout(() => {
-        router.push(ROUTES.dashboard);
-      }, 800);
-    }, 500);
+      router.push(ROUTES.dashboard);
+    }, 800);
   };
+
+  const isStep2Disabled = step === 2 && (!resumeFile || uploading || parsing || !parsed);
 
   return (
     <div className="min-h-screen bg-background text-on-surface font-body-md overflow-x-hidden flex items-center justify-center py-xxl grid-bg relative">
@@ -97,40 +241,35 @@ export default function OnboardingPage() {
 
       <main className="max-w-[1000px] w-full mx-auto px-md md:px-0 relative z-10">
         <div className="grid grid-cols-1 md:grid-cols-12 gap-xl items-center">
-          {/* Left Column: Setup Form */}
           <div className="md:col-span-7">
             <div className="bg-white p-lg md:p-xl rounded-xl shadow-2xl ai-glow border border-outline-variant/30">
-              {/* Badge */}
               <div className="inline-flex items-center gap-sm bg-primary-container/10 px-4 py-1.5 rounded-full mb-6">
                 <span className="text-lg">🧠</span>
                 <span className="font-semibold text-[11px] text-primary uppercase tracking-wider">Personalized AI Setup</span>
               </div>
-              
-              {/* Header */}
+
               <header className="mb-8">
                 <h1 className="text-2xl md:text-3xl font-extrabold text-on-surface mb-2">Let&apos;s build your interview profile.</h1>
                 <p className="text-sm text-on-surface-variant">Your AI interviewer will remember your goals, strengths, weaknesses, and progress to personalize every session.</p>
               </header>
 
-              {/* Progress Stepper */}
               <div className="flex items-center gap-md mb-8">
                 <div className="flex items-center gap-sm flex-1">
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${step >= 1 ? "bg-primary text-white" : "bg-surface-container text-on-surface-variant"}`}>1</div>
-                  <span className={`text-xs font-semibold ${step >= 1 ? "text-on-surface" : "text-on-surface-variant opacity-60"}`}>Experience</span>
+                  <span className={`text-xs font-semibold ${step >= 1 ? "text-on-surface" : "text-on-surface-variant opacity-60"}`}>Profile</span>
                 </div>
                 <div className="h-[2px] flex-1 stepper-line"></div>
                 <div className="flex items-center gap-sm flex-1">
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${step >= 2 ? "bg-primary text-white" : "bg-surface-container text-on-surface-variant opacity-60"}`}>2</div>
-                  <span className={`text-xs font-semibold ${step >= 2 ? "text-on-surface" : "text-on-surface-variant opacity-60"}`}>Goals</span>
+                  <span className={`text-xs font-semibold ${step >= 2 ? "text-on-surface" : "text-on-surface-variant opacity-60"}`}>Resume</span>
                 </div>
                 <div className="h-[2px] flex-1 stepper-line"></div>
                 <div className="flex items-center gap-sm flex-1">
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${step >= 3 ? "bg-primary text-white" : "bg-surface-container text-on-surface-variant opacity-60"}`}>3</div>
-                  <span className={`text-xs font-semibold ${step >= 3 ? "text-on-surface" : "text-on-surface-variant opacity-60"}`}>Preview</span>
+                  <span className={`text-xs font-semibold ${step >= 3 ? "text-on-surface" : "text-on-surface-variant opacity-60"}`}>Review</span>
                 </div>
               </div>
 
-              {/* Form Section */}
               {step === 1 && (
                 <div className="space-y-6">
                   <h2 className="text-xl font-bold text-on-surface">Tell us about yourself</h2>
@@ -146,24 +285,26 @@ export default function OnboardingPage() {
                       />
                     </div>
                     <div className="space-y-2">
+                      <label className="block text-xs font-bold text-on-surface-variant px-1 uppercase tracking-wider">Current Role</label>
+                      <input
+                        value={currentRole}
+                        onChange={(e) => setCurrentRole(e.target.value)}
+                        className="w-full bg-white border border-outline-variant rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                        placeholder="Software Engineer"
+                        type="text"
+                      />
+                      {errors.currentRole && <p className="text-xs text-error px-1">{errors.currentRole}</p>}
+                    </div>
+                    <div className="space-y-2">
                       <label className="block text-xs font-bold text-on-surface-variant px-1 uppercase tracking-wider">Target Role</label>
                       <input
-                        value={role}
-                        onChange={(e) => setRole(e.target.value)}
+                        value={targetRole}
+                        onChange={(e) => setTargetRoleLocal(e.target.value)}
                         className="w-full bg-white border border-outline-variant rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
                         placeholder="Senior Product Designer"
                         type="text"
                       />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="block text-xs font-bold text-on-surface-variant px-1 uppercase tracking-wider">College/Company</label>
-                      <input
-                        value={company}
-                        onChange={(e) => setCompany(e.target.value)}
-                        className="w-full bg-white border border-outline-variant rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
-                        placeholder="Stanford University"
-                        type="text"
-                      />
+                      {errors.targetRole && <p className="text-xs text-error px-1">{errors.targetRole}</p>}
                     </div>
                     <div className="space-y-2">
                       <label className="block text-xs font-bold text-on-surface-variant px-1 uppercase tracking-wider">Experience</label>
@@ -172,43 +313,35 @@ export default function OnboardingPage() {
                         onChange={(e) => setExperience(e.target.value)}
                         className="w-full bg-white border border-outline-variant rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all cursor-pointer"
                       >
+                        <option value="">Select experience</option>
                         <option>0-2 Years</option>
                         <option>3-5 Years</option>
                         <option>6-10 Years</option>
                         <option>10+ Years</option>
                       </select>
+                      {errors.experience && <p className="text-xs text-error px-1">{errors.experience}</p>}
                     </div>
-                  </div>
-
-                  {/* Resume Upload */}
-                  <div className="space-y-2">
-                    <label className="block text-xs font-bold text-on-surface-variant px-1 uppercase tracking-wider">Resume Upload</label>
-                    <div
-                      className="border-2 border-dashed border-outline-variant rounded-xl p-6 flex flex-col items-center justify-center bg-surface-container-low hover:bg-surface-container transition-colors cursor-pointer group"
-                      onClick={handleDropZoneClick}
-                    >
-                      <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-                        <span className="material-symbols-outlined text-primary">upload_file</span>
-                      </div>
-                      <p className="text-sm text-on-surface font-semibold">Click to upload or drag and drop</p>
-                      <p className="text-xs text-on-surface-variant mt-1">PDF, DOCX up to 10MB</p>
-                      {resumeFile && (
-                        <div className="mt-3 bg-white px-3 py-1.5 rounded-lg border border-outline-variant flex items-center gap-2">
-                          <span className="material-symbols-outlined text-red-500 text-sm">description</span>
-                          <span className="text-xs text-on-surface-variant">{resumeFile.name}</span>
-                          <button onClick={(e) => { e.stopPropagation(); setResumeFile(null); }} className="text-xs text-on-surface-variant hover:text-error ml-2 cursor-pointer font-bold">×</button>
-                        </div>
-                      )}
-                      {resumeError && (
-                        <p className="mt-2 text-xs text-error">{resumeError}</p>
-                      )}
+                    <div className="space-y-2">
+                      <label className="block text-xs font-bold text-on-surface-variant px-1 uppercase tracking-wider">GitHub Profile URL</label>
                       <input
-                        ref={fileInputRef}
-                        type="file"
-                        accept=".pdf,.docx"
-                        className="hidden"
-                        onChange={handleFileChange}
+                        value={githubUrl}
+                        onChange={(e) => setGithubUrl(e.target.value)}
+                        className="w-full bg-white border border-outline-variant rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                        placeholder="https://github.com/username"
+                        type="url"
                       />
+                      {errors.githubUrl && <p className="text-xs text-error px-1">{errors.githubUrl}</p>}
+                    </div>
+                    <div className="space-y-2">
+                      <label className="block text-xs font-bold text-on-surface-variant px-1 uppercase tracking-wider">LinkedIn Profile URL</label>
+                      <input
+                        value={linkedinUrl}
+                        onChange={(e) => setLinkedinUrl(e.target.value)}
+                        className="w-full bg-white border border-outline-variant rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                        placeholder="https://linkedin.com/in/username"
+                        type="url"
+                      />
+                      {errors.linkedinUrl && <p className="text-xs text-error px-1">{errors.linkedinUrl}</p>}
                     </div>
                   </div>
                 </div>
@@ -216,37 +349,79 @@ export default function OnboardingPage() {
 
               {step === 2 && (
                 <div className="space-y-6">
-                  <h2 className="text-xl font-bold text-on-surface">Choose your primary focus areas</h2>
-                  <p className="text-xs text-on-surface-variant">The AI will emphasize these aspects during your sessions.</p>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="border border-outline-variant rounded-xl p-4 flex items-start gap-3 bg-surface-container-lowest hover:border-primary transition-all cursor-pointer">
-                      <span className="material-symbols-outlined text-primary mt-0.5">code</span>
-                      <div>
-                        <p className="font-bold text-sm">Coding & Algorithms</p>
-                        <p className="text-xs text-on-surface-variant mt-0.5">LeetCode challenges, data structures, and optimization.</p>
-                      </div>
+                  <h2 className="text-xl font-bold text-on-surface">Upload your resume</h2>
+                  <p className="text-xs text-on-surface-variant">We&apos;ll parse your resume to personalize your interview questions.</p>
+
+                  <div
+                    className="border-2 border-dashed border-outline-variant rounded-xl p-6 flex flex-col items-center justify-center bg-surface-container-low hover:bg-surface-container transition-colors cursor-pointer group"
+                    onClick={handleDropZoneClick}
+                  >
+                    <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                      <span className="material-symbols-outlined text-primary">upload_file</span>
                     </div>
-                    <div className="border border-outline-variant rounded-xl p-4 flex items-start gap-3 bg-surface-container-lowest hover:border-primary transition-all cursor-pointer">
-                      <span className="material-symbols-outlined text-secondary mt-0.5">schema</span>
-                      <div>
-                        <p className="font-bold text-sm">System Design</p>
-                        <p className="text-xs text-on-surface-variant mt-0.5">Scaling systems, architecture, and API design principles.</p>
+                    <p className="text-sm text-on-surface font-semibold">Click to upload or drag and drop</p>
+                    <p className="text-xs text-on-surface-variant mt-1">PDF, DOCX up to 10MB</p>
+                    {resumeFile && (
+                      <div className="mt-3 bg-white px-3 py-1.5 rounded-lg border border-outline-variant flex items-center gap-2">
+                        <span className="material-symbols-outlined text-red-500 text-sm">description</span>
+                        <span className="text-xs text-on-surface-variant">{resumeFile.name}</span>
+                        <button onClick={(e) => { e.stopPropagation(); setResumeFile(null); setParsed(false); setParsedData(null); setUploadProgress(0); setParsingProgress(0); }} className="text-xs text-on-surface-variant hover:text-error ml-2 cursor-pointer font-bold">&times;</button>
                       </div>
-                    </div>
-                    <div className="border border-outline-variant rounded-xl p-4 flex items-start gap-3 bg-surface-container-lowest hover:border-primary transition-all cursor-pointer">
-                      <span className="material-symbols-outlined text-tertiary mt-0.5">forum</span>
-                      <div>
-                        <p className="font-bold text-sm">Behavioral Questions</p>
-                        <p className="text-xs text-on-surface-variant mt-0.5">STAR method, leadership, and company culture fit.</p>
+                    )}
+                    {resumeError && (
+                      <p className="mt-2 text-xs text-error">{resumeError}</p>
+                    )}
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept=".pdf,.docx"
+                      className="hidden"
+                      onChange={handleFileChange}
+                    />
+                  </div>
+
+                  {(uploading || parsing || parsed) && resumeFile && (
+                    <div className="space-y-3 mt-4">
+                      <div className="flex items-center justify-between text-xs font-semibold">
+                        <span className="text-on-surface-variant">
+                          {uploading ? "Uploading..." : parsing ? "Parsing with AI..." : parsed ? "Parsing complete!" : ""}
+                        </span>
+                        <span className={parsed ? "text-success-green" : "text-primary"}>
+                          {parsed ? "100%" : `${Math.min(uploadProgress + parsingProgress, 100)}%`}
+                        </span>
                       </div>
-                    </div>
-                    <div className="border border-outline-variant rounded-xl p-4 flex items-start gap-3 bg-surface-container-lowest hover:border-primary transition-all cursor-pointer">
-                      <span className="material-symbols-outlined text-success-green mt-0.5">record_voice_over</span>
-                      <div>
-                        <p className="font-bold text-sm">Communication Skills</p>
-                        <p className="text-xs text-on-surface-variant mt-0.5">Confidence, pacing, and structured speaking style.</p>
+                      <div className="h-2 w-full bg-surface-container rounded-full overflow-hidden">
+                        <div
+                          className={`h-full rounded-full shadow-[0_0_8px_rgba(30,0,169,0.4)] transition-all duration-500 ${
+                            parsed ? "bg-success-green" : "bg-primary"
+                          }`}
+                          style={{ width: `${Math.min(uploadProgress + parsingProgress, 100)}%` }}
+                        ></div>
                       </div>
+                      {parsed && parsedData && (
+                        <div className="bg-success-green/5 border border-success-green/20 rounded-lg p-4 flex items-start gap-3">
+                          <span className="material-symbols-outlined text-success-green text-sm mt-0.5">check_circle</span>
+                          <div>
+                            <p className="text-xs font-bold text-on-surface">Resume parsed successfully</p>
+                            <p className="text-xs text-on-surface-variant mt-1">
+                              {parsedData.charactersExtracted.toLocaleString()} characters extracted from {parsedData.pages} page{parsedData.pages !== 1 ? "s" : ""}
+                            </p>
+                          </div>
+                        </div>
+                      )}
                     </div>
+                  )}
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={handleUploadResume}
+                      disabled={!resumeFile || uploading || parsing}
+                      className={`px-4 py-2 rounded-lg text-xs font-bold text-white transition-all active:scale-95 cursor-pointer ${
+                        !resumeFile || uploading || parsing ? "bg-outline-variant text-on-surface-variant cursor-not-allowed" : "bg-primary shadow-primary/20 hover:bg-[#4338CA]"
+                      }`}
+                    >
+                      {parsed ? "Re-parse" : "Parse Resume"}
+                    </button>
                   </div>
                 </div>
               )}
@@ -260,25 +435,52 @@ export default function OnboardingPage() {
                       <span className="font-bold text-on-surface">{name}</span>
                     </div>
                     <div className="flex justify-between items-center pb-2 border-b border-outline-variant/30 text-sm">
+                      <span className="text-on-surface-variant font-medium">Current Role</span>
+                      <span className="font-bold text-on-surface">{currentRole}</span>
+                    </div>
+                    <div className="flex justify-between items-center pb-2 border-b border-outline-variant/30 text-sm">
                       <span className="text-on-surface-variant font-medium">Target Role</span>
-                      <span className="font-bold text-on-surface">{role}</span>
+                      <span className="font-bold text-on-surface">{targetRole}</span>
                     </div>
                     <div className="flex justify-between items-center pb-2 border-b border-outline-variant/30 text-sm">
                       <span className="text-on-surface-variant font-medium">Experience Level</span>
                       <span className="font-bold text-on-surface">{experience}</span>
                     </div>
+                    {githubUrl && (
+                      <div className="flex justify-between items-center pb-2 border-b border-outline-variant/30 text-sm">
+                        <span className="text-on-surface-variant font-medium">GitHub</span>
+                        <span className="font-bold text-on-surface text-xs truncate max-w-[180px]">{githubUrl}</span>
+                      </div>
+                    )}
+                    {linkedinUrl && (
+                      <div className="flex justify-between items-center pb-2 border-b border-outline-variant/30 text-sm">
+                        <span className="text-on-surface-variant font-medium">LinkedIn</span>
+                        <span className="font-bold text-on-surface text-xs truncate max-w-[180px]">{linkedinUrl}</span>
+                      </div>
+                    )}
                     <div className="flex justify-between items-center text-sm">
-                      <span className="text-on-surface-variant font-medium">Uploaded Resume</span>
+                      <span className="text-on-surface-variant font-medium">Resume</span>
                       <span className="font-bold text-on-surface flex items-center gap-1">
-                        <span className="material-symbols-outlined text-red-500 text-xs">description</span>
+                        <span className="material-symbols-outlined text-success-green text-xs">check_circle</span>
                         {resumeFile?.name || "None"}
                       </span>
                     </div>
+                    {parsedData && (
+                      <div className="flex justify-between items-center text-sm">
+                        <span className="text-on-surface-variant font-medium">Characters Extracted</span>
+                        <span className="font-bold text-on-surface">{parsedData.charactersExtracted.toLocaleString()}</span>
+                      </div>
+                    )}
+                    {parsedData && (
+                      <div className="flex justify-between items-center text-sm">
+                        <span className="text-on-surface-variant font-medium">Pages Parsed</span>
+                        <span className="font-bold text-on-surface">{parsedData.pages}</span>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
 
-              {/* Footer Actions */}
               <footer className="mt-8 pt-6 border-t border-outline-variant/30 flex items-center justify-between">
                 <button
                   onClick={() => step > 1 && setStep(step - 1)}
@@ -288,10 +490,14 @@ export default function OnboardingPage() {
                   Back
                 </button>
                 <button
-                  onClick={step < 3 ? () => setStep(step + 1) : handleComplete}
-                  disabled={loading || success}
+                  onClick={step < 3 ? handleNext : handleComplete}
+                  disabled={loading || success || isStep2Disabled}
                   className={`px-6 py-3 rounded-lg text-xs font-bold text-white shadow-lg transition-all active:scale-95 cursor-pointer ${
-                    success ? "bg-success-green shadow-success-green/20" : "bg-primary shadow-primary/20 hover:bg-[#4338CA]"
+                    success
+                      ? "bg-success-green shadow-success-green/20"
+                      : loading || isStep2Disabled
+                      ? "bg-outline-variant text-on-surface-variant cursor-not-allowed shadow-none"
+                      : "bg-primary shadow-primary/20 hover:bg-[#4338CA]"
                   }`}
                 >
                   {loading ? (
@@ -301,6 +507,11 @@ export default function OnboardingPage() {
                     </span>
                   ) : success ? (
                     "Success!"
+                  ) : step === 2 && !parsed && resumeFile ? (
+                    <span className="flex items-center gap-2">
+                      Parse First
+                      <span className="material-symbols-outlined text-[14px]">arrow_upward</span>
+                    </span>
                   ) : step < 3 ? (
                     "Next Step"
                   ) : (
@@ -308,22 +519,18 @@ export default function OnboardingPage() {
                   )}
                 </button>
               </footer>
-              {uploadError && (
-                <p className="mt-4 text-xs text-error text-center">{uploadError}</p>
+              {errors.form && (
+                <p className="mt-4 text-xs text-error text-center">{errors.form}</p>
               )}
             </div>
           </div>
 
-          {/* Right Column: AI Graphic Visual */}
           <div className="md:col-span-5 hidden md:block">
             <div className="relative h-[600px] flex items-center justify-center">
-              {/* Background Atmospheric Effect */}
               <div className="absolute inset-0 overflow-hidden pointer-events-none">
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-gradient-to-tr from-primary/5 via-transparent to-tertiary/5 rounded-full blur-3xl opacity-60"></div>
               </div>
-              {/* Flow Visualization */}
               <div className="relative z-10 w-full space-y-8">
-                {/* Candidate Node */}
                 <div className="flex items-center justify-center">
                   <div className="relative group">
                     <div className="w-20 h-20 rounded-full bg-white border border-outline-variant p-1 shadow-xl">
@@ -335,12 +542,10 @@ export default function OnboardingPage() {
                   </div>
                 </div>
 
-                {/* Connector Line 1 */}
                 <div className="flex justify-center -my-6">
                   <div className="h-16 w-px bg-gradient-to-b from-primary/40 to-primary/10"></div>
                 </div>
 
-                {/* AI Interview Memory Node */}
                 <div className="flex justify-center">
                   <div className="bg-white/85 backdrop-blur-md border border-primary/20 p-6 rounded-2xl shadow-xl ai-glow relative w-[260px]">
                     <div className="flex items-center gap-4">
@@ -352,7 +557,6 @@ export default function OnboardingPage() {
                         <p className="text-lg font-bold text-on-surface">Memory Agent</p>
                       </div>
                     </div>
-                    {/* Floating Data Cards */}
                     <div className="absolute -top-10 -right-12 bg-white px-3 py-1.5 rounded-xl border border-outline-variant shadow-lg flex items-center gap-2 animate-bounce">
                       <span className="material-symbols-outlined text-success-green text-sm">trending_up</span>
                       <span className="text-xs text-on-surface font-semibold">Confidence +12%</span>
@@ -368,22 +572,20 @@ export default function OnboardingPage() {
                   </div>
                 </div>
 
-                {/* Connector Line 2 */}
                 <div className="flex justify-center -my-6">
                   <div className="h-16 w-px bg-gradient-to-b from-primary/10 to-primary/40"></div>
                 </div>
 
-                {/* Progress Visualization */}
                 <div className="flex justify-center">
                   <div className="w-full max-w-[280px] bg-white/40 border border-outline-variant/30 rounded-xl p-4 backdrop-blur-sm">
                     <div className="flex justify-between items-center mb-2">
                       <span className="text-xs text-on-surface-variant font-medium">Profile Readiness</span>
-                      <span className="text-xs text-primary font-bold">{step === 1 ? "35%" : step === 2 ? "65%" : "100%"}</span>
+                      <span className="text-xs text-primary font-bold">{step === 1 ? "30%" : step === 2 ? (parsed ? "80%" : "50%") : "100%"}</span>
                     </div>
                     <div className="h-2 w-full bg-surface-container rounded-full overflow-hidden">
                       <div
                         className="h-full bg-primary rounded-full shadow-[0_0_8px_rgba(30,0,169,0.4)] transition-all duration-500"
-                        style={{ width: step === 1 ? "35%" : step === 2 ? "65%" : "100%" }}
+                        style={{ width: step === 1 ? "30%" : step === 2 ? (parsed ? "80%" : "50%") : "100%" }}
                       ></div>
                     </div>
                   </div>
