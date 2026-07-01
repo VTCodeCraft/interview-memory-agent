@@ -378,7 +378,7 @@ export default function Home() {
         <section className="py-24 px-8">
           <div className="max-w-4xl mx-auto bg-primary-fixed rounded-[32px] p-12 md:p-20 text-center border border-primary/10">
             <h2 className="text-3xl md:text-4xl font-extrabold mb-6">Ready to crack your next interview?</h2>
-            <p className="text-base md:text-lg text-on-primary-fixed-variant mb-10 max-w-xl mx-auto leading-relaxed">
+            <p className="text-base md:text-lg text-on-primary-fixed-variant mb-10 max-w-[36rem] mx-auto leading-relaxed">
               Stop practicing blindly. Start building memory with the most advanced AI preparation tool.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">

@@ -9,6 +9,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Link from "next/link";
 import { APP_NAME } from "@/constants";
+import "@fontsource-variable/material-symbols-outlined";
 import "./globals.css";
 
 const geistSans = Geist({
