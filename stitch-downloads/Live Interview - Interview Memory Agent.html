@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>InterviewAI - Live Session</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "on-primary-fixed-variant": "#3323cc",
+                      "error-red": "#ba1a1a",
+                      "tertiary-fixed": "#ffdbcc",
+                      "tertiary-fixed-dim": "#ffb694",
+                      "surface-variant": "#e4e1ee",
+                      "surface-container-highest": "#e4e1ee",
+                      "on-secondary-fixed": "#130f54",
+                      "primary-fixed": "#e2dfff",
+                      "on-tertiary-fixed-variant": "#7b2f00",
+                      "surface-tint": "#4d44e3",
+                      "surface": "#fcf8ff",
+                      "secondary-fixed": "#e2dfff",
+                      "primary-container": "#3525cd",
+                      "on-error": "#ffffff",
+                      "on-surface-muted": "#464555",
+                      "secondary-container": "#b6b4ff",
+                      "surface-bright": "#fcf8ff",
+                      "on-primary-fixed": "#0f0069",
+                      "on-error-container": "#93000a",
+                      "secondary-fixed-dim": "#c2c1ff",
+                      "on-surface-variant": "#464555",
+                      "surface-container-lowest": "#ffffff",
+                      "success-green": "#15803d",
+                      "on-surface": "#1b1b24",
+                      "primary-fixed-dim": "#c3c0ff",
+                      "on-tertiary-fixed": "#351000",
+                      "on-primary-container": "#b1afff",
+                      "inverse-primary": "#c3c0ff",
+                      "tertiary-container": "#7d3000",
+                      "error-container": "#ffdad6",
+                      "surface-container-high": "#eae6f4",
+                      "on-background": "#1b1b24",
+                      "background": "#fcf8ff",
+                      "outline-variant": "#c7c4d8",
+                      "tertiary": "#592000",
+                      "surface-container": "#f0ecf9",
+                      "surface-indigo": "#f0ecf9",
+                      "inverse-on-surface": "#f3effc",
+                      "error": "#ba1a1a",
+                      "secondary": "#58579b",
+                      "on-primary": "#ffffff",
+                      "on-secondary": "#ffffff",
+                      "surface-container-low": "#f5f2ff",
+                      "on-tertiary-container": "#ff9f72",
+                      "surface-dim": "#dcd8e5",
+                      "primary": "#1e00a9",
+                      "outline": "#777587",
+                      "on-secondary-container": "#444386",
+                      "on-secondary-fixed-variant": "#403f81",
+                      "inverse-surface": "#302f39",
+                      "on-tertiary": "#ffffff"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "xxl": "20px",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "sm": "8px",
+                      "lg": "24px",
+                      "xxl": "64px",
+                      "gutter": "24px",
+                      "md": "16px",
+                      "container-max": "1200px",
+                      "base": "4px",
+                      "xl": "32px"
+              },
+              "fontFamily": {
+                      "display": ["Inter"],
+                      "headline-md": ["Inter"],
+                      "body-lg": ["Inter"],
+                      "body-md": ["Inter"],
+                      "label-md": ["Inter"],
+                      "headline-lg-mobile": ["Inter"],
+                      "label-caps": ["Inter"],
+                      "headline-lg": ["Inter"]
+              }
+            }
+          }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .ai-glow {
+            box-shadow: 0 0 20px rgba(77, 68, 227, 0.15), 0 0 40px rgba(77, 68, 227, 0.05);
+            border: 1px solid rgba(77, 68, 227, 0.2);
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #c7c4d8;
+            border-radius: 10px;
+        }
+        @keyframes pulse-ring {
+            0% { transform: scale(.8); opacity: 0.5; }
+            80%, 100% { opacity: 0; }
+        }
+        .mic-pulse::before {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: #4d44e3;
+            animation: pulse-ring 2s cubic-bezier(0.455, 0.03, 0.515, 0.955) infinite;
+            z-index: -1;
+        }
+    </style>
+</head>
+<body class="bg-surface text-on-surface font-body-md overflow-hidden h-screen flex flex-col">
+<!-- TopNavBar (Shared Component Identity) -->
+<header class="fixed top-0 w-full z-50 bg-surface/80 backdrop-blur-md border-b border-outline-variant/30 shadow-sm px-gutter h-16 flex justify-between items-center max-w-full">
+<div class="flex items-center gap-md">
+<span class="font-headline-md text-headline-md font-bold text-primary">InterviewAI</span>
+</div>
+<div class="flex items-center gap-md bg-surface-container px-lg py-sm rounded-full border border-outline-variant/20">
+<span class="material-symbols-outlined text-primary-container" style="font-variation-settings: 'FILL' 1;">work</span>
+<span class="font-display text-body-lg font-bold text-on-surface">Amazon Frontend Interview</span>
+</div>
+<div class="flex items-center gap-md">
+<div class="flex items-center gap-sm bg-error-container/20 px-md py-sm rounded-lg border border-error-red/10">
+<span class="material-symbols-outlined text-error-red" style="font-variation-settings: 'FILL' 1;">timer</span>
+<span class="font-display text-body-lg font-bold text-error-red">00:18:42</span>
+</div>
+<button class="px-md h-10 border border-error-red text-error-red rounded-lg font-label-md hover:bg-error-red hover:text-white transition-all active:scale-95 duration-200">
+                End Interview
+            </button>
+</div>
+</header>
+<!-- Main Content Layout -->
+<main class="flex-1 mt-16 flex overflow-hidden">
+<!-- Left Sidebar: Progress (SideNavBar Logic) -->
+<aside class="w-72 bg-surface border-r border-outline-variant/30 flex flex-col p-lg gap-lg">
+<div>
+<span class="text-label-caps uppercase text-on-surface-muted block mb-sm">Current Progress</span>
+<div class="flex items-end gap-sm">
+<h3 class="font-headline-md text-headline-md text-on-surface">Question 5 of 12</h3>
+</div>
+<div class="mt-md px-md py-sm bg-surface-container-high rounded-lg inline-flex items-center gap-sm">
+<span class="w-2 h-2 rounded-full bg-tertiary-container"></span>
+<span class="font-label-md text-on-surface-muted">Difficulty: Medium</span>
+</div>
+</div>
+<nav class="flex-1 flex flex-col gap-sm">
+<!-- Introduction (Checked) -->
+<div class="flex items-center gap-md p-md text-on-surface-muted transition-all">
+<div class="w-8 h-8 rounded-full bg-success-green/10 flex items-center justify-center text-success-green">
+<span class="material-symbols-outlined text-[18px]">check_circle</span>
+</div>
+<span class="font-display text-label-md">Introduction</span>
+</div>
+<!-- JavaScript (Checked) -->
+<div class="flex items-center gap-md p-md text-on-surface-muted transition-all">
+<div class="w-8 h-8 rounded-full bg-success-green/10 flex items-center justify-center text-success-green">
+<span class="material-symbols-outlined text-[18px]">check_circle</span>
+</div>
+<span class="font-display text-label-md">JavaScript</span>
+</div>
+<!-- React (Active) -->
+<div class="flex items-center gap-md p-md bg-primary-container/10 rounded-xxl text-primary-container border border-primary-container/20">
+<div class="w-8 h-8 rounded-full bg-primary-container flex items-center justify-center text-white">
+<span class="material-symbols-outlined text-[18px]">code</span>
+</div>
+<span class="font-display text-label-md font-bold">React</span>
+</div>
+<!-- System Design (Upcoming) -->
+<div class="flex items-center gap-md p-md text-on-surface-muted opacity-60">
+<div class="w-8 h-8 rounded-full bg-surface-container-highest flex items-center justify-center">
+<span class="material-symbols-outlined text-[18px]">psychology</span>
+</div>
+<span class="font-display text-label-md">System Design</span>
+</div>
+<!-- Behavioral (Upcoming) -->
+<div class="flex items-center gap-md p-md text-on-surface-muted opacity-60">
+<div class="w-8 h-8 rounded-full bg-surface-container-highest flex items-center justify-center">
+<span class="material-symbols-outlined text-[18px]">person</span>
+</div>
+<span class="font-display text-label-md">Behavioral</span>
+</div>
+</nav>
+<div class="bg-surface-container border border-outline-variant/30 rounded-xxl p-md">
+<p class="font-label-md text-on-surface-muted italic">"Focus on the 'diffing' algorithm details for a higher score."</p>
+<p class="text-label-caps text-primary-container mt-sm">— AI Coach Tip</p>
+</div>
+</aside>
+<!-- Center Panel: Main Interview -->
+<section class="flex-1 flex flex-col bg-surface-container-low overflow-y-auto custom-scrollbar relative">
+<div class="max-w-4xl mx-auto w-full px-xxl pt-xl pb-xxl flex flex-col gap-xl">
+<!-- AI Avatar Card -->
+<div class="flex justify-center mb-md">
+<div class="relative group">
+<div class="w-24 h-24 rounded-full border-4 border-white shadow-xl overflow-hidden ai-glow">
+<img class="w-full h-full object-cover" data-alt="A portrait of a futuristic female AI persona with soft glowing blue features and professional attire, representing ARIA, the AI Interview Coach. The lighting is clean and cinematic, with a professional corporate technology aesthetic, light mode palette." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBu2xBsZayqErBrWQXSnNoUZGLIGAiPp_I-Pnws-c2JZ79W23sOBqggulu4nc27QXplOv0f3IHEtBReQz6MZlgbJIGg9Hi2phVnmi8ZuhKH4ZB1Sh3UMSMRF2I-15rx88ZvksqM1JhSB93AuC0pz4CX04P1aGeAQhSE_aZZhT15ku1JjG9F7zNYoeCDsP9XfAuU1we52KYz5MBY6XsoduTqUjT5sNQSC8MHovHVR8l6dzQv3kRjLiQQpXw0Qxx3fGFUr1Y3_r1pM5Qz"/>
+</div>
+<div class="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-white px-md py-1 rounded-full shadow-md border border-outline-variant/20 flex items-center gap-sm">
+<span class="w-2 h-2 rounded-full bg-success-green animate-pulse"></span>
+<span class="font-label-md text-on-surface font-bold">ARIA</span>
+<span class="font-label-caps text-on-surface-muted">Listening...</span>
+</div>
+</div>
+</div>
+<!-- Question Card -->
+<div class="bg-white rounded-xxl p-xl shadow-xl border border-outline-variant/30 relative overflow-hidden">
+<div class="flex justify-between items-start mb-md">
+<span class="text-label-caps text-primary bg-primary/5 px-sm py-1 rounded">Question 5 • React</span>
+<span class="text-label-caps px-md py-1 bg-tertiary-fixed text-tertiary rounded-full font-bold">MEDIUM</span>
+</div>
+<h2 class="font-headline-lg text-headline-lg text-on-surface mb-lg">
+                        Can you explain the Virtual DOM and how React uses it?
+                    </h2>
+<div class="flex gap-md">
+<div class="flex items-center gap-sm text-on-surface-muted">
+<span class="material-symbols-outlined text-[18px]">history</span>
+<span class="font-label-md">Average time: 3:00</span>
+</div>
+<div class="flex items-center gap-sm text-on-surface-muted">
+<span class="material-symbols-outlined text-[18px]">star</span>
+<span class="font-label-md">Topic: Performance</span>
+</div>
+</div>
+</div>
+<!-- Recording & Waveform -->
+<div class="flex flex-col items-center gap-lg">
+<div class="relative flex items-center justify-center">
+<button class="w-24 h-24 bg-primary text-white rounded-full flex items-center justify-center shadow-2xl mic-pulse transition-all active:scale-90 z-10">
+<span class="material-symbols-outlined text-[48px]" style="font-variation-settings: 'FILL' 1;">mic</span>
+</button>
+</div>
+<div class="w-full h-24 relative overflow-hidden rounded-xl border border-outline-variant/20 bg-surface-container/30">
+<!-- STITCH_SHADER_START:ANIMATION_10 class="absolute inset-0 w-full h-full opacity-60" -->
+<div class="absolute inset-0 w-full h-full opacity-60" style="display:block;">
+<canvas id="shader-canvas-ANIMATION_10" style="display:block;width:100%;height:100%"></canvas>
+<script>
+(function() {
+  const canvas = document.getElementById('shader-canvas-ANIMATION_10');
+
+  // Sync the WebGL drawing-buffer size with the CSS-driven layout size.
+  // This fires on initial layout and whenever the element is resized.
+  function syncSize() {
+    const w = canvas.clientWidth  || 1280;
+    const h = canvas.clientHeight || 720;
+    if (canvas.width !== w || canvas.height !== h) {
+      canvas.width  = w;
+      canvas.height = h;
+    }
+  }
+  if (typeof ResizeObserver !== 'undefined') {
+    new ResizeObserver(syncSize).observe(canvas);
+  }
+  syncSize();
+
+  const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+  if (!gl) return;
+  const vs = `attribute vec2 a_position;
+varying vec2 v_texCoord;
+void main() {
+  v_texCoord = a_position * 0.5 + 0.5;
+  gl_Position = vec4(a_position, 0.0, 1.0);
+}`;
+  const fs = `precision highp float;
+varying vec2 v_texCoord;
+uniform float u_time;
+uniform vec2 u_resolution;
+
+void main() {
+    vec2 uv = v_texCoord;
+    float wave = sin(uv.x * 10.0 + u_time * 2.0) * 0.1;
+    float dist = abs(uv.y - (0.5 + wave));
+    float alpha = smoothstep(0.02, 0.0, dist) * 0.8;
+    
+    // Indigo-inspired waveform color
+    vec3 color = vec3(0.31, 0.27, 0.90); 
+    
+    gl_FragColor = vec4(color, alpha * (1.0 - uv.x));
+}`;
+  function cs(type, src) {
+    const s = gl.createShader(type);
+    gl.shaderSource(s, src);
+    gl.compileShader(s);
+    return s;
+  }
+  const prog = gl.createProgram();
+  gl.attachShader(prog, cs(gl.VERTEX_SHADER, vs));
+  gl.attachShader(prog, cs(gl.FRAGMENT_SHADER, fs));
+  gl.linkProgram(prog);
+  gl.useProgram(prog);
+  const buf = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW);
+  const pos = gl.getAttribLocation(prog, 'a_position');
+  gl.enableVertexAttribArray(pos);
+  gl.vertexAttribPointer(pos, 2, gl.FLOAT, false, 0, 0);
+  const uTime = gl.getUniformLocation(prog, 'u_time');
+  const uRes = gl.getUniformLocation(prog, 'u_resolution');
+  const uMouse = gl.getUniformLocation(prog, 'u_mouse');
+
+  // u_mouse is in pixel coordinates matching u_resolution (ShaderToy convention).
+  // Shaders that need normalized coords should use: u_mouse / u_resolution.
+  let mouse = { x: canvas.width / 2, y: canvas.height / 2 };
+  window.addEventListener('mousemove', (event) => {
+    const rect = canvas.getBoundingClientRect();
+    if (rect.width && rect.height) {
+      const nx = (event.clientX - rect.left) / rect.width;
+      const ny = 1.0 - (event.clientY - rect.top) / rect.height;
+      mouse.x = nx * canvas.width;
+      mouse.y = ny * canvas.height;
+    }
+  });
+
+  function render(t) {
+    if (typeof ResizeObserver === 'undefined') syncSize();
+    gl.viewport(0, 0, canvas.width, canvas.height);
+    if (uTime) gl.uniform1f(uTime, t * 0.001);
+    if (uRes) gl.uniform2f(uRes, canvas.width, canvas.height);
+    if (uMouse) gl.uniform2f(uMouse, mouse.x, mouse.y);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    requestAnimationFrame(render);
+  }
+  render(0);
+})();
+</script>
+</div>
+<!-- STITCH_SHADER_END:ANIMATION_10 -->
+</div>
+</div>
+<!-- Transcript Area -->
+<div class="bg-surface-container/50 border border-outline-variant/20 rounded-xxl p-lg">
+<span class="text-label-caps text-on-surface-muted block mb-md uppercase tracking-widest">Real-time Transcript</span>
+<div class="font-body-lg text-body-lg text-on-surface leading-relaxed">
+<span class="text-primary-container font-bold">You:</span> "I think <span class="bg-primary/5 text-primary border-b border-primary/20">Virtual DOM</span> is a lightweight copy of the actual DOM, which React uses to optimize updates by comparing the new state with the previous state before rendering to the real browser DOM..."
+                        <span class="inline-block w-1 h-5 bg-primary animate-pulse ml-1 align-middle"></span>
+</div>
+</div>
+</div>
+<!-- Floating Bottom Control Bar -->
+<div class="sticky bottom-md left-0 right-0 px-xxl pb-lg pointer-events-none">
+<div class="max-w-xl mx-auto bg-white/90 backdrop-blur-xl border border-outline-variant/30 rounded-xxl shadow-2xl p-sm flex items-center justify-between gap-md pointer-events-auto">
+<div class="flex gap-sm">
+<button class="w-12 h-12 flex items-center justify-center rounded-xl hover:bg-surface-variant transition-all active:scale-95 text-on-surface-muted">
+<span class="material-symbols-outlined">pause</span>
+</button>
+<button class="w-12 h-12 flex items-center justify-center rounded-xl hover:bg-surface-variant transition-all active:scale-95 text-on-surface-muted">
+<span class="material-symbols-outlined">skip_next</span>
+</button>
+</div>
+<button class="flex-1 h-12 bg-white border border-outline-variant text-on-surface-muted rounded-xl font-label-md hover:bg-surface-variant transition-all active:scale-95 flex items-center justify-center gap-sm">
+<span class="material-symbols-outlined text-[20px]">lightbulb</span>
+                        Ask Hint
+                    </button>
+<button class="flex-1 h-12 bg-primary text-white rounded-xl font-display text-label-md font-bold hover:shadow-lg hover:shadow-primary/20 transition-all active:scale-95 flex items-center justify-center gap-sm">
+                        Next Question
+                        <span class="material-symbols-outlined text-[20px]">arrow_forward</span>
+</button>
+</div>
+</div>
+</section>
+<!-- Right Sidebar: AI Insights -->
+<aside class="w-80 bg-surface border-l border-outline-variant/30 flex flex-col p-lg gap-lg overflow-y-auto custom-scrollbar">
+<!-- AI Memory Card -->
+<div class="bg-white border border-outline-variant/30 rounded-xxl p-md shadow-sm">
+<div class="flex items-center gap-sm mb-md">
+<span class="material-symbols-outlined text-primary-container" style="font-variation-settings: 'FILL' 1;">neurology</span>
+<span class="text-label-caps font-bold">AI MEMORY PROFILE</span>
+</div>
+<div class="flex flex-col gap-sm">
+<div class="flex justify-between items-center bg-success-green/5 p-sm rounded-lg">
+<span class="font-label-md text-on-surface">Strong in React</span>
+<span class="material-symbols-outlined text-success-green text-[16px]">trending_up</span>
+</div>
+<div class="flex justify-between items-center bg-error-red/5 p-sm rounded-lg">
+<span class="font-label-md text-on-surface">Weak in DP</span>
+<span class="material-symbols-outlined text-error-red text-[16px]">trending_down</span>
+</div>
+<div class="flex justify-between items-center bg-primary/5 p-sm rounded-lg">
+<span class="font-label-md text-on-surface">Confidence improving</span>
+<span class="material-symbols-outlined text-primary text-[16px]">bolt</span>
+</div>
+</div>
+</div>
+<!-- Real-Time Insights -->
+<div class="flex flex-col gap-md">
+<span class="text-label-caps text-on-surface-muted">Live Feedback</span>
+<div class="flex flex-col gap-sm">
+<div class="flex gap-md p-md bg-white border-l-4 border-success-green rounded-r-xl shadow-sm">
+<span class="material-symbols-outlined text-success-green">check_circle</span>
+<div>
+<p class="font-label-md font-bold text-on-surface">Good explanation</p>
+<p class="text-[11px] text-on-surface-muted mt-1">Concise and clear technical vocabulary used.</p>
+</div>
+</div>
+<div class="flex gap-md p-md bg-white border-l-4 border-tertiary-container rounded-r-xl shadow-sm">
+<span class="material-symbols-outlined text-tertiary-container">warning</span>
+<div>
+<p class="font-label-md font-bold text-on-surface">Missed edge cases</p>
+<p class="text-[11px] text-on-surface-muted mt-1">Mention how keys help in list reconciliation.</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Confidence Meter -->
+<div class="bg-white border border-outline-variant/30 rounded-xxl p-lg shadow-sm flex flex-col items-center gap-md">
+<span class="text-label-caps text-on-surface-muted">CURRENT CONFIDENCE</span>
+<div class="relative w-32 h-32 flex items-center justify-center">
+<svg class="w-full h-full -rotate-90">
+<circle class="text-surface-container-highest" cx="64" cy="64" fill="transparent" r="58" stroke="currentColor" stroke-width="8"></circle>
+<circle class="text-primary transition-all duration-1000" cx="64" cy="64" fill="transparent" r="58" stroke="currentColor" stroke-dasharray="364.4" stroke-dashoffset="80.1" stroke-linecap="round" stroke-width="8"></circle>
+</svg>
+<div class="absolute inset-0 flex flex-col items-center justify-center">
+<span class="font-display text-headline-lg text-on-surface">78%</span>
+<span class="text-[10px] text-success-green font-bold">+6% TREND</span>
+</div>
+</div>
+<p class="text-center font-label-md text-on-surface-muted">Steady improvement from previous module.</p>
+</div>
+<!-- Interview Stats -->
+<div class="flex flex-col gap-sm">
+<div class="flex justify-between items-center p-md bg-surface-container/30 rounded-xl">
+<span class="font-label-md text-on-surface-muted">Speaking Time</span>
+<span class="font-display text-label-md font-bold">4:30</span>
+</div>
+<div class="flex justify-between items-center p-md bg-surface-container/30 rounded-xl">
+<span class="font-label-md text-on-surface-muted">Completed</span>
+<span class="font-display text-label-md font-bold">5 / 12</span>
+</div>
+</div>
+</aside>
+</main>
+<!-- Mobile Warning (Basic) -->
+<div class="md:hidden fixed inset-0 bg-primary z-[100] flex flex-col items-center justify-center p-xl text-center text-white">
+<span class="material-symbols-outlined text-[64px] mb-lg">desktop_windows</span>
+<h2 class="font-headline-lg-mobile text-headline-lg-mobile mb-md">Desktop Only Interface</h2>
+<p class="font-body-lg">For the best live interview experience, please use a desktop browser.</p>
+</div>
+<script>
+        // Simple micro-interaction for the next question button hover
+        const nextBtn = document.querySelector('.bg-primary');
+        if(nextBtn) {
+            nextBtn.addEventListener('mouseenter', () => {
+                const icon = nextBtn.querySelector('.material-symbols-outlined');
+                icon.style.transform = 'translateX(4px)';
+            });
+            nextBtn.addEventListener('mouseleave', () => {
+                const icon = nextBtn.querySelector('.material-symbols-outlined');
+                icon.style.transform = 'translateX(0px)';
+            });
+        }
+
+        // Simulating transcript auto-scroll if it were longer
+        const transcriptArea = document.querySelector('.overflow-y-auto');
+        if(transcriptArea) {
+            transcriptArea.scrollTop = transcriptArea.scrollHeight;
+        }
+    </script>
+</body></html>

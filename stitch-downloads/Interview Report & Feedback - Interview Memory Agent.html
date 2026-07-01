@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Interview Report - Interview Memory Agent</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        .glass-nav { backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+        .ai-glow { box-shadow: 0 0 20px rgba(30, 0, 169, 0.05), inset 0 0 10px rgba(30, 0, 169, 0.02); border: 1px solid rgba(199, 196, 216, 0.3); }
+        .progress-ring { transition: stroke-dashoffset 0.35s; transform: rotate(-90deg); transform-origin: 50% 50%; }
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #c7c4d8; border-radius: 10px; }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "tertiary-container": "#7d3000",
+                        "secondary-fixed": "#e2dfff",
+                        "on-secondary-fixed": "#130f54",
+                        "on-surface-variant": "#464555",
+                        "secondary-fixed-dim": "#c2c1ff",
+                        "on-error": "#ffffff",
+                        "error-container": "#ffdad6",
+                        "outline-variant": "#c7c4d8",
+                        "primary-fixed-dim": "#c3c0ff",
+                        "primary": "#1e00a9",
+                        "surface-indigo": "#f0ecf9",
+                        "surface": "#fcf8ff",
+                        "surface-bright": "#fcf8ff",
+                        "inverse-surface": "#302f39",
+                        "outline": "#777587",
+                        "on-tertiary-container": "#ff9f72",
+                        "surface-container-high": "#eae6f4",
+                        "inverse-primary": "#c3c0ff",
+                        "tertiary-fixed": "#ffdbcc",
+                        "on-background": "#1b1b24",
+                        "error": "#ba1a1a",
+                        "surface-container-low": "#f5f2ff",
+                        "on-tertiary": "#ffffff",
+                        "on-surface": "#1b1b24",
+                        "on-error-container": "#93000a",
+                        "surface-dim": "#dcd8e5",
+                        "surface-tint": "#4d44e3",
+                        "on-secondary-fixed-variant": "#403f81",
+                        "on-secondary": "#ffffff",
+                        "on-primary": "#ffffff",
+                        "tertiary-fixed-dim": "#ffb694",
+                        "surface-container-lowest": "#ffffff",
+                        "on-secondary-container": "#444386",
+                        "error-red": "#ba1a1a",
+                        "on-primary-fixed-variant": "#3323cc",
+                        "primary-fixed": "#e2dfff",
+                        "on-primary-fixed": "#0f0069",
+                        "primary-container": "#3525cd",
+                        "inverse-on-surface": "#f3effc",
+                        "secondary-container": "#b6b4ff",
+                        "surface-variant": "#e4e1ee",
+                        "on-tertiary-fixed": "#351000",
+                        "background": "#fcf8ff",
+                        "on-tertiary-fixed-variant": "#7b2f00",
+                        "tertiary": "#592000",
+                        "surface-container": "#f0ecf9",
+                        "surface-container-highest": "#e4e1ee",
+                        "success-green": "#15803d",
+                        "secondary": "#58579b",
+                        "on-primary-container": "#b1afff",
+                        "on-surface-muted": "#464555"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "2xl": "20px",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "sm": "8px",
+                        "md": "16px",
+                        "container-max": "1200px",
+                        "lg": "24px",
+                        "gutter": "24px",
+                        "xxl": "64px",
+                        "xl": "32px",
+                        "base": "4px"
+                    },
+                    "fontFamily": {
+                        "label-md": ["Inter"],
+                        "label-caps": ["Inter"],
+                        "headline-lg": ["Inter"],
+                        "headline-md": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "body-md": ["Inter"]
+                    },
+                    "fontSize": {
+                        "label-md": ["12px", {"lineHeight": "1", "letterSpacing": "0.02em", "fontWeight": "500"}],
+                        "label-caps": ["11px", {"lineHeight": "1", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                        "headline-lg": ["32px", {"lineHeight": "1.2", "letterSpacing": "-0.03em", "fontWeight": "700"}],
+                        "headline-md": ["20px", {"lineHeight": "1.4", "letterSpacing": "-0.02em", "fontWeight": "600"}],
+                        "body-lg": ["16px", {"lineHeight": "1.6", "letterSpacing": "-0.01em", "fontWeight": "400"}],
+                        "body-md": ["14px", {"lineHeight": "1.5", "letterSpacing": "0", "fontWeight": "400"}]
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-background text-on-surface selection:bg-primary-fixed">
+<!-- Top Navigation Bar -->
+<nav class="fixed top-0 w-full z-50 flex justify-between items-center px-lg h-16 max-w-container-max mx-auto bg-surface/80 backdrop-blur-md shadow-sm border-b border-outline-variant/20">
+<div class="flex items-center gap-xl">
+<span class="font-headline-md text-headline-md font-bold text-primary">Interview Memory Agent</span>
+<div class="hidden md:flex gap-md items-center">
+<a class="text-on-surface-variant font-medium hover:text-primary transition-colors duration-200" href="#">Dashboard</a>
+<a class="text-primary font-bold border-b-2 border-primary pb-1" href="#">Sessions</a>
+<a class="text-on-surface-variant font-medium hover:text-primary transition-colors duration-200" href="#">Resources</a>
+<a class="text-on-surface-variant font-medium hover:text-primary transition-colors duration-200" href="#">Performance</a>
+</div>
+</div>
+<div class="flex items-center gap-md">
+<button class="bg-primary text-on-primary px-md py-sm rounded-lg font-body-md active:scale-95 transition-transform">Schedule Mock</button>
+<div class="flex gap-sm">
+<span class="material-symbols-outlined text-on-surface-variant cursor-pointer hover:text-primary">notifications</span>
+</div></div></nav></body></html>

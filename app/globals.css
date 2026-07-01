@@ -1,26 +1,135 @@
+@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap');
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #fcf8ff;
+  --foreground: #1b1b24;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+@theme {
+  /* Stitch Design System Color Palette */
+  --color-on-tertiary: #ffffff;
+  --color-surface: #fcf8ff;
+  --color-on-tertiary-container: #ffd2be;
+  --color-on-primary-fixed-variant: #3323cc;
+  --color-on-primary-fixed: #0f0069;
+  --color-surface-bright: #fcf8ff;
+  --color-inverse-primary: #c3c0ff;
+  --color-on-primary: #ffffff;
+  --color-outline-variant: #c7c4d8;
+  --color-secondary-fixed: #e2dfff;
+  --color-secondary-container: #b6b4ff;
+  --color-surface-variant: #e4e1ee;
+  --color-on-tertiary-fixed: #351000;
+  --color-on-tertiary-fixed-variant: #7b2f00;
+  --color-secondary: #58579b;
+  --color-error: #ba1a1a;
+  --color-error-red: #ba1a1a;
+  --color-outline: #777587;
+  --color-error-container: #ffdad6;
+  --color-surface-container-high: #eae6f4;
+  --color-inverse-surface: #302f39;
+  --color-surface-dim: #dcd8e5;
+  --color-primary-fixed: #e2dfff;
+  --color-secondary-fixed-dim: #c3c0ff;
+  --color-inverse-on-surface: #f3effc;
+  --color-surface-tint: #4d44e3;
+  --color-tertiary-fixed-dim: #ffb695;
+  --color-on-secondary-container: #454386;
+  --color-on-secondary-fixed-variant: #413f82;
+  --color-on-primary-container: #dad7ff;
+  --color-on-secondary: #ffffff;
+  --color-surface-container-highest: #e4e1ee;
+  --color-tertiary-fixed: #ffdbcc;
+  --color-on-error-container: #93000a;
+  --color-background: #fcf8ff;
+  --color-surface-container: #f0ecf9;
+  --color-on-surface: #1b1b24;
+  --color-on-surface-variant: #464555;
+  --color-on-surface-muted: #464555;
+  --color-primary-container: #4f46e5;
+  --color-on-secondary-fixed: #140f54;
+  --color-surface-container-low: #f5f2ff;
+  --color-primary: #3525cd;
+  --color-on-error: #ffffff;
+  --color-surface-container-lowest: #ffffff;
+  --color-tertiary-container: #a44100;
+  --color-on-background: #1b1b24;
+  --color-tertiary: #7e3000;
+  --color-primary-fixed-dim: #c3c0ff;
+  --color-success-green: #15803d;
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  /* Border Radii */
+  --radius-DEFAULT: 0.25rem;
+  --radius-lg: 0.5rem;
+  --radius-xl: 0.75rem;
+  --radius-xxl: 20px;
+  --radius-full: 9999px;
+
+  /* Spacings */
+  --spacing-gutter: 24px;
+  --spacing-base: 4px;
+  --spacing-md: 16px;
+  --spacing-container-max: 1200px;
+  --spacing-xxl: 64px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-background);
+  color: var(--color-on-surface);
+  font-family: 'Inter', sans-serif;
+}
+
+/* Custom visual utilities from Stitch */
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  display: inline-block;
+  line-height: 1;
+}
+
+.grid-bg {
+  background-image: radial-gradient(#E2E8F0 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+.ai-glow {
+  box-shadow: 0 0 20px rgba(77, 68, 227, 0.15), 0 0 40px rgba(77, 68, 227, 0.05);
+  border: 1px solid rgba(77, 68, 227, 0.2);
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.stepper-line {
+  background: repeating-linear-gradient(90deg, #c7c4d8 0, #c7c4d8 4px, transparent 4px, transparent 8px);
+}
+
+.stepper-line-active {
+  background: #3525cd;
+}
+
+@keyframes pulse-ring {
+  0% { transform: scale(.8); opacity: 0.5; }
+  80%, 100% { opacity: 0; }
+}
+
+.mic-pulse::before {
+  content: '';
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: #4d44e3;
+  animation: pulse-ring 2s cubic-bezier(0.455, 0.03, 0.515, 0.955) infinite;
+  z-index: -1;
 }
