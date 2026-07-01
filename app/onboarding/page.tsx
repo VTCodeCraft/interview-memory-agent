@@ -56,7 +56,7 @@ export default function OnboardingPage() {
               {/* Header */}
               <header className="mb-8">
                 <h1 className="text-2xl md:text-3xl font-extrabold text-on-surface mb-2">Let&apos;s build your interview profile.</h1>
-                <p className="text-sm text-on-surface-variant max-w-lg">Your AI interviewer will remember your goals, strengths, weaknesses, and progress to personalize every session.</p>
+                <p className="text-sm text-on-surface-variant">Your AI interviewer will remember your goals, strengths, weaknesses, and progress to personalize every session.</p>
               </header>
 
               {/* Progress Stepper */}
