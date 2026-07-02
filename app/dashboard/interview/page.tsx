@@ -9,6 +9,7 @@ import { useInterviewStore } from "@/store/useInterviewStore";
 import { useSettingsStore } from "@/store/useSettingsStore";
 import { ROUTES } from "@/lib/utils/constants";
 import { nowISO } from "@/lib/utils";
+import Sidebar from "@/components/common/Sidebar";
 
 export default function InterviewPage() {
   const router = useRouter();
@@ -78,40 +79,12 @@ export default function InterviewPage() {
   // State 1: Setup Screen
   if (!current) {
     return (
-      <div className="min-h-screen bg-background text-on-surface font-body-md flex flex-col">
-        {/* TopNavBar */}
-        <nav className="fixed top-0 w-full z-50 bg-surface/80 backdrop-blur-md border-b border-outline-variant/30 shadow-sm">
-          <div className="flex justify-between items-center h-16 px-gutter max-w-container-max mx-auto">
-            <div className="flex items-center gap-xl">
-              <Link href={ROUTES.home} className="font-headline-md text-headline-md font-bold text-primary hover:opacity-85 transition-opacity">
-                Interview Memory Agent
-              </Link>
-              <div className="hidden md:flex items-center gap-lg text-sm font-semibold">
-                <Link className="text-on-surface-variant hover:text-primary transition-colors" href={ROUTES.dashboard}>Dashboard</Link>
-                <Link className="text-primary border-b-2 border-primary pb-1" href={ROUTES.interview}>Practice</Link>
-                <Link className="text-on-surface-variant hover:text-primary transition-colors" href={ROUTES.memory}>Memory Bank</Link>
-              </div>
-            </div>
-            <div className="flex items-center gap-md">
-              <button className="p-1.5 active:scale-95 transition-transform text-on-surface-variant hover:text-primary cursor-pointer">
-                <span className="material-symbols-outlined">notifications</span>
-              </button>
-              <button onClick={() => router.push(ROUTES.settings)} className="p-1.5 active:scale-95 transition-transform text-on-surface-variant hover:text-primary cursor-pointer">
-                <span className="material-symbols-outlined">settings</span>
-              </button>
-              <div className="w-8 h-8 rounded-full bg-primary-container overflow-hidden border border-outline-variant/30">
-                <img
-                  className="w-full h-full object-cover"
-                  alt="Avatar"
-                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuBu2xcTJEgh6AeExYKNVFDMOSh0Knu6LiRMsLDoz4vAvwajF27spYC3JauQygEccryBsB30Pq8qym7M-NMJGPcmoyZvfFqhKNJ3qoU0KNaCBZLkuOUmX12eJjWsKjkkkBi8GRNWC0BkYALt2RRLw36A5r1ZIhSPLsUibRXQzQV1Ag6MnhI-Nimz6RVF0buLAXowvM64TtjgbIWGm3hgPLBtuK9iCwZtBhJkLrAChsx0JecwCh95QWWQSeXRbDgF9sK3M5iCIdi6gxGN"
-                />
-              </div>
-            </div>
-          </div>
-        </nav>
+      <div className="min-h-screen bg-background text-on-surface font-body-md flex">
+        <Sidebar currentRole={targetRole || "Software Engineer"} />
 
-        {/* Main Content */}
-        <main className="pt-24 pb-xxl px-gutter max-w-container-max mx-auto w-full flex-1">
+        {/* Main Content Area */}
+        <main className="ml-64 p-gutter w-full min-h-screen flex-1">
+          <div className="max-w-[1000px] mx-auto space-y-lg pb-xxl pt-6">
           {/* Header Section */}
           <header className="mb-8 max-w-3xl">
             <div className="inline-flex items-center gap-sm px-4 py-1.5 bg-primary-fixed text-primary rounded-full mb-4">
@@ -403,6 +376,7 @@ export default function InterviewPage() {
               </aside>
             </div>
           )}
+          </div>
         </main>
       </div>
     );
