@@ -279,7 +279,7 @@ export default function OnboardingPage() {
                         value={name}
                         onChange={(e) => setName(e.target.value)}
                         className="w-full bg-white border border-outline-variant rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
-                        placeholder="Alex Chen"
+                        placeholder="Your full name"
                         type="text"
                       />
                     </div>
@@ -289,7 +289,7 @@ export default function OnboardingPage() {
                         value={targetRole}
                         onChange={(e) => setTargetRoleLocal(e.target.value)}
                         className="w-full bg-white border border-outline-variant rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
-                        placeholder="Senior Product Designer"
+                        placeholder="Target role you are applying for"
                         type="text"
                       />
                       {errors.targetRole && <p className="text-xs text-error px-1">{errors.targetRole}</p>}

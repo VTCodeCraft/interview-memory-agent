@@ -142,7 +142,7 @@ export default function InterviewPage() {
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-md">
                     {[
                       { name: "Google", img: "https://lh3.googleusercontent.com/aida-public/AB6AXuAHd03qbHU9dbgp39H6WDgKD5T_7tdGlxXd8QIUAa0gyjXutubiI6HEBNggcW6KsdiOKPbdbXOX3EhPNfpBwV5v0gmGnysm6FBXauQdWEuziniCsWQcBk0WjceT104E3Svao_gJfAF6c0Env6lVXdGBol00_j5DFYCTyAnMTuD69FMn6GHx0Qg3Niw9lvL15pte7mXJVXPyUG8Cj8eWCuXv8jvhj_JYfJs2ni4adoDC23wMsgSRDx9XgSDJvkJw3nvhz0TSdUECY5k-" },
-                      { name: "JOB", img: "https://lh3.googleusercontent.com/aida-public/AB6AXuDe8SdbCc6hE5czm0Zl9Q1jX7Pnbcqc5_ICuKVGstP0t4hD9W-CddB2CjGl3W5hSJugWhKsA-GoafoRu4CtJzwQ-EFeq2oKBDnF4TDXrYiH_MEITTOuFPqkzXlRIpGCWYiXFJB_sSw2QgWqi2vH4JYDqhTdsnVS0Wu7g6yu3giO7jtr-QMVuldF5u2pTeBI2XkH__n26JtUdH4HZORgqCYOSyGIBaw8k8XKayAzKGZ7-hTB-Hh_b7S3TdpfH2F3S-6iZ28ik3JQBiWE" },
+                      { name: "Amazon", img: "https://lh3.googleusercontent.com/aida-public/AB6AXuDe8SdbCc6hE5czm0Zl9Q1jX7Pnbcqc5_ICuKVGstP0t4hD9W-CddB2CjGl3W5hSJugWhKsA-GoafoRu4CtJzwQ-EFeq2oKBDnF4TDXrYiH_MEITTOuFPqkzXlRIpGCWYiXFJB_sSw2QgWqi2vH4JYDqhTdsnVS0Wu7g6yu3giO7jtr-QMVuldF5u2pTeBI2XkH__n26JtUdH4HZORgqCYOSyGIBaw8k8XKayAzKGZ7-hTB-Hh_b7S3TdpfH2F3S-6iZ28ik3JQBiWE" },
                       { name: "Microsoft", img: "https://lh3.googleusercontent.com/aida-public/AB6AXuC4ArhNs57j4rd-RkKXnZZK4HEt_tBXjjsX-_tp4I6gwgW-4g5s_lcsW3HrqnocX_uErn1aceQmbsbZuIYevG0u_iXXpyMFsLVDsu-EIT7fs8l8fgH50IzM9LP812eckX2f6InaloVTO4_s2P3Irzr4zfEMZSF0ukZmZTh1voNwON3xT8P2c4JHzD8PXa-SdCEaJfOEv8_tpAldT519MpB0MA3XOv1pfF9PtQSGiLFUPQ_ytvmtiu1WKeAdAIRLWGVaK2p3_zixFjYP" }
                     ].map((comp) => {
                       const isSelected = selectedCompany === comp.name;
