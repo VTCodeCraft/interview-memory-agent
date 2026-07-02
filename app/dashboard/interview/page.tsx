@@ -419,20 +419,12 @@ export default function InterviewPage() {
                           <p className="text-sm font-bold text-on-surface">{profileData?.user?.fullName || "Not Provided"}</p>
                         </div>
                         <div>
-                          <p className="text-xs text-on-surface-variant font-semibold">Current Role</p>
-                          <p className="text-sm font-bold text-on-surface">{profileData?.profile?.experience || "Not Provided"}</p>
-                        </div>
-                        <div>
                           <p className="text-xs text-on-surface-variant font-semibold">Experience</p>
                           <p className="text-sm font-bold text-on-surface">{profileData?.profile?.experience || "Not Provided"}</p>
                         </div>
                         <div>
                           <p className="text-xs text-on-surface-variant font-semibold">Target Role</p>
                           <p className="text-sm font-bold text-on-surface">{profileData?.profile?.targetRole || "Not Provided"}</p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-on-surface-variant font-semibold">Resume Name</p>
-                          <p className="text-sm font-bold text-on-surface">{profileData?.latestResume?.originalFileName || "No Resume Uploaded"}</p>
                         </div>
                         <div className="flex gap-4 pt-2">
                           {profileData?.profile?.githubUrl ? (
