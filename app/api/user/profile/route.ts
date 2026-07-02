@@ -4,11 +4,21 @@ import { requireUserId, AuthError } from "@/services/auth.service";
 import { getFullProfile, updateProfile } from "@/services/user.service";
 import { profileUpdateSchema } from "@/lib/validations/profile";
 import { success, failure, unauthorized, handleZodError } from "@/lib/utils/api";
+import { prisma } from "@/lib/db";
 
 export async function GET() {
   try {
     const clerkId = await requireUserId();
-    const profile = await getFullProfile(clerkId);
+    const user = await prisma.user.findUnique({
+      where: { clerkId },
+      select: { id: true },
+    });
+
+    if (!user) {
+      return failure("User not found", 404);
+    }
+
+    const profile = await getFullProfile(user.id);
 
     if (!profile) {
       return failure("User not found", 404);
@@ -41,6 +51,15 @@ export async function PATCH(request: NextRequest) {
   try {
     const clerkId = await requireUserId();
 
+    const user = await prisma.user.findUnique({
+      where: { clerkId },
+      select: { id: true },
+    });
+
+    if (!user) {
+      return failure("User not found", 404);
+    }
+
     const body = await request.json();
     const parsed = profileUpdateSchema.safeParse(body);
 
@@ -52,7 +71,7 @@ export async function PATCH(request: NextRequest) {
       return failure("No fields to update", 400);
     }
 
-    const profile = await updateProfile(clerkId, parsed.data);
+    const profile = await updateProfile(user.id, parsed.data);
 
     return success({ profile });
   } catch (reason) {

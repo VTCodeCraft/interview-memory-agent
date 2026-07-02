@@ -1,13 +1,18 @@
 import { NextRequest } from "next/server";
 
-import { requireUserId, AuthError } from "@/services/auth.service";
+import { AuthError } from "@/services/auth.service";
+import { syncCurrentClerkUserToDatabase } from "@/lib/auth/sync-user";
 import { upsertProfile } from "@/services/user.service";
 import { onboardingSchema } from "@/lib/validations/onboarding";
 import { success, failure, unauthorized, handleZodError } from "@/lib/utils/api";
 
 export async function POST(request: NextRequest) {
   try {
-    const clerkId = await requireUserId();
+    const user = await syncCurrentClerkUserToDatabase();
+
+    if (!user) {
+      return unauthorized();
+    }
 
     const body = await request.json();
     const parsed = onboardingSchema.safeParse(body);
@@ -16,7 +21,7 @@ export async function POST(request: NextRequest) {
       return handleZodError(parsed.error);
     }
 
-    const profile = await upsertProfile(clerkId, parsed.data);
+    const profile = await upsertProfile(user.id, parsed.data);
 
     return success({ profile });
   } catch (reason) {

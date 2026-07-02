@@ -4,10 +4,19 @@ import { requireUserId, AuthError } from "@/services/auth.service";
 import { saveJobDescription } from "@/services/jobDescription.service";
 import { jobDescriptionUploadSchema } from "@/lib/validations/job-description";
 import { success, failure, unauthorized, handleZodError } from "@/lib/utils/api";
+import { prisma } from "@/lib/db";
 
 export async function POST(request: NextRequest) {
   try {
     const clerkId = await requireUserId();
+    const user = await prisma.user.findUnique({
+      where: { clerkId },
+      select: { id: true },
+    });
+
+    if (!user) {
+      return failure("User not found", 404);
+    }
 
     const body = await request.json();
     const parsed = jobDescriptionUploadSchema.safeParse(body);
@@ -16,7 +25,7 @@ export async function POST(request: NextRequest) {
       return handleZodError(parsed.error);
     }
 
-    const jobDescription = await saveJobDescription(clerkId, parsed.data);
+    const jobDescription = await saveJobDescription(user.id, parsed.data);
 
     // TODO: JD parsing with Gemini
 
