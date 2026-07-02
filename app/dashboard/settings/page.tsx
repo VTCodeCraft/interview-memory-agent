@@ -33,7 +33,7 @@ export default function SettingsPage() {
   return (
     <div className="min-h-screen bg-background text-on-surface font-body-md flex">
       {/* Sidebar Navigation */}
-      <Sidebar currentRole={targetRole || "Software Engineer"} />
+      <Sidebar />
 
       {/* Main Content Area */}
       <main className="ml-64 p-gutter w-full min-h-screen flex-1">
