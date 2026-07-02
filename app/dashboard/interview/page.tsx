@@ -2,8 +2,32 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { z } from "zod";
 import Link from "next/link";
 import { WaveformShader } from "@/components/ui/WaveformShader";
+
+const setupSchema = z.object({
+  company: z.string().min(1),
+  companyType: z.string().optional(),
+  customCompanyName: z.string().optional(),
+}).superRefine((data, ctx) => {
+  if (data.company === "Other") {
+    if (!data.companyType) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Company type is required",
+        path: ["companyType"]
+      });
+    }
+    if (!data.customCompanyName || data.customCompanyName.trim() === "") {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Company name is required",
+        path: ["customCompanyName"]
+      });
+    }
+  }
+});
 import { useInterview } from "@/hooks/useInterview";
 import { useInterviewStore } from "@/store/useInterviewStore";
 import { useSettingsStore } from "@/store/useSettingsStore";
@@ -19,16 +43,54 @@ export default function InterviewPage() {
 
   // Setup form states
   const [selectedCompany, setSelectedCompany] = useState("Google");
+  const [companyType, setCompanyType] = useState("");
+  const [customCompanyName, setCustomCompanyName] = useState("");
+  const [validationErrors, setValidationErrors] = useState<Record<string, string[]>>({});
   const [difficulty, setDifficulty] = useState("Mid-Level");
   const [interviewType, setInterviewType] = useState("Technical");
   const [interviewMode, setInterviewMode] = useState("Voice Only");
   const [duration, setDuration] = useState(45);
+
+  // Data Fetching states
+  const [profileData, setProfileData] = useState<any>(null);
+  const [insightsData, setInsightsData] = useState<any>(null);
+  const [setupLoading, setSetupLoading] = useState(true);
 
   // Live Interview states
   const [answer, setAnswer] = useState("");
   const [timer, setTimer] = useState("00:00:00");
   const [showHint, setShowHint] = useState(false);
   const [evaluationLoading, setEvaluationLoading] = useState(false);
+
+  useEffect(() => {
+    async function fetchSetupData() {
+      try {
+        setSetupLoading(true);
+        const res = await fetch("/api/user/profile");
+        const json = await res.json();
+        if (json.success) {
+          setProfileData(json.data);
+          if (json.data.profile?.targetRole) {
+            setTargetRole(json.data.profile.targetRole);
+          }
+          const userId = json.data.user.id;
+          const totalInterviews = json.data.analytics?.totalInterviews || 0;
+          if (totalInterviews > 0) {
+            const memRes = await fetch(`/api/memory/insights?userId=${userId}&q=insights`);
+            const memJson = await memRes.json();
+            if (memJson.success) {
+              setInsightsData(Array.isArray(memJson.data) ? memJson.data : memJson.data?.nodes || []);
+            }
+          }
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setSetupLoading(false);
+      }
+    }
+    fetchSetupData();
+  }, [setTargetRole]);
 
   const activeQuestion = currentQuestion();
   const done = current && currentIndex >= current.questions.length;
@@ -54,8 +116,23 @@ export default function InterviewPage() {
   }, [currentIndex]);
 
   const handleStart = async () => {
-    // Save target role if edited, then launch
-    await start();
+    const result = setupSchema.safeParse({
+      company: selectedCompany,
+      companyType,
+      customCompanyName
+    });
+
+    if (!result.success) {
+      setValidationErrors(result.error.flatten().fieldErrors);
+      return;
+    }
+    setValidationErrors({});
+
+    const payload = selectedCompany === "Other" 
+      ? { company: "Other", companyType, customCompanyName } 
+      : { company: selectedCompany };
+
+    await start(payload);
   };
 
   const handleNext = () => {
@@ -112,43 +189,75 @@ export default function InterviewPage() {
                 {/* Company Selection */}
                 <div className="bg-white p-lg rounded-xxl border border-outline-variant/30 shadow-sm">
                   <h2 className="text-[11px] font-bold text-on-surface-variant mb-4 uppercase tracking-wider">Select Company</h2>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-md">
-                    {[
-                      { name: "Google", img: "https://lh3.googleusercontent.com/aida-public/AB6AXuAHd03qbHU9dbgp39H6WDgKD5T_7tdGlxXd8QIUAa0gyjXutubiI6HEBNggcW6KsdiOKPbdbXOX3EhPNfpBwV5v0gmGnysm6FBXauQdWEuziniCsWQcBk0WjceT104E3Svao_gJfAF6c0Env6lVXdGBol00_j5DFYCTyAnMTuD69FMn6GHx0Qg3Niw9lvL15pte7mXJVXPyUG8Cj8eWCuXv8jvhj_JYfJs2ni4adoDC23wMsgSRDx9XgSDJvkJw3nvhz0TSdUECY5k-" },
-                      { name: "Amazon", img: "https://lh3.googleusercontent.com/aida-public/AB6AXuDe8SdbCc6hE5czm0Zl9Q1jX7Pnbcqc5_ICuKVGstP0t4hD9W-CddB2CjGl3W5hSJugWhKsA-GoafoRu4CtJzwQ-EFeq2oKBDnF4TDXrYiH_MEITTOuFPqkzXlRIpGCWYiXFJB_sSw2QgWqi2vH4JYDqhTdsnVS0Wu7g6yu3giO7jtr-QMVuldF5u2pTeBI2XkH__n26JtUdH4HZORgqCYOSyGIBaw8k8XKayAzKGZ7-hTB-Hh_b7S3TdpfH2F3S-6iZ28ik3JQBiWE" },
-                      { name: "Microsoft", img: "https://lh3.googleusercontent.com/aida-public/AB6AXuC4ArhNs57j4rd-RkKXnZZK4HEt_tBXjjsX-_tp4I6gwgW-4g5s_lcsW3HrqnocX_uErn1aceQmbsbZuIYevG0u_iXXpyMFsLVDsu-EIT7fs8l8fgH50IzM9LP812eckX2f6InaloVTO4_s2P3Irzr4zfEMZSF0ukZmZTh1voNwON3xT8P2c4JHzD8PXa-SdCEaJfOEv8_tpAldT519MpB0MA3XOv1pfF9PtQSGiLFUPQ_ytvmtiu1WKeAdAIRLWGVaK2p3_zixFjYP" }
-                    ].map((comp) => {
-                      const isSelected = selectedCompany === comp.name;
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-md">
+                    {["Google", "Amazon", "Microsoft", "Meta", "NVIDIA", "Other"].map((comp) => {
+                      const isSelected = selectedCompany === comp;
                       return (
                         <button
-                          key={comp.name}
-                          onClick={() => setSelectedCompany(comp.name)}
-                          className={`flex flex-col items-center gap-sm p-4 rounded-xl border transition-all cursor-pointer ${
+                          key={comp}
+                          onClick={() => {
+                            setSelectedCompany(comp);
+                            setValidationErrors({});
+                          }}
+                          className={`flex flex-col items-center justify-center py-4 rounded-xl border transition-all cursor-pointer ${
                             isSelected
                               ? "border-primary bg-primary-fixed/30 hover:bg-primary-fixed/50"
                               : "border-outline-variant/30 hover:border-primary/50"
                           }`}
                         >
-                          <div className="w-10 h-10 flex items-center justify-center">
-                            <img className="w-8 h-8 object-contain" alt={comp.name} src={comp.img} />
-                          </div>
-                          <span className="text-xs font-semibold">{comp.name}</span>
+                          <span className="text-xs font-semibold">{comp}</span>
                         </button>
                       );
                     })}
-                    <button
-                      onClick={() => setSelectedCompany("Other")}
-                      className={`flex flex-col items-center gap-sm p-4 rounded-xl border transition-all cursor-pointer ${
-                        selectedCompany === "Other"
-                          ? "border-primary bg-primary-fixed/30"
-                          : "border-outline-variant/30 hover:border-primary/50"
-                      }`}
-                    >
-                      <div className="w-10 h-10 flex items-center justify-center">
-                        <span className="material-symbols-outlined text-outline">more_horiz</span>
+                  </div>
+                  
+                  {/* Other section with smooth animation */}
+                  <div className={`grid transition-all duration-300 ease-in-out overflow-hidden ${selectedCompany === 'Other' ? 'grid-rows-[1fr] opacity-100 mt-6' : 'grid-rows-[0fr] opacity-0 mt-0'}`}>
+                    <div className="min-h-0 space-y-6">
+                      <div className="pt-4 border-t border-outline-variant/20">
+                        <h3 className="text-[11px] font-bold text-on-surface-variant mb-3 uppercase tracking-wider">Company Type <span className="text-error-red">*</span></h3>
+                        <div className="flex gap-4">
+                          {["Big Tech", "Startup"].map((type) => (
+                            <button
+                              key={type}
+                              onClick={() => {
+                                setCompanyType(type);
+                                setValidationErrors(prev => ({ ...prev, companyType: [] }));
+                              }}
+                              className={`flex-1 py-3 rounded-xl border text-sm font-semibold transition-all cursor-pointer ${
+                                companyType === type
+                                  ? "border-primary bg-primary text-white shadow-md"
+                                  : "border-outline-variant/30 text-on-surface-variant hover:border-primary/50"
+                              }`}
+                            >
+                              {type}
+                            </button>
+                          ))}
+                        </div>
+                        {validationErrors.companyType && validationErrors.companyType.length > 0 && (
+                          <p className="text-error-red text-xs mt-2 font-semibold">{validationErrors.companyType[0]}</p>
+                        )}
                       </div>
-                      <span className="text-xs font-semibold">Other</span>
-                    </button>
+                      
+                      <div>
+                        <h3 className="text-[11px] font-bold text-on-surface-variant mb-3 uppercase tracking-wider">Company Name <span className="text-error-red">*</span></h3>
+                        <input
+                          type="text"
+                          value={customCompanyName}
+                          onChange={(e) => {
+                            setCustomCompanyName(e.target.value);
+                            setValidationErrors(prev => ({ ...prev, customCompanyName: [] }));
+                          }}
+                          placeholder="Enter company name"
+                          className={`w-full p-3 bg-white border rounded-xl focus:ring-primary focus:border-primary outline-none text-sm font-semibold transition-all ${
+                            validationErrors.customCompanyName && validationErrors.customCompanyName.length > 0 ? "border-error-red bg-error-red/5" : "border-outline-variant"
+                          }`}
+                        />
+                        {validationErrors.customCompanyName && validationErrors.customCompanyName.length > 0 && (
+                          <p className="text-error-red text-xs mt-2 font-semibold">{validationErrors.customCompanyName[0]}</p>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
 
@@ -297,82 +406,109 @@ export default function InterviewPage() {
 
               {/* Right Column: Sidebar */}
               <aside className="lg:col-span-4 space-y-6">
-                {/* AI Strategy */}
-                <div className="bg-surface-indigo p-lg rounded-xxl border border-primary/20 ai-glow relative overflow-hidden">
-                  <div className="absolute -right-8 -top-8 w-24 h-24 bg-primary/10 rounded-full blur-2xl"></div>
-                  <div className="flex items-center gap-sm mb-4">
-                    <span className="material-symbols-outlined text-primary">auto_awesome</span>
-                    <h3 className="text-[10px] font-bold text-primary uppercase tracking-wider">AI Strategy</h3>
-                  </div>
-                  <p className="text-sm text-on-surface leading-relaxed mb-6">
-                    Focus on <strong className="text-primary">React State Management</strong> and <strong className="text-primary">System Scalability</strong> based on Google&apos;s interview patterns.
-                  </p>
-                  <div className="flex gap-2">
-                    <span className="px-3 py-1 bg-primary/10 text-primary text-[10px] font-bold rounded-full">React</span>
-                    <span className="px-3 py-1 bg-primary/10 text-primary text-[10px] font-bold rounded-full">System Design</span>
-                  </div>
-                </div>
-
-                {/* Memory Bank */}
-                <div className="bg-white p-lg rounded-xxl border border-outline-variant/30 shadow-sm">
-                  <h2 className="text-[11px] font-bold text-on-surface-variant mb-4 uppercase tracking-wider">Memory Bank</h2>
-                  <div className="space-y-6 relative pl-4 border-l border-outline-variant/30">
-                    <div className="flex gap-4 relative">
-                      <div className="absolute -left-6 top-1 w-4 h-4 rounded-full bg-secondary border-2 border-white flex items-center justify-center">
-                        <span className="material-symbols-outlined text-white text-[10px]">history_edu</span>
-                      </div>
-                      <div className="w-full">
-                        <p className="text-[9px] font-bold text-on-surface-variant uppercase tracking-wider">OCT 24, 2026</p>
-                        <p className="text-sm font-bold text-on-surface">JOB SDE II</p>
-                        <div className="mt-2 flex items-center gap-4">
-                          <div className="flex-1 bg-surface-container h-1 rounded-full overflow-hidden">
-                            <div className="bg-success-green h-full" style={{ width: "78%" }}></div>
-                          </div>
-                          <span className="text-[10px] font-bold text-success-green whitespace-nowrap">78% Score</span>
+                {setupLoading ? (
+                  <div className="bg-white p-lg rounded-xxl border border-outline-variant/30 shadow-sm animate-pulse h-64"></div>
+                ) : (
+                  <>
+                    {/* Profile Card */}
+                    <div className="bg-white p-lg rounded-xxl border border-outline-variant/30 shadow-sm">
+                      <h2 className="text-[11px] font-bold text-on-surface-variant mb-4 uppercase tracking-wider">Candidate Profile</h2>
+                      <div className="space-y-4">
+                        <div>
+                          <p className="text-xs text-on-surface-variant font-semibold">Full Name</p>
+                          <p className="text-sm font-bold text-on-surface">{profileData?.user?.fullName || "Not Provided"}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-on-surface-variant font-semibold">Current Role</p>
+                          <p className="text-sm font-bold text-on-surface">{profileData?.profile?.experience || "Not Provided"}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-on-surface-variant font-semibold">Experience</p>
+                          <p className="text-sm font-bold text-on-surface">{profileData?.profile?.experience || "Not Provided"}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-on-surface-variant font-semibold">Target Role</p>
+                          <p className="text-sm font-bold text-on-surface">{profileData?.profile?.targetRole || "Not Provided"}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-on-surface-variant font-semibold">Resume Name</p>
+                          <p className="text-sm font-bold text-on-surface">{profileData?.latestResume?.originalFileName || "No Resume Uploaded"}</p>
+                        </div>
+                        <div className="flex gap-4 pt-2">
+                          {profileData?.profile?.githubUrl ? (
+                            <Link href={profileData.profile.githubUrl} className="text-primary text-sm font-semibold hover:underline" target="_blank">
+                              GitHub ↗
+                            </Link>
+                          ) : (
+                            <span className="text-on-surface-variant text-sm font-semibold">GitHub (Not Provided)</span>
+                          )}
+                          {profileData?.profile?.linkedinUrl ? (
+                            <Link href={profileData.profile.linkedinUrl} className="text-primary text-sm font-semibold hover:underline" target="_blank">
+                              LinkedIn ↗
+                            </Link>
+                          ) : (
+                            <span className="text-on-surface-variant text-sm font-semibold">LinkedIn (Not Provided)</span>
+                          )}
                         </div>
                       </div>
                     </div>
-                    <div className="flex gap-4 relative">
-                      <div className="absolute -left-6 top-1 w-4 h-4 rounded-full bg-outline border-2 border-white flex items-center justify-center">
-                        <span className="material-symbols-outlined text-white text-[10px]">check_circle</span>
-                      </div>
-                      <div>
-                        <p className="text-[9px] font-bold text-on-surface-variant uppercase tracking-wider">OCT 18, 2026</p>
-                        <p className="text-sm font-bold text-on-surface">Google Mock</p>
-                        <p className="text-xs text-on-surface-variant mt-0.5">Completed 8/8 questions</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
 
-                {/* Preview Summary */}
-                <div className="bg-white p-lg rounded-xxl border border-outline-variant/30 shadow-sm">
-                  <h2 className="text-[11px] font-bold text-on-surface-variant mb-4 uppercase tracking-wider">Preview Summary</h2>
-                  <ul className="space-y-3 text-xs font-semibold">
-                    <li className="flex justify-between py-2 border-b border-outline-variant/10">
-                      <span className="text-on-surface-variant">Focus Area</span>
-                      <span>{interviewType} Session</span>
-                    </li>
-                    <li className="flex justify-between py-2 border-b border-outline-variant/10">
-                      <span className="text-on-surface-variant">Difficulty</span>
-                      <span>{difficulty}</span>
-                    </li>
-                    <li className="flex justify-between py-2 border-b border-outline-variant/10">
-                      <span className="text-on-surface-variant">Voice Mode</span>
-                      <span>{interviewMode}</span>
-                    </li>
-                    <li className="flex justify-between py-2">
-                      <span className="text-on-surface-variant">Total Duration</span>
-                      <span>{duration} Minutes</span>
-                    </li>
-                  </ul>
-                  <div className="mt-6 p-4 bg-secondary-fixed/30 rounded-xl flex items-center gap-3">
-                    <span className="material-symbols-outlined text-secondary">info</span>
-                    <p className="text-[10px] text-on-secondary-fixed-variant leading-relaxed font-semibold">
-                      Agent will monitor filler words and response latency throughout the session.
-                    </p>
-                  </div>
-                </div>
+                    {/* Analytics / Empty State */}
+                    {(profileData?.analytics?.totalInterviews || 0) === 0 ? (
+                      <div className="bg-surface-indigo p-lg rounded-xxl border border-primary/20 ai-glow relative overflow-hidden">
+                        <div className="absolute -right-8 -top-8 w-24 h-24 bg-primary/10 rounded-full blur-2xl"></div>
+                        <div className="flex items-center gap-sm mb-4">
+                          <span className="material-symbols-outlined text-primary">auto_awesome</span>
+                          <h3 className="text-[10px] font-bold text-primary uppercase tracking-wider">Welcome to Interview Memory Agent</h3>
+                        </div>
+                        <p className="text-sm text-on-surface leading-relaxed mb-6">
+                          We&apos;ll track your performance, weaknesses, and improvement over time.
+                        </p>
+                        <p className="text-sm text-on-surface font-semibold">
+                          Start your first interview to begin building your memory bank.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="bg-white p-lg rounded-xxl border border-outline-variant/30 shadow-sm">
+                        <h2 className="text-[11px] font-bold text-on-surface-variant mb-4 uppercase tracking-wider">Dynamic Insights</h2>
+                        <div className="space-y-4">
+                          <div className="flex justify-between items-center pb-2 border-b border-outline-variant/10">
+                            <span className="text-xs text-on-surface-variant font-semibold">Readiness Score</span>
+                            <span className="text-sm font-bold text-primary">{profileData?.analytics?.readinessScore || 0}%</span>
+                          </div>
+                          <div>
+                            <p className="text-xs text-on-surface-variant font-semibold mb-2">Focus Areas</p>
+                            <div className="flex flex-wrap gap-2">
+                              {insightsData?.filter((n: any) => n.kind === 'weakness').slice(0, 3).map((n: any) => (
+                                <span key={n.id} className="px-2 py-1 bg-error/10 text-error text-[10px] font-bold rounded-full">{n.content}</span>
+                              ))}
+                              {(!insightsData || insightsData.filter((n: any) => n.kind === 'weakness').length === 0) && (
+                                <span className="text-xs text-on-surface-variant">No focus areas identified yet.</span>
+                              )}
+                            </div>
+                          </div>
+                          <div>
+                            <p className="text-xs text-on-surface-variant font-semibold mb-2">Top Strengths</p>
+                            <div className="flex flex-wrap gap-2">
+                              {insightsData?.filter((n: any) => n.kind === 'strength').slice(0, 3).map((n: any) => (
+                                <span key={n.id} className="px-2 py-1 bg-success-green/10 text-success-green text-[10px] font-bold rounded-full">{n.content}</span>
+                              ))}
+                              {(!insightsData || insightsData.filter((n: any) => n.kind === 'strength').length === 0) && (
+                                <span className="text-xs text-on-surface-variant">No strengths recorded yet.</span>
+                              )}
+                            </div>
+                          </div>
+                          <div>
+                            <p className="text-xs text-on-surface-variant font-semibold mb-2">Last Feedback Summary</p>
+                            <p className="text-xs text-on-surface leading-relaxed">
+                              {insightsData?.find((n: any) => n.kind === 'note')?.content || "No feedback summary available."}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
               </aside>
             </div>
           )}

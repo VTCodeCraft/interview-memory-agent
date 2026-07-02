@@ -13,14 +13,14 @@ export function useInterview() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const start = useCallback(async () => {
+  const start = useCallback(async (payload?: any) => {
     setLoading(true);
     setError(null);
     try {
       const res = await fetch(API.interview, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ role: targetRole, provider }),
+        body: JSON.stringify({ role: targetRole, provider, ...payload }),
       });
       const json = await res.json();
       if (!json.ok) throw new Error(json.error);
