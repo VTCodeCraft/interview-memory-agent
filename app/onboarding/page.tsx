@@ -282,6 +282,7 @@ export default function OnboardingPage() {
                         placeholder="Your full name"
                         type="text"
                       />
+                      {errors.name && <p className="text-xs text-error px-1">{errors.name}</p>}
                     </div>
                     <div className="space-y-2">
                       <label className="block text-xs font-bold text-on-surface-variant px-1 uppercase tracking-wider">Target Role</label>

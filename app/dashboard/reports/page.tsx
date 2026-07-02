@@ -54,7 +54,7 @@ export default function ReportsPage() {
                 <span className="material-symbols-outlined text-primary text-3xl">rate_review</span>
               </div>
               <h3 className="text-xl font-bold mb-2">No Reports Yet</h3>
-              <p className="text-sm text-on-surface-variant max-w-sm mb-6">
+              <p className="text-sm text-on-surface-variant mb-6">
                 Complete your first practice session to receive a structured evaluation on communication, technical accuracy, and domain expertise.
               </p>
               <button

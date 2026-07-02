@@ -1,11 +1,14 @@
 import { Show, SignInButton, SignUpButton } from "@clerk/nextjs";
 import Link from "next/link";
 import { ROUTES } from "@/lib/utils/constants";
+import Header from "@/components/Header";
 
 export default function Home() {
   return (
     <div className="min-h-screen bg-background text-on-surface flex flex-col font-sans">
       <main className="flex-1">
+        {/* Header */}
+        <Header />
         {/* Hero Section */}
         <section className="relative pt-20 pb-32 overflow-hidden grid-bg">
           <div className="max-w-container-max mx-auto px-8 flex flex-col items-center text-center">

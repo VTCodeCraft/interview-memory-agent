@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useClerk, useUser } from "@clerk/nextjs";
@@ -10,7 +11,9 @@ interface SidebarProps {
   currentRole?: string;
 }
 
-export default function Sidebar({ currentRole = "Software Engineer" }: SidebarProps) {
+export default function Sidebar({
+  currentRole = "Software Engineer",
+}: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { user } = useUser();
@@ -26,6 +29,60 @@ export default function Sidebar({ currentRole = "Software Engineer" }: SidebarPr
     setSigningOut(true);
     await signOut(() => router.push(ROUTES.home));
   };
+
+  const confirmDialog =
+    confirmOpen && typeof document !== "undefined"
+      ? createPortal(
+          <div
+            className="fixed inset-0 z-100 grid place-items-end sm:place-items-center bg-black/40 backdrop-blur-sm p-4 sm:p-6"
+            onClick={() => !signingOut && setConfirmOpen(false)}
+          >
+            <div
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="logout-dialog-title"
+              aria-describedby="logout-dialog-description"
+              className="w-[min(100vw-1.5rem,22rem)] sm:w-[min(100vw-2rem,28rem)] rounded-t-3xl sm:rounded-3xl bg-surface border border-outline-variant/30 shadow-2xl p-5 sm:p-lg max-h-[min(100vh-2rem,32rem)] overflow-y-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="w-11 h-11 rounded-2xl bg-error-red/10 flex items-center justify-center mb-4">
+                <span className="material-symbols-outlined text-error-red">
+                  logout
+                </span>
+              </div>
+              <h2
+                id="logout-dialog-title"
+                className="text-lg sm:text-xl font-bold text-on-surface"
+              >
+                Log out?
+              </h2>
+              <p
+                id="logout-dialog-description"
+                className="text-sm text-on-surface-variant mt-1 sm:mt-2"
+              >
+                You&apos;ll need to sign in again to access your dashboard.
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-6">
+                <button
+                  onClick={() => setConfirmOpen(false)}
+                  disabled={signingOut}
+                  className="w-full flex-1 py-3 rounded-xl bg-surface-container text-sm font-semibold text-on-surface hover:bg-surface-container-high transition-colors active:scale-95 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSignOut}
+                  disabled={signingOut}
+                  className="w-full flex-1 py-3 rounded-xl bg-error-red text-white text-sm font-bold hover:opacity-90 transition-all active:scale-95 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed sm:order-0"
+                >
+                  {signingOut ? "Logging out..." : "Log out"}
+                </button>
+              </div>
+            </div>
+          </div>,
+          document.body,
+        )
+      : null;
 
   const navItems = [
     { name: "Dashboard", href: ROUTES.dashboard, icon: "dashboard" },
@@ -53,7 +110,8 @@ export default function Sidebar({ currentRole = "Software Engineer" }: SidebarPr
         {navItems.map((item) => {
           const isActive =
             pathname === item.href ||
-            (item.href !== ROUTES.dashboard && pathname.startsWith(`${item.href}/`));
+            (item.href !== ROUTES.dashboard &&
+              pathname.startsWith(`${item.href}/`));
           return (
             <Link
               key={item.name}
@@ -76,7 +134,11 @@ export default function Sidebar({ currentRole = "Software Engineer" }: SidebarPr
           <div className="w-10 h-10 rounded-full bg-primary-container/20 flex items-center justify-center overflow-hidden shrink-0">
             {avatarUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img className="w-full h-full object-cover" alt={displayName} src={avatarUrl} />
+              <img
+                className="w-full h-full object-cover"
+                alt={displayName}
+                src={avatarUrl}
+              />
             ) : (
               <span className="text-sm font-bold text-primary">
                 {displayName.charAt(0).toUpperCase()}
@@ -84,8 +146,12 @@ export default function Sidebar({ currentRole = "Software Engineer" }: SidebarPr
             )}
           </div>
           <div className="min-w-0">
-            <p className="text-sm font-bold truncate text-on-surface">{displayName}</p>
-            <p className="text-[10px] text-on-surface-muted font-medium truncate">{currentRole}</p>
+            <p className="text-sm font-bold truncate text-on-surface">
+              {displayName}
+            </p>
+            <p className="text-[10px] text-on-surface-muted font-medium truncate">
+              {currentRole}
+            </p>
           </div>
         </div>
         <button
@@ -97,43 +163,7 @@ export default function Sidebar({ currentRole = "Software Engineer" }: SidebarPr
         </button>
       </div>
 
-      {confirmOpen && (
-        <div
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-md"
-          onClick={() => !signingOut && setConfirmOpen(false)}
-        >
-          <div
-            role="dialog"
-            aria-modal="true"
-            className="w-full max-w-sm rounded-3xl bg-surface border border-outline-variant/30 shadow-2xl p-lg"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="w-12 h-12 rounded-2xl bg-error-red/10 flex items-center justify-center mb-4">
-              <span className="material-symbols-outlined text-error-red">logout</span>
-            </div>
-            <h2 className="text-lg font-bold text-on-surface">Log out?</h2>
-            <p className="text-sm text-on-surface-variant mt-1">
-              You&apos;ll need to sign in again to access your dashboard.
-            </p>
-            <div className="flex gap-3 mt-6">
-              <button
-                onClick={() => setConfirmOpen(false)}
-                disabled={signingOut}
-                className="flex-1 py-2.5 rounded-xl bg-surface-container text-sm font-semibold text-on-surface hover:bg-surface-container-high transition-colors active:scale-95 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSignOut}
-                disabled={signingOut}
-                className="flex-1 py-2.5 rounded-xl bg-error-red text-white text-sm font-bold hover:opacity-90 transition-all active:scale-95 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {signingOut ? "Logging out..." : "Log out"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {confirmDialog}
     </nav>
   );
 }
