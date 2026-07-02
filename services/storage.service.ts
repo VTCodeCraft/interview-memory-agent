@@ -1,9 +1,7 @@
 import "server-only";
 
-import { mkdir, unlink, writeFile } from "fs/promises";
 import path from "path";
 import crypto from "crypto";
-import { UPLOAD_DIR } from "@/lib/utils/constants";
 import { logger } from "@/lib/utils/logger";
 
 export interface UploadResult {
@@ -39,27 +37,9 @@ function getSafePdfFileName(originalFileName: string) {
 export class LocalResumeStorage implements ResumeStorage {
   async save(input: StoreResumeFileInput): Promise<UploadResult> {
     const storedFileName = getSafePdfFileName(input.originalFileName);
-    const absoluteDir = path.join(
-      /* turbopackIgnore: true */ process.cwd(),
-      UPLOAD_DIR
-    );
-    const absolutePath = path.join(absoluteDir, storedFileName);
-
-    try {
-      await mkdir(absoluteDir, { recursive: true });
-      await writeFile(absolutePath, input.buffer);
-    } catch (cause) {
-      const message =
-        cause instanceof Error ? cause.message : "Unknown storage error";
-      logger.error("Failed to store resume file", {
-        path: absolutePath,
-        error: message,
-      });
-      throw new StorageError("Failed to store uploaded file");
-    }
-
     const fileUrl = `/uploads/${storedFileName}`;
-    logger.info("Resume file stored", {
+
+    logger.info("Resume file metadata prepared", {
       fileUrl,
       fileSize: input.buffer.length,
       mimeType: input.mimeType,
@@ -67,7 +47,7 @@ export class LocalResumeStorage implements ResumeStorage {
 
     return {
       fileUrl,
-      filePath: absolutePath,
+      filePath: storedFileName,
       originalFileName: input.originalFileName,
       storedFileName,
       fileSize: input.buffer.length,
@@ -75,15 +55,8 @@ export class LocalResumeStorage implements ResumeStorage {
     };
   }
 
-  async remove(filePath: string): Promise<void> {
-    try {
-      await unlink(filePath);
-      logger.info("Resume file removed", { filePath });
-    } catch (cause) {
-      const message =
-        cause instanceof Error ? cause.message : "Unknown storage rollback error";
-      logger.error("Failed to remove resume file", { filePath, error: message });
-    }
+  async remove(_filePath: string): Promise<void> {
+    // No file is written to disk, so removal is a no-op.
   }
 }
 
