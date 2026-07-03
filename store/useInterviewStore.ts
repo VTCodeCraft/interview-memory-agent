@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { Answer, Interview, Question } from "@/types";
+import type { Answer, Interview, InterviewQuestion } from "@/types";
 
 interface InterviewState {
   current: Interview | null;
@@ -11,7 +11,7 @@ interface InterviewState {
   addAnswer: (answer: Answer) => void;
   setRecording: (v: boolean) => void;
   reset: () => void;
-  currentQuestion: () => Question | null;
+  currentQuestion: () => InterviewQuestion | null;
 }
 
 export const useInterviewStore = create<InterviewState>((set, get) => ({

@@ -29,41 +29,48 @@ export async function POST(req: NextRequest) {
     }
 
     const { interviewId } = result.data;
-
-    // Verify ownership
-    const interview = await prisma.interview.findUnique({
-      where: { id: interviewId },
-      include: { user: true },
+    const user = await prisma.user.findUnique({
+      where: { clerkId: userId },
+      select: { id: true },
     });
 
-    if (!interview || interview.user.clerkId !== userId) {
+    if (!user) {
       return NextResponse.json(
-        { success: false, error: "Interview not found or unauthorized" },
+        { success: false, error: "User not found" },
         { status: 404 }
       );
     }
 
-    const generationResult = await processInterviewGeneration(interviewId);
+    const generationResult = await processInterviewGeneration({
+      userId: user.id,
+      interviewId,
+    });
 
     return NextResponse.json({
       success: true,
       data: {
         interviewId: generationResult.interviewId,
-        status: "READY",
+        status: generationResult.status,
         totalQuestions: generationResult.totalQuestions,
-        currentQuestion: generationResult.currentQuestion ? {
-          id: generationResult.currentQuestion.id,
-          sequence: generationResult.currentQuestion.sequence,
-          category: generationResult.currentQuestion.category,
-          difficulty: generationResult.currentQuestion.difficulty,
-          displayQuestion: generationResult.currentQuestion.displayQuestion,
-          ttsTranscript: generationResult.currentQuestion.ttsTranscript,
-        } : null
+        questions: generationResult.questions,
+        currentQuestion: generationResult.currentQuestion,
       },
     });
 
   } catch (error: any) {
     console.error("[INTERVIEW_GENERATE_ERROR]", error);
+    if (error.message === "Interview not found") {
+      return NextResponse.json(
+        { success: false, error: "Interview not found" },
+        { status: 404 }
+      );
+    }
+    if (error.message === "Unauthorized") {
+      return NextResponse.json(
+        { success: false, error: "Unauthorized" },
+        { status: 403 }
+      );
+    }
     return NextResponse.json(
       { success: false, error: error.message || "Failed to generate interview questions" },
       { status: 500 }

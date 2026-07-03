@@ -140,10 +140,10 @@ export default function InterviewPage() {
     await start(payload);
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (!activeQuestion) return;
-    submitAnswer({
-      questionId: activeQuestion.id,
+    await submitAnswer({
+      sequence: activeQuestion.sequence,
       text: answer || "Candidate chose not to answer or provided no response.",
       createdAt: nowISO(),
     });
@@ -513,7 +513,7 @@ export default function InterviewPage() {
           <div>
             <span className="text-[10px] font-bold uppercase text-on-surface-variant tracking-wider block mb-2">Current Progress</span>
             <div className="flex items-end gap-sm">
-              <h3 className="text-lg font-bold text-on-surface">Question {done ? currentIndex : currentIndex + 1} of {current.questions.length}</h3>
+              <h3 className="text-lg font-bold text-on-surface">Prompt {done ? currentIndex : currentIndex + 1} of {current.questions.length}</h3>
             </div>
             <div className="mt-3 px-3 py-1 bg-surface-container rounded-lg inline-flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-tertiary"></span>
@@ -546,7 +546,7 @@ export default function InterviewPage() {
                       idx + 1
                     )}
                   </div>
-                  <span className="text-xs truncate">{q.type || `Question ${idx + 1}`}</span>
+                  <span className="text-xs truncate">{q.type || `Step ${idx + 1}`}</span>
                 </div>
               );
             })}
@@ -579,12 +579,12 @@ export default function InterviewPage() {
               </div>
             </div>
 
-            {/* Question Card */}
+            {/* Prompt Card */}
             {activeQuestion ? (
               <div className="bg-white rounded-xxl p-6 shadow-xl border border-outline-variant/30 relative">
                 <div className="flex justify-between items-start mb-4">
                   <span className="text-[10px] font-bold text-primary bg-primary/5 px-2.5 py-1 rounded tracking-wider uppercase">
-                    {activeQuestion.type || "Interview Question"}
+                    {activeQuestion.type || "Interview Prompt"}
                   </span>
                   <span className="text-[10px] px-2.5 py-1 bg-tertiary-fixed text-tertiary rounded-full font-bold uppercase tracking-wider">
                     MEDIUM

@@ -13,6 +13,15 @@ export function useInterview() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const mapGeneratedQuestion = (question: any, index: number) => ({
+    id: question.id || `generated-${index + 1}`,
+    sequence: question.sequence ?? index + 1,
+    type: question.type || question.category?.toLowerCase?.() || "technical",
+    prompt: question.prompt || question.displayQuestion || "",
+    expectedPoints: question.expectedDiscussion ? [question.expectedDiscussion] : [],
+    difficulty: question.difficulty?.toLowerCase?.() || "medium",
+  });
+
   const start = useCallback(async (payload?: any) => {
     setLoading(true);
     setError(null);
@@ -38,21 +47,20 @@ export function useInterview() {
         const genJson = await genRes.json();
         if (!genJson.success) throw new Error(genJson.error || "Failed to generate questions");
 
-        // Map the generated first question into the frontend store format
-        const q = genJson.data.currentQuestion;
+        const generatedQuestions = Array.isArray(genJson.data?.questions)
+          ? genJson.data.questions
+          : genJson.data?.currentQuestion
+            ? [genJson.data.currentQuestion]
+            : [];
+
         setInterview({
           id: genJson.data.interviewId,
           role: targetRole,
-          questions: [
-            { 
-              id: q.id, 
-              sequence: q.sequence, 
-              prompt: q.displayQuestion, 
-              category: q.category, 
-              difficulty: q.difficulty, 
-              type: q.category 
-            }
-          ]
+          status: "in_progress" as any,
+          questions: generatedQuestions.map(mapGeneratedQuestion) as any,
+          answers: [],
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
         } as any);
       } else {
         setInterview(json.data as Interview);
@@ -65,11 +73,29 @@ export function useInterview() {
   }, [targetRole, provider, setInterview]);
 
   const submitAnswer = useCallback(
-    (answer: Answer) => {
+    async (answer: Answer) => {
+      if (!current) return;
+
+      const res = await fetch(API.interviewAnswer, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          interviewId: current.id,
+          sequence: answer.sequence,
+          transcript: answer.text,
+          durationSec: answer.durationSec ?? 0,
+        }),
+      });
+
+      const json = await res.json();
+      if (!json.success) {
+        throw new Error(json.error || "Failed to save answer");
+      }
+
       addAnswer(answer);
       next();
     },
-    [addAnswer, next]
+    [addAnswer, current, next]
   );
 
   const finish = useCallback(async (): Promise<Evaluation | null> => {
@@ -79,7 +105,7 @@ export function useInterview() {
       const res = await fetch(API.evaluation, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ interview: current, provider }),
+        body: JSON.stringify({ interviewId: current.id, provider }),
       });
       const json = await res.json();
       if (!json.ok) throw new Error(json.error);

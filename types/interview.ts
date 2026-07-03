@@ -3,8 +3,9 @@ import type { ID } from "./index";
 export type InterviewStatus = "pending" | "in_progress" | "completed" | "aborted";
 export type QuestionType = "behavioral" | "technical" | "system_design" | "coding";
 
-export interface Question {
+export interface InterviewQuestion {
   id: ID;
+  sequence: number;
   type: QuestionType;
   prompt: string;
   expectedPoints?: string[];
@@ -12,7 +13,7 @@ export interface Question {
 }
 
 export interface Answer {
-  questionId: ID;
+  sequence: number;
   text: string;
   audioUrl?: string;
   durationSec?: number;
@@ -24,7 +25,7 @@ export interface Interview {
   userId: ID;
   role: string;
   status: InterviewStatus;
-  questions: Question[];
+  questions: InterviewQuestion[];
   answers: Answer[];
   createdAt: string;
   updatedAt: string;

@@ -37,6 +37,7 @@ model User {
   resumes         Resume[]
   jobDescriptions JobDescription[]
   interviews      Interview[]
+  answers         Answer[]
   analytics       InterviewAnalytics?
   createdAt       DateTime            @default(now())
   updatedAt       DateTime            @updatedAt
@@ -117,50 +118,31 @@ model Interview {
   status           InterviewStatus @default(PENDING)
   startedAt        DateTime?
   endedAt          DateTime?
-  questions        Question[]
+  questions        Json?
+  answer           Answer?
   report           Report?
   createdAt        DateTime        @default(now())
   updatedAt        DateTime        @updatedAt
 
   @@index([userId])
+  @@index([userId, status, updatedAt])
   @@index([resumeId])
   @@index([jobDescriptionId])
   @@index([status])
   @@index([createdAt])
 }
 
-model Question {
-  id                 String     @id @default(cuid())
-  interviewId        String
-  interview          Interview  @relation(fields: [interviewId], references: [id], onDelete: Cascade)
-  sequence           Int
-  displayQuestion    String
-  ttsTranscript      String
-  expectedDiscussion String?
-  category           String
-  difficulty         Difficulty
-  answers            Answer[]
-  createdAt          DateTime   @default(now())
-
-  @@unique([interviewId, sequence])
-  @@index([interviewId])
-  @@index([category])
-  @@index([difficulty])
-}
-
 model Answer {
   id         String   @id @default(cuid())
-  questionId String
-  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
-  transcript String
-  duration   Int
-  score      Float?
-  confidence Float?
-  feedback   String?
+  interviewId String  @unique
+  interview  Interview @relation(fields: [interviewId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  answers    Json
   createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
-  @@index([questionId])
-  @@index([score])
+  @@index([userId])
 }
 
 model Report {

@@ -7,21 +7,32 @@ import { prisma } from "@/lib/db/prisma";
 import { Difficulty } from "@prisma/client";
 
 const StartInterviewSchema = z.object({
-  company: z.string().min(1, "Company is required"),
+  company: z.string().min(1, "Company is required").optional(),
   companyType: z.string().optional(),
   customCompanyName: z.string().optional(),
-  role: z.string().min(1, "Role is required"),
-  interviewType: z.string().min(1, "Interview type is required"),
-  difficulty: z.nativeEnum(Difficulty),
+  role: z.string().min(1, "Role is required").optional(),
+  interviewType: z.string().min(1, "Interview type is required").optional(),
+  difficulty: z.nativeEnum(Difficulty).optional(),
   jobDescription: z.string().optional(),
-}).refine(data => {
-  if (data.company === "Other" && !data.customCompanyName) {
-    return false;
+  forceNew: z.boolean().optional(),
+}).superRefine((data, ctx) => {
+  if (data.company === "Other") {
+    if (!data.companyType || data.companyType.trim() === "") {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "companyType is required when company is 'Other'",
+        path: ["companyType"],
+      });
+    }
+
+    if (!data.customCompanyName || data.customCompanyName.trim() === "") {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "customCompanyName is required when company is 'Other'",
+        path: ["customCompanyName"],
+      });
+    }
   }
-  return true;
-}, {
-  message: "customCompanyName is required if company is 'Other'",
-  path: ["customCompanyName"]
 });
 
 export async function POST(request: NextRequest) {
@@ -57,6 +68,7 @@ export async function POST(request: NextRequest) {
       interviewType: parsed.data.interviewType,
       difficulty: parsed.data.difficulty,
       jobDescription: parsed.data.jobDescription,
+      forceNew: parsed.data.forceNew,
     });
 
     return success({
@@ -70,6 +82,9 @@ export async function POST(request: NextRequest) {
     }
     if (error.message === "RESUME_NOT_FOUND") {
       return failure("Parsed resume not found", 404);
+    }
+    if (error.message === "INTERVIEW_CONFIG_INCOMPLETE") {
+      return failure("Interview configuration is incomplete", 400);
     }
     return errorResponse(error, "Failed to create interview session");
   }
