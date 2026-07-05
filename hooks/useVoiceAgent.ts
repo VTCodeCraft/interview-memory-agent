@@ -12,6 +12,9 @@ import {
   AGENT_OUTPUT_SAMPLE_RATE,
   COMPLETE_ANSWER_FUNCTION,
   EXPLICIT_DONE_MS,
+  INJECT_DELAY_MS,
+  MIN_ANSWER_CHARS,
+  MIN_TURN_MS,
   SILENCE_FALLBACK_MS,
   WAITING_FIRST_RESPONSE_MS,
   buildInterviewAgentSettings,
@@ -390,6 +393,12 @@ export function useVoiceAgent(): UseVoiceAgentReturn {
           }),
         });
         pendingFnIdRef.current = null;
+        // Wait a short beat so the LLM's "stay silent" instruction has time to
+        // propagate before the InjectAgentMessage arrives. Without this gap the
+        // LLM can fill the ~0ms window between ACK and inject with its own
+        // generated speech (e.g. asking its own follow-up question).
+        await new Promise<void>((resolve) => setTimeout(resolve, INJECT_DELAY_MS));
+        log(`advanceTurn: ${INJECT_DELAY_MS}ms ACK propagation delay elapsed`);
       }
 
       try {
@@ -702,21 +711,33 @@ export function useVoiceAgent(): UseVoiceAgentReturn {
           );
           if (call) {
             // PRIMARY completion signal. The LLM has determined the candidate
-            // finished their answer, so advance now — but only if they actually
-            // spoke (guards against a spurious call during a thinking pause,
-            // which must NEVER complete the answer). advanceTurn sends the
-            // FunctionCallResponse ack itself via pendingFnIdRef.
-            if (
-              userHasSpokenRef.current &&
-              answerBufferRef.current.trim().length > 0
-            ) {
+            // finished their answer, so advance — but only if they actually
+            // spoke AND have provided a substantive answer (MIN_ANSWER_CHARS)
+            // AND enough time has passed (MIN_TURN_MS). This triple-guard
+            // prevents gpt-4o from firing on tiny fragments like "data," or
+            // "highly" before the candidate has had a chance to answer fully.
+            const bufferLen = answerBufferRef.current.trim().length;
+            const turnElapsedMs = Date.now() - turnStartRef.current;
+            const hasSubstantiveAnswer =
+              bufferLen >= MIN_ANSWER_CHARS && turnElapsedMs >= MIN_TURN_MS;
+
+            log(
+              `FunctionCallRequest: complete_answer — bufferLen=${bufferLen} (min=${MIN_ANSWER_CHARS}), turnElapsed=${turnElapsedMs}ms (min=${MIN_TURN_MS}ms), userHasSpoken=${userHasSpokenRef.current}`
+            );
+
+            if (userHasSpokenRef.current && hasSubstantiveAnswer) {
               log("FunctionCallRequest: complete_answer — advancing (authoritative)");
               pendingFnIdRef.current = call.id;
               void advanceTurn("function_call");
             } else {
-              // No answer captured yet → this is not a real completion. Ack to
-              // keep the agent silent and keep waiting; do NOT advance.
-              log("FunctionCallRequest: complete_answer ignored (no answer captured yet)");
+              // Answer too short / turn too new → this is not a real completion.
+              // Ack to keep the agent silent and keep waiting; do NOT advance.
+              const reason = !userHasSpokenRef.current
+                ? "candidate has not spoken yet"
+                : bufferLen < MIN_ANSWER_CHARS
+                  ? `answer too short (${bufferLen} < ${MIN_ANSWER_CHARS} chars)`
+                  : `turn too short (${turnElapsedMs}ms < ${MIN_TURN_MS}ms)`;
+              log(`FunctionCallRequest: complete_answer ignored — ${reason}`);
               connRef.current?.sendFunctionCallResponse({
                 type: "FunctionCallResponse",
                 id: call.id,
@@ -724,7 +745,7 @@ export function useVoiceAgent(): UseVoiceAgentReturn {
                 content: JSON.stringify({
                   status: "ignored",
                   instruction:
-                    "The candidate has not answered yet. STOP TALKING NOW. Do not say anything. Wait in silence for them to answer.",
+                    "The candidate has not finished answering yet. STOP TALKING NOW. Do not say anything. Keep listening patiently until they are clearly done.",
                 }),
               });
               pendingFnIdRef.current = null;

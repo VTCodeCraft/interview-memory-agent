@@ -47,6 +47,31 @@ export const SILENCE_STAGE2_MS = 3500;
 export const SILENCE_FALLBACK_MS = 6000;
 
 /**
+ * Minimum transcript character length that the candidate must have spoken
+ * before a `complete_answer` FunctionCallRequest is accepted as authoritative.
+ * Guards against gpt-4o-mini-style eagerness where the LLM fires on tiny
+ * fragments like "Starting with..." or "data,". Any call under this threshold
+ * is ACK'd as ignored and we keep listening.
+ */
+export const MIN_ANSWER_CHARS = 40;
+
+/**
+ * Minimum wall-clock time (ms) that must have elapsed since the question was
+ * first spoken before a `complete_answer` function call is accepted. Prevents
+ * the LLM from advancing the turn in the first few seconds of the candidate's
+ * answer before they have had a chance to say anything substantive.
+ */
+export const MIN_TURN_MS = 5000;
+
+/**
+ * How long (ms) to wait after sending the FunctionCallResponse ACK before
+ * injecting the next question. This small gap lets the LLM's "stay silent"
+ * instruction propagate fully before the InjectAgentMessage arrives, preventing
+ * the race condition where the LLM generates its own question in the gap.
+ */
+export const INJECT_DELAY_MS = 300;
+
+/**
  * Fast path: when the candidate explicitly signals they are finished ("next
  * question", "that's my answer", "I'm done"), we only wait this short beat — just
  * long enough to be sure they are not mid-sentence — then advance.
@@ -151,7 +176,7 @@ export function buildInterviewAgentSettings(
     greeting = "Hi there, I'm Aria, and I'll be your interviewer today. It's really nice to meet you. I'll ask you a few questions, one at a time. There's no rush at all, so take your time and just answer naturally, the way you would in a real conversation. If you ever want a question repeated, simply ask. Let's get started.",
     speakModel = "aura-2-thalia-en",
     listenModel = "nova-3",
-    thinkModel = "gpt-4o-mini",
+    thinkModel = "gpt-4o",
   } = options;
 
   return {
