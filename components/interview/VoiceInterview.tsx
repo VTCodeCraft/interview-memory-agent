@@ -32,6 +32,22 @@ const STATE_META: Record<
     orb: "bg-success-green",
   },
   GREETING: { label: "Speaking", tone: "text-primary", orb: "bg-primary" },
+  WAIT_FOR_BACKEND_QUESTION: {
+    label: "Preparing",
+    tone: "text-tertiary",
+    orb: "bg-tertiary",
+  },
+  QUESTION_RECEIVED: {
+    label: "Preparing",
+    tone: "text-tertiary",
+    orb: "bg-tertiary",
+  },
+  SPEAK_BACKEND_QUESTION: { label: "Speaking", tone: "text-primary", orb: "bg-primary" },
+  QUESTION_SPOKEN: {
+    label: "Listening",
+    tone: "text-success-green",
+    orb: "bg-success-green",
+  },
   ASKING_QUESTION: { label: "Speaking", tone: "text-primary", orb: "bg-primary" },
   WAITING_FOR_FIRST_RESPONSE: {
     label: "Listening",
@@ -48,16 +64,26 @@ const STATE_META: Record<
     tone: "text-success-green",
     orb: "bg-success-green",
   },
+  OPTIONAL_REPEAT: { label: "Speaking", tone: "text-primary", orb: "bg-primary" },
+  OPTIONAL_CLARIFICATION: { label: "Speaking", tone: "text-primary", orb: "bg-primary" },
   ANSWER_COMPLETE: {
     label: "Thinking",
     tone: "text-tertiary",
     orb: "bg-tertiary",
   },
+  CALL_COMPLETE_ANSWER: { label: "Saving", tone: "text-tertiary", orb: "bg-tertiary" },
   SAVE_TRANSCRIPT: { label: "Saving", tone: "text-tertiary", orb: "bg-tertiary" },
+  TRANSCRIPT_SENT: { label: "Saving", tone: "text-tertiary", orb: "bg-tertiary" },
+  NEXT_QUESTION_RECEIVED: {
+    label: "Preparing",
+    tone: "text-tertiary",
+    orb: "bg-tertiary",
+  },
   ACKNOWLEDGE_RESPONSE: { label: "Speaking", tone: "text-primary", orb: "bg-primary" },
   ASK_NEXT_QUESTION: { label: "Speaking", tone: "text-primary", orb: "bg-primary" },
   FINAL_QUESTION: { label: "Speaking", tone: "text-primary", orb: "bg-primary" },
   THANK_CANDIDATE: { label: "Wrapping up", tone: "text-primary", orb: "bg-primary" },
+  WAIT_FOR_BACKEND: { label: "Wrapping up", tone: "text-tertiary", orb: "bg-tertiary" },
   EVALUATING: {
     label: "Evaluating…",
     tone: "text-tertiary",
@@ -98,10 +124,13 @@ export default function VoiceInterview({
   const meta = STATE_META[state] ?? STATE_META.IDLE;
   const isSpeaking =
     state === "GREETING" ||
+    state === "SPEAK_BACKEND_QUESTION" ||
     state === "ASKING_QUESTION" ||
     state === "ACKNOWLEDGE_RESPONSE" ||
     state === "ASK_NEXT_QUESTION" ||
     state === "FINAL_QUESTION" ||
+    state === "OPTIONAL_REPEAT" ||
+    state === "OPTIONAL_CLARIFICATION" ||
     state === "THANK_CANDIDATE";
   const isListening =
     state === "USER_STARTED_SPEAKING" ||
@@ -290,8 +319,10 @@ export default function VoiceInterview({
                   ? "mic_off"
                   : isSpeaking
                     ? "graphic_eq"
-                    : state === "ANSWER_COMPLETE" ||
+                  : state === "ANSWER_COMPLETE" ||
+                        state === "CALL_COMPLETE_ANSWER" ||
                         state === "SAVE_TRANSCRIPT" ||
+                        state === "TRANSCRIPT_SENT" ||
                         state === "EVALUATING"
                       ? "more_horiz"
                       : "mic"}

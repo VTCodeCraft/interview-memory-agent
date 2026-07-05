@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useCallback, useEffect, useRef } from "react";
 
@@ -14,6 +14,7 @@ import {
   EXPLICIT_DONE_MS,
   INJECT_DELAY_MS,
   MIN_ANSWER_CHARS,
+  MIN_SILENCE_BEFORE_FUNCTION_MS,
   MIN_TURN_MS,
   SILENCE_FALLBACK_MS,
   WAITING_FIRST_RESPONSE_MS,
@@ -27,16 +28,45 @@ import {
   type ConversationState,
 } from "@/types/voiceAgent";
 
-// ──────────────────────────────────────────────────────────────────────────────
-// Logging helper — all voice agent logs go through this for easy filtering.
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Logging helper â€” all voice agent logs go through this for easy filtering.
 // Open DevTools console and filter on [VoiceAgent] to trace the flow.
-// ──────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const LOG_PREFIX = "[VoiceAgent]";
 function log(...args: unknown[]) {
   console.log(LOG_PREFIX, ...args);
 }
 function warn(...args: unknown[]) {
   console.warn(LOG_PREFIX, ...args);
+}
+
+type VoiceLogEvent =
+  | "GREETING"
+  | "WAIT_FOR_BACKEND_QUESTION"
+  | "QUESTION_RECEIVED"
+  | "QUESTION_SPOKEN"
+  | "WAITING_FOR_FIRST_RESPONSE"
+  | "USER_STARTED_SPEAKING"
+  | "USER_ANSWERING"
+  | "REPEAT_REQUEST"
+  | "CLARIFICATION_REQUEST"
+  | "ANSWER_COMPLETE"
+  | "TRANSCRIPT_SENT"
+  | "NEXT_QUESTION_RECEIVED"
+  | "FINAL_QUESTION"
+  | "INTERVIEW_FINISHED";
+
+function logVoiceEvent(
+  event: VoiceLogEvent,
+  source: "backend" | "voice_agent" | "candidate" | "client",
+  metadata: Record<string, unknown> = {}
+) {
+  console.info(LOG_PREFIX, {
+    event,
+    source,
+    ...metadata,
+    timestamp: new Date().toISOString(),
+  });
 }
 
 /** Normalize an utterance for phrase matching (strip punctuation, collapse ws). */
@@ -51,7 +81,7 @@ function normalize(text: string): string {
 /**
  * True for short, near-standalone requests to repeat or clarify the question
  * ("can you repeat that?", "what do you mean?"). These must NOT be treated as an
- * answer or trigger an advance — the agent rephrases and we keep waiting. Kept
+ * answer or trigger an advance â€” the agent rephrases and we keep waiting. Kept
  * strict (short utterance + explicit ask) so a long answer that merely contains
  * a word like "explain" is never misclassified as a clarification.
  */
@@ -66,7 +96,7 @@ function isClarificationRequest(text: string): boolean {
 /**
  * Sub-intent of a clarification: does the candidate want the question EXPLAINED
  * (rephrased) rather than simply REPEATED? Drives the spoken lead-in. Either way
- * we re-speak the same Gemini question — we have no separate paraphrase source —
+ * we re-speak the same Gemini question â€” we have no separate paraphrase source â€”
  * but the lead-in acknowledges what they actually asked for.
  */
 function isExplainRequest(text: string): boolean {
@@ -78,7 +108,7 @@ function isExplainRequest(text: string): boolean {
 
 /**
  * True for short, explicit "I'm finished / move on" signals. Only used to
- * SHORTEN the grace window — we still wait a brief confirming beat before
+ * SHORTEN the grace window â€” we still wait a brief confirming beat before
  * advancing, so a false positive can never cut someone off instantly.
  */
 function isExplicitDone(text: string): boolean {
@@ -89,19 +119,19 @@ function isExplicitDone(text: string): boolean {
   );
 }
 
+function isSkipRequest(text: string): boolean {
+  const t = normalize(text);
+  if (!t) return false;
+  return /(i dont know|i do not know|skip this question|skip question|skip it|next question|next one|move on)/.test(
+    t
+  );
+}
+
 /**
  * Short, human acknowledgements spoken before moving to the next question. The
  * agent speaks these verbatim (they are injected, not generated). Rotated so the
  * interview doesn't repeat the same word every time.
  */
-const ACK_PHRASES = ["Thank you.", "Understood.", "Great.", "Got it.", "Perfect."];
-let ackIndex = 0;
-function pickAck(): string {
-  const phrase = ACK_PHRASES[ackIndex % ACK_PHRASES.length];
-  ackIndex += 1;
-  return phrase;
-}
-
 interface VoiceInterviewInput {
   id: string;
   questions: { sequence: number; ttsTranscript?: string; prompt?: string }[];
@@ -123,7 +153,7 @@ export interface UseVoiceAgentReturn {
  * Backend stays the source of truth: after the agent signals answer-completion
  * (function call, or silence-fallback), we POST the accumulated transcript, get
  * the next Gemini question, and inject it verbatim into the SAME live session.
- * The agent never generates questions — it only conducts the conversation.
+ * The agent never generates questions â€” it only conducts the conversation.
  *
  * State/turns live in `useVoiceAgentStore`; this hook owns the imperative
  * connection, audio pipeline, and turn timing via refs.
@@ -150,9 +180,15 @@ export function useVoiceAgent(): UseVoiceAgentReturn {
   const agentSpeakingRef = useRef<boolean>(false);
   const finishedRef = useRef<boolean>(false);
   const turnStartRef = useRef<number>(0);
+  const lastUserSpeechAtRef = useRef<number>(0);
   const pendingFnIdRef = useRef<string | null>(null);
   /** True once the user has spoken at least one word for the current question. */
   const userHasSpokenRef = useRef<boolean>(false);
+  const expectedAgentSpeechRef = useRef<number>(0);
+  const currentAgentSpeechAllowedRef = useRef<boolean>(false);
+  const expectedAgentSpeechTextsRef = useRef<string[]>([]);
+  const expectedAgentSpeechKindsRef = useRef<("question" | "other")[]>([]);
+  const currentAgentSpeechKindRef = useRef<"question" | "other" | null>(null);
 
   const clearSilenceTimer = useCallback(() => {
     if (silenceTimerRef.current) {
@@ -190,6 +226,12 @@ export function useVoiceAgent(): UseVoiceAgentReturn {
     advancingRef.current = false;
     agentSpeakingRef.current = false;
     pendingFnIdRef.current = null;
+    expectedAgentSpeechRef.current = 0;
+    currentAgentSpeechAllowedRef.current = false;
+    expectedAgentSpeechTextsRef.current = [];
+    expectedAgentSpeechKindsRef.current = [];
+    currentAgentSpeechKindRef.current = null;
+    lastUserSpeechAtRef.current = 0;
   }, [clearTurnTimers]);
 
   const stop = useCallback(() => {
@@ -203,7 +245,7 @@ export function useVoiceAgent(): UseVoiceAgentReturn {
   /**
    * Central state-machine transition. EVERY conversation-state change goes
    * through here so we get one structured log line per transition:
-   *   [VoiceAgent] STATE <from> → <to> { from, to, seq, reason }
+   *   [VoiceAgent] STATE <from> â†’ <to> { from, to, seq, reason }
    * Filter the console on "STATE" to trace the whole interview flow.
    */
   const transition = useCallback(
@@ -239,7 +281,7 @@ export function useVoiceAgent(): UseVoiceAgentReturn {
 
   /**
    * Speak a question verbatim by injecting it as an agent message. The Voice
-   * Agent NEVER generates the question — the backend supplies it and we inject
+   * Agent NEVER generates the question â€” the backend supplies it and we inject
    * the exact text. An optional `leadIn` (a brief acknowledgement +
    * "moving to the next question") is prepended for transitions between
    * questions so the agent flows straight into the next one with no frontend
@@ -259,26 +301,41 @@ export function useVoiceAgent(): UseVoiceAgentReturn {
         return;
       }
       const message = leadIn ? `${leadIn} ${text}` : text;
+      logVoiceEvent("QUESTION_RECEIVED", "backend", {
+        interviewId: interviewIdRef.current,
+        sequence: question.sequence,
+        hasLeadIn: Boolean(leadIn),
+      });
       log(
         "injectQuestion: seq =",
         question.sequence,
         leadIn ? `leadIn = "${leadIn}"` : "(no leadIn)",
         "text =",
-        text.slice(0, 80) + "…"
+        text.slice(0, 80) + "â€¦"
       );
       currentSequenceRef.current = question.sequence;
       answerBufferRef.current = "";
       userHasSpokenRef.current = false;
-      reaskCountRef.current = 0; // fresh question — reset the re-ask budget.
+      reaskCountRef.current = 0; // fresh question â€” reset the re-ask budget.
       turnStartRef.current = Date.now();
       clearTurnTimers();
+      transition("QUESTION_RECEIVED", `seq=${question.sequence}`, {
+        source: "backend",
+      });
+      transition("SPEAK_BACKEND_QUESTION", `seq=${question.sequence}`, {
+        source: "voice_agent",
+      });
+      expectedAgentSpeechRef.current += 1;
+      expectedAgentSpeechTextsRef.current.push(message);
+      expectedAgentSpeechKindsRef.current.push("question");
+      store.getState().appendTurn("ai", message);
       connRef.current?.sendInjectAgentMessage({
         type: "InjectAgentMessage",
         message,
         behavior: "queue",
       });
     },
-    [clearTurnTimers]
+    [clearTurnTimers, store, transition]
   );
 
   /** Resolve the spoken text of the question currently being asked. */
@@ -303,18 +360,23 @@ export function useVoiceAgent(): UseVoiceAgentReturn {
         warn("reinjectCurrentQuestion: no text for current question");
         return;
       }
-      log("reinjectCurrentQuestion:", leadIn ? `(${leadIn}) ` : "", text.slice(0, 60) + "…");
+      log("reinjectCurrentQuestion:", leadIn ? `(${leadIn}) ` : "", text.slice(0, 60) + "â€¦");
       answerBufferRef.current = "";
       userHasSpokenRef.current = false;
       turnStartRef.current = Date.now();
       clearTurnTimers();
+      const message = leadIn ? `${leadIn} ${text}` : text;
+      expectedAgentSpeechRef.current += 1;
+      expectedAgentSpeechTextsRef.current.push(message);
+      expectedAgentSpeechKindsRef.current.push("question");
+      store.getState().appendTurn("ai", message);
       connRef.current?.sendInjectAgentMessage({
         type: "InjectAgentMessage",
-        message: leadIn ? `${leadIn} ${text}` : text,
+        message,
         behavior: "queue",
       });
     },
-    [clearTurnTimers, getCurrentQuestionText]
+    [clearTurnTimers, getCurrentQuestionText, store]
   );
 
   /** End the interview: run existing evaluation pipeline, then flag report ready. */
@@ -354,7 +416,10 @@ export function useVoiceAgent(): UseVoiceAgentReturn {
    * Guarded so the two triggers never double-advance.
    */
   const advanceTurn = useCallback(
-    async (trigger: "function_call" | "silence_fallback" | "no_response") => {
+    async (
+      trigger: "function_call" | "silence_fallback" | "no_response" | "skip",
+      transcriptOverride?: string
+    ) => {
       log(
         `advanceTurn(${trigger}): advancing=${advancingRef.current}, finished=${finishedRef.current}, seq=${currentSequenceRef.current}, bufferLen=${answerBufferRef.current.trim().length}`
       );
@@ -374,11 +439,17 @@ export function useVoiceAgent(): UseVoiceAgentReturn {
       advancingRef.current = true;
       clearTurnTimers();
       store.getState().finalizeLiveUserTurn();
+      logVoiceEvent("ANSWER_COMPLETE", "voice_agent", {
+        interviewId: interviewIdRef.current,
+        sequence,
+        trigger,
+      });
       transition("ANSWER_COMPLETE", `trigger=${trigger}`);
+      transition("CALL_COMPLETE_ANSWER", `trigger=${trigger}`);
       transition("SAVE_TRANSCRIPT", "persisting transcript + fetching next question");
 
       // Ack the function call if this advance came from one.
-      // The `content` feeds back into the LLM context — it MUST instruct the
+      // The `content` feeds back into the LLM context â€” it MUST instruct the
       // agent to stop generating speech and wait for the next injected question.
       if (pendingFnIdRef.current) {
         log("advanceTurn: sending FunctionCallResponse for id =", pendingFnIdRef.current);
@@ -411,7 +482,11 @@ export function useVoiceAgent(): UseVoiceAgentReturn {
           sequence,
           // Fall back to a placeholder so the backend Zod min(1) passes even if
           // the candidate stayed silent (silence-fallback path).
-          transcript: transcript || "(no answer provided)",
+          transcript:
+            transcriptOverride ||
+            (trigger === "skip"
+              ? "(candidate skipped question)"
+              : transcript || "(no answer provided)"),
           durationSec,
         };
         log("advanceTurn: POST", API.interviewVoiceAnswer, body);
@@ -425,6 +500,12 @@ export function useVoiceAgent(): UseVoiceAgentReturn {
         log("advanceTurn: response =", json);
 
         if (!json.success) throw new Error(json.error || "Failed to save answer");
+        logVoiceEvent("TRANSCRIPT_SENT", "client", {
+          interviewId: interviewIdRef.current,
+          sequence,
+          trigger,
+        });
+        transition("TRANSCRIPT_SENT", `seq=${sequence}`);
 
         const { done, nextQuestion, index, totalQuestions } = json.data as {
           done: boolean;
@@ -445,31 +526,63 @@ export function useVoiceAgent(): UseVoiceAgentReturn {
         );
 
         if (done || !nextQuestion) {
-          log("advanceTurn: INTERVIEW COMPLETE — thanking candidate");
+          logVoiceEvent("INTERVIEW_FINISHED", "backend", {
+            interviewId: interviewIdRef.current,
+            sequence,
+          });
+          log("advanceTurn: INTERVIEW COMPLETE â€” thanking candidate");
           transition("THANK_CANDIDATE", "final question answered");
+          expectedAgentSpeechRef.current += 1;
+          expectedAgentSpeechTextsRef.current.push(
+            "Thank you for completing today's interview."
+          );
+          expectedAgentSpeechKindsRef.current.push("other");
+          store.getState().appendTurn(
+            "ai",
+            "Thank you for completing today's interview."
+          );
           connRef.current?.sendInjectAgentMessage({
             type: "InjectAgentMessage",
-            message:
-              "Thank you for your time. That concludes today's interview. We will review your answers and prepare your evaluation report.",
+            message: "Thank you for completing today's interview.",
             behavior: "queue",
           });
+          transition("WAIT_FOR_BACKEND", "evaluation continues outside voice agent");
           store.getState().setProgress(totalQuestions, totalQuestions);
           // Give the closing line a moment to play, then evaluate.
           setTimeout(() => void finishInterview(), 5000);
         } else {
+          logVoiceEvent("NEXT_QUESTION_RECEIVED", "backend", {
+            interviewId: interviewIdRef.current,
+            sequence: nextQuestion.sequence,
+            isLastQuestion: index >= totalQuestions - 1,
+          });
           log("advanceTurn: injecting next question seq =", nextQuestion.sequence);
           store.getState().setProgress(index + 1, totalQuestions);
           const isFinal = index >= totalQuestions - 1;
+          transition("NEXT_QUESTION_RECEIVED", `seq=${nextQuestion.sequence}`, {
+            source: "backend",
+            isLastQuestion: isFinal,
+          });
+          if (isFinal) {
+            logVoiceEvent("FINAL_QUESTION", "backend", {
+              interviewId: interviewIdRef.current,
+              sequence: nextQuestion.sequence,
+            });
+          }
           // Lead-in depends on why we advanced:
-          //  • no_response → the single, explicit timeout message.
-          //  • otherwise  → a brief acknowledgement of their answer.
+          //  â€¢ no_response â†’ the single, explicit timeout message.
+          //  â€¢ otherwise  â†’ a brief acknowledgement of their answer.
           // Either way it's ONE injected agent message that flows straight into
-          // the backend-supplied question — no frontend interaction.
+          // the backend-supplied question â€” no frontend interaction.
           const leadIn =
             trigger === "no_response"
-              ? "I haven't received a response for this question, so I'll move on to the next one."
-              : `${pickAck()} Moving to the next question.`;
-          transition("ACKNOWLEDGE_RESPONSE", `leadIn="${leadIn}"`);
+              ? "I haven't received a response for this question, so we'll move on."
+              : trigger === "skip"
+                ? "Understood. We'll move to the next question."
+                : undefined;
+          if (leadIn) {
+            transition("ACKNOWLEDGE_RESPONSE", `leadIn="${leadIn}"`);
+          }
           transition(
             isFinal ? "FINAL_QUESTION" : "ASK_NEXT_QUESTION",
             `seq=${nextQuestion.sequence}${isFinal ? " (last question)" : ""}`
@@ -500,10 +613,10 @@ export function useVoiceAgent(): UseVoiceAgentReturn {
   /**
    * FALLBACK completion path (USER_ANSWERING). Primary completion is the Voice
    * Agent LLM calling complete_answer (see FunctionCallRequest). This silence
-   * timer only rescues a stalled LLM: it fires `delayMs` (5–8s) AFTER the
+   * timer only rescues a stalled LLM: it fires `delayMs` (5â€“8s) AFTER the
    * candidate last spoke and advances then. ANY new user speech clears and
    * re-schedules it from the start (see the ConversationText handler), so
-   * natural mid-answer thinking pauses never cut the candidate off — the clock
+   * natural mid-answer thinking pauses never cut the candidate off â€” the clock
    * only runs once they have truly stopped talking.
    */
   const scheduleSilenceFallback = useCallback(
@@ -514,7 +627,7 @@ export function useVoiceAgent(): UseVoiceAgentReturn {
           log("scheduleSilenceFallback: fired but cannot advance yet");
           return;
         }
-        log(`scheduleSilenceFallback: ${delayMs}ms of silence — advancing (fallback)`);
+        log(`scheduleSilenceFallback: ${delayMs}ms of silence â€” advancing (fallback)`);
         void advanceTurn("silence_fallback");
       }, delayMs);
     },
@@ -524,9 +637,9 @@ export function useVoiceAgent(): UseVoiceAgentReturn {
   /**
    * WAITING_FOR_FIRST_RESPONSE: after a question finishes playing and the
    * candidate has NOT started speaking, wait quietly for a generous window
-   * (WAITING_FIRST_RESPONSE_MS, ~20–30s) so they have time to gather their
+   * (WAITING_FIRST_RESPONSE_MS, 45s) so they have time to gather their
    * thoughts. During this window we do NOT repeat the question, do NOT
-   * interrupt, and do NOT advance — we simply listen. The timer exists ONLY to
+   * interrupt, and do NOT advance â€” we simply listen. The timer exists ONLY to
    * detect that the candidate never started; any speech cancels it immediately
    * (see the ConversationText / UserStartedSpeaking handlers) and we move to the
    * answering state. If the whole window elapses with total silence we move on
@@ -538,6 +651,11 @@ export function useVoiceAgent(): UseVoiceAgentReturn {
       `scheduleFirstResponseWait: WAITING_FOR_FIRST_RESPONSE, quietly waiting ${WAITING_FIRST_RESPONSE_MS}ms for the candidate to start`
     );
     if (!advancingRef.current && !finishedRef.current) {
+      logVoiceEvent("WAITING_FOR_FIRST_RESPONSE", "client", {
+        interviewId: interviewIdRef.current,
+        sequence: currentSequenceRef.current,
+        timeoutMs: WAITING_FIRST_RESPONSE_MS,
+      });
       transition("WAITING_FOR_FIRST_RESPONSE", "question asked, awaiting first words");
     }
     awaitTimerRef.current = setTimeout(() => {
@@ -551,9 +669,9 @@ export function useVoiceAgent(): UseVoiceAgentReturn {
         log("scheduleFirstResponseWait: fired but no longer applicable, ignoring");
         return;
       }
-      // Candidate never started. Never repeat the question — say the single
+      // Candidate never started. Never repeat the question â€” say the single
       // no-response message and move straight on to the next question.
-      log("scheduleFirstResponseWait: no response in window — moving on with no-response message");
+      log("scheduleFirstResponseWait: no response in window â€” moving on with no-response message");
       void advanceTurn("no_response");
     }, WAITING_FIRST_RESPONSE_MS);
   }, [advanceTurn, clearAwaitTimer, transition]);
@@ -571,7 +689,14 @@ export function useVoiceAgent(): UseVoiceAgentReturn {
           log("event: SettingsApplied");
           // Greeting plays automatically; kick off Q1 right after so the agent
           // speaks it once the welcome finishes (queued).
+          logVoiceEvent("GREETING", "voice_agent", {
+            interviewId: interviewIdRef.current,
+          });
           transition("GREETING", "greeting candidate");
+          transition("WAIT_FOR_BACKEND_QUESTION", "waiting for first backend question");
+          logVoiceEvent("WAIT_FOR_BACKEND_QUESTION", "client", {
+            interviewId: interviewIdRef.current,
+          });
           const first = questionsRef.current[0];
           if (first) {
             log("SettingsApplied: injecting first question, total =", questionsRef.current.length);
@@ -598,14 +723,28 @@ export function useVoiceAgent(): UseVoiceAgentReturn {
           if (role === "user") {
             const trimmed = content.trim();
 
-            // Clarification / repeat request — NOT an answer. Do NOT save it,
+            if (isSkipRequest(trimmed)) {
+              logVoiceEvent("ANSWER_COMPLETE", "candidate", {
+                interviewId: interviewIdRef.current,
+                sequence: currentSequenceRef.current,
+                trigger: "skip",
+              });
+              store.getState().finalizeLiveUserTurn();
+              store.getState().appendTurn("user", content);
+              clearTurnTimers();
+              pendingFnIdRef.current = null;
+              void advanceTurn("skip", "(candidate skipped question)");
+              break;
+            }
+
+            // Clarification / repeat request â€” NOT an answer. Do NOT save it,
             // do NOT advance, do NOT call complete_answer. We re-speak the
             // current question (or acknowledge an explain request), then fall
             // straight back into WAITING_FOR_FIRST_RESPONSE via AgentAudioDone.
             if (isClarificationRequest(trimmed)) {
               const explain = isExplainRequest(trimmed);
               log(
-                `ConversationText: clarification (${explain ? "explain" : "repeat"}) — re-asking current question, no advance`
+                `ConversationText: clarification (${explain ? "explain" : "repeat"}) â€” re-asking current question, no advance`
               );
               // Finalize as its own separate turn so it never merges into (or is
               // mistaken for) the candidate's actual answer bubble/buffer.
@@ -615,18 +754,29 @@ export function useVoiceAgent(): UseVoiceAgentReturn {
               // so a queued complete_answer can never fire off this request.
               clearTurnTimers();
               pendingFnIdRef.current = null;
-              transition("ASKING_QUESTION", explain ? "clarify (rephrase)" : "repeat question");
+              logVoiceEvent(
+                explain ? "CLARIFICATION_REQUEST" : "REPEAT_REQUEST",
+                "candidate",
+                {
+                  interviewId: interviewIdRef.current,
+                  sequence: currentSequenceRef.current,
+                }
+              );
+              transition(
+                explain ? "OPTIONAL_CLARIFICATION" : "OPTIONAL_REPEAT",
+                explain ? "clarify current question" : "repeat current question"
+              );
               // reinjectCurrentQuestion resets the answer buffer + userHasSpoken,
               // guaranteeing no transcript is saved and no advance is triggered.
               reinjectCurrentQuestion(
                 explain
-                  ? "Sure, let me put the question another way."
-                  : "Of course, let me repeat the question."
+                  ? "Sure. In other words, answer what this question is asking in your own words."
+                  : "Certainly."
               );
               break;
             }
 
-            // Real answer speech — the candidate is ANSWERING. Cancel the
+            // Real answer speech â€” the candidate is ANSWERING. Cancel the
             // "waiting for you to start" timer, accumulate into the buffer, and
             // enter USER_ANSWERING. We never interrupt here.
             clearAwaitTimer();
@@ -634,6 +784,11 @@ export function useVoiceAgent(): UseVoiceAgentReturn {
               ? `${answerBufferRef.current} ${content}`
               : content;
             userHasSpokenRef.current = true;
+            lastUserSpeechAtRef.current = Date.now();
+            logVoiceEvent("USER_ANSWERING", "candidate", {
+              interviewId: interviewIdRef.current,
+              sequence: currentSequenceRef.current,
+            });
             if (!advancingRef.current && !finishedRef.current) {
               transition("USER_ANSWERING", "transcript segment received");
             }
@@ -641,29 +796,58 @@ export function useVoiceAgent(): UseVoiceAgentReturn {
             store.getState().appendLiveUserTurn(content);
 
             // Completion is decided primarily by the LLM's complete_answer call.
-            // The silence timer below is only a FALLBACK — any new speech resets
+            // The silence timer below is only a FALLBACK â€” any new speech resets
             // it, so a mid-answer thinking pause can never cut the candidate off.
             if (isExplicitDone(trimmed)) {
-              // They said they're finished — short confirm, then move on.
+              // They said they're finished â€” short confirm, then move on.
               scheduleSilenceFallback(EXPLICIT_DONE_MS);
             } else {
-              // Measure the 5–8s fallback window from this last utterance.
+              // Measure the 5â€“8s fallback window from this last utterance.
               scheduleSilenceFallback(SILENCE_FALLBACK_MS);
             }
           } else {
-            // AI text — display it but DON'T let the agent's own speech
-            // affect the silence timer or answer buffer.
-            store.getState().appendTurn("ai", content);
+            const aiText = normalize(content);
+            const expectedIndex = expectedAgentSpeechTextsRef.current.findIndex(
+              (expected) => {
+                const expectedText = normalize(expected);
+                return (
+                  expectedText === aiText ||
+                  expectedText.startsWith(aiText) ||
+                  aiText.startsWith(expectedText)
+                );
+              }
+            );
+            if (expectedIndex >= 0) {
+              currentAgentSpeechAllowedRef.current = true;
+              currentAgentSpeechKindRef.current =
+                expectedAgentSpeechKindsRef.current[expectedIndex] ?? "question";
+              expectedAgentSpeechTextsRef.current.splice(expectedIndex, 1);
+              expectedAgentSpeechKindsRef.current.splice(expectedIndex, 1);
+              expectedAgentSpeechRef.current = Math.max(
+                0,
+                expectedAgentSpeechRef.current - 1
+              );
+              log("ConversationText: allowed injected AI text", content.slice(0, 80));
+            } else {
+              currentAgentSpeechAllowedRef.current = false;
+              currentAgentSpeechKindRef.current = null;
+              playerRef.current?.clear();
+              log("ConversationText: blocked generated AI text", content.slice(0, 80));
+            }
           }
           break;
         }
 
         case "UserStartedSpeaking":
           log("event: UserStartedSpeaking");
+          logVoiceEvent("USER_STARTED_SPEAKING", "candidate", {
+            interviewId: interviewIdRef.current,
+            sequence: currentSequenceRef.current,
+          });
           // Barge-in: stop any agent audio immediately.
           playerRef.current?.clear();
           agentSpeakingRef.current = false;
-          // The candidate has started — cancel EVERY waiting/fallback timer and
+          // The candidate has started â€” cancel EVERY waiting/fallback timer and
           // enter USER_ANSWERING. The ConversationText handler re-arms the
           // silence fallback once we have transcript text.
           clearTurnTimers();
@@ -680,14 +864,37 @@ export function useVoiceAgent(): UseVoiceAgentReturn {
           log("event: AgentStartedSpeaking");
           agentSpeakingRef.current = true;
           clearSilenceTimer();
+          if (!currentAgentSpeechAllowedRef.current) {
+            currentAgentSpeechAllowedRef.current = false;
+            currentAgentSpeechKindRef.current = null;
+            playerRef.current?.clear();
+            warn("AgentStartedSpeaking: blocked non-injected agent speech");
+          }
           break;
 
         case "AgentAudioDone":
           log("event: AgentAudioDone, userHasSpoken =", userHasSpokenRef.current);
+          const wasAllowedAgentSpeech = currentAgentSpeechAllowedRef.current;
+          const speechKind = currentAgentSpeechKindRef.current;
+          currentAgentSpeechAllowedRef.current = false;
+          currentAgentSpeechKindRef.current = null;
           agentSpeakingRef.current = false;
+          if (!wasAllowedAgentSpeech) {
+            log("AgentAudioDone: ignored blocked agent speech");
+            break;
+          }
+          if (speechKind !== "question") {
+            log("AgentAudioDone: non-question speech done");
+            break;
+          }
+          logVoiceEvent("QUESTION_SPOKEN", "voice_agent", {
+            interviewId: interviewIdRef.current,
+            sequence: currentSequenceRef.current,
+          });
+          transition("QUESTION_SPOKEN", `seq=${currentSequenceRef.current}`);
           if (!advancingRef.current && !finishedRef.current) {
             if (userHasSpokenRef.current && answerBufferRef.current.trim().length > 0) {
-              // Candidate answered while the agent was still finishing — resume
+              // Candidate answered while the agent was still finishing â€” resume
               // USER_ANSWERING and re-arm the silence fallback.
               transition("USER_ANSWERING", "agent audio done, answer already started");
               log("AgentAudioDone: re-arming silence fallback (user has spoken)");
@@ -711,33 +918,40 @@ export function useVoiceAgent(): UseVoiceAgentReturn {
           );
           if (call) {
             // PRIMARY completion signal. The LLM has determined the candidate
-            // finished their answer, so advance — but only if they actually
+            // finished their answer, so advance â€” but only if they actually
             // spoke AND have provided a substantive answer (MIN_ANSWER_CHARS)
             // AND enough time has passed (MIN_TURN_MS). This triple-guard
             // prevents gpt-4o from firing on tiny fragments like "data," or
             // "highly" before the candidate has had a chance to answer fully.
             const bufferLen = answerBufferRef.current.trim().length;
             const turnElapsedMs = Date.now() - turnStartRef.current;
+            const quietElapsedMs = lastUserSpeechAtRef.current
+              ? Date.now() - lastUserSpeechAtRef.current
+              : 0;
             const hasSubstantiveAnswer =
-              bufferLen >= MIN_ANSWER_CHARS && turnElapsedMs >= MIN_TURN_MS;
+              bufferLen >= MIN_ANSWER_CHARS &&
+              turnElapsedMs >= MIN_TURN_MS &&
+              quietElapsedMs >= MIN_SILENCE_BEFORE_FUNCTION_MS;
 
             log(
-              `FunctionCallRequest: complete_answer — bufferLen=${bufferLen} (min=${MIN_ANSWER_CHARS}), turnElapsed=${turnElapsedMs}ms (min=${MIN_TURN_MS}ms), userHasSpoken=${userHasSpokenRef.current}`
+              `FunctionCallRequest: complete_answer - bufferLen=${bufferLen} (min=${MIN_ANSWER_CHARS}), turnElapsed=${turnElapsedMs}ms (min=${MIN_TURN_MS}ms), quietElapsed=${quietElapsedMs}ms (min=${MIN_SILENCE_BEFORE_FUNCTION_MS}ms), userHasSpoken=${userHasSpokenRef.current}`
             );
 
             if (userHasSpokenRef.current && hasSubstantiveAnswer) {
-              log("FunctionCallRequest: complete_answer — advancing (authoritative)");
+              log("FunctionCallRequest: complete_answer â€” advancing (authoritative)");
               pendingFnIdRef.current = call.id;
               void advanceTurn("function_call");
             } else {
-              // Answer too short / turn too new → this is not a real completion.
+              // Answer too short / turn too new â†’ this is not a real completion.
               // Ack to keep the agent silent and keep waiting; do NOT advance.
               const reason = !userHasSpokenRef.current
                 ? "candidate has not spoken yet"
                 : bufferLen < MIN_ANSWER_CHARS
                   ? `answer too short (${bufferLen} < ${MIN_ANSWER_CHARS} chars)`
-                  : `turn too short (${turnElapsedMs}ms < ${MIN_TURN_MS}ms)`;
-              log(`FunctionCallRequest: complete_answer ignored — ${reason}`);
+                  : turnElapsedMs < MIN_TURN_MS
+                    ? `turn too short (${turnElapsedMs}ms < ${MIN_TURN_MS}ms)`
+                    : `candidate quiet time too short (${quietElapsedMs}ms < ${MIN_SILENCE_BEFORE_FUNCTION_MS}ms)`;
+              log(`FunctionCallRequest: complete_answer ignored â€” ${reason}`);
               connRef.current?.sendFunctionCallResponse({
                 type: "FunctionCallResponse",
                 id: call.id,
@@ -803,6 +1017,12 @@ export function useVoiceAgent(): UseVoiceAgentReturn {
       currentSequenceRef.current = 0;
       pendingFnIdRef.current = null;
       userHasSpokenRef.current = false;
+      expectedAgentSpeechRef.current = 0;
+      currentAgentSpeechAllowedRef.current = false;
+      expectedAgentSpeechTextsRef.current = [];
+      expectedAgentSpeechKindsRef.current = [];
+      currentAgentSpeechKindRef.current = null;
+      lastUserSpeechAtRef.current = 0;
       interviewIdRef.current = interview.id;
       questionsRef.current = (interview.questions ?? [])
         .slice()
@@ -854,7 +1074,11 @@ export function useVoiceAgent(): UseVoiceAgentReturn {
 
       const conn = new AgentConnection({
         onMessage: handleMessage,
-        onAudio: (chunk) => player.enqueue(chunk),
+        onAudio: (chunk) => {
+          if (currentAgentSpeechAllowedRef.current) {
+            player.enqueue(chunk);
+          }
+        },
         onClose: () => {
           log("WebSocket: onClose, finished =", finishedRef.current);
           // Unexpected close mid-interview surfaces as a lost connection; a
@@ -887,6 +1111,8 @@ export function useVoiceAgent(): UseVoiceAgentReturn {
 
       // 3. Settings must be the first frame after open.
       log("start: sending Settings");
+      currentAgentSpeechAllowedRef.current = true;
+      currentAgentSpeechKindRef.current = "other";
       conn.sendSettings(buildInterviewAgentSettings());
 
       // 4. Keepalive to preserve the long session.
