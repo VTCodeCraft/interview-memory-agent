@@ -3,6 +3,7 @@ import { auth } from "@clerk/nextjs/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
 import { evaluateInterview } from "@/services/interview.service";
+import { persistInterviewMemory } from "@/services/memory.service";
 import { saveReport } from "@/services/report.service";
 
 const bodySchema = z.object({
@@ -15,7 +16,7 @@ export async function POST(request: NextRequest) {
     if (!clerkId) {
       return NextResponse.json(
         { success: false, error: "Unauthorized" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -27,7 +28,7 @@ export async function POST(request: NextRequest) {
     if (!user) {
       return NextResponse.json(
         { success: false, error: "User not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -36,7 +37,7 @@ export async function POST(request: NextRequest) {
     if (!parsed.success) {
       return NextResponse.json(
         { success: false, error: "interviewId is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -52,30 +53,45 @@ export async function POST(request: NextRequest) {
     const report = await saveReport(user.id, interviewId, evaluation);
 
     // ── Step 3: Mark interview as COMPLETED ──
-    await prisma.interview.update({
+    const completedInterview = await prisma.interview.update({
       where: { id: interviewId },
       data: { status: "COMPLETED", endedAt: new Date() },
+      select: {
+        userId: true,
+        company: true,
+        customCompanyName: true,
+        role: true,
+        interviewType: true,
+      },
     });
 
-    // ── Step 4: Console log for MVP verification ──
+    // ── Step 4: Build semantic memory and store it in Cognee ──
+    await persistInterviewMemory({
+      ...report,
+      interview: completedInterview,
+    });
+
+    // ── Step 5: Console log for MVP verification ──
     console.log("[MVP REPORT]", JSON.stringify(report, null, 2));
 
-    // ── Step 5: Return to frontend — STOP here (no Cognee, no analytics) ──
+    // ── Step 6: Return to frontend ──
     return NextResponse.json({ success: true, data: report });
-
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("[INTERVIEW_END_ERROR]", error);
 
-    if (error.message === "INTERVIEW_NOT_FOUND") {
+    const message =
+      error instanceof Error ? error.message : "Failed to finish interview";
+
+    if (message === "INTERVIEW_NOT_FOUND") {
       return NextResponse.json(
         { success: false, error: "Interview not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
     return NextResponse.json(
-      { success: false, error: error.message || "Failed to finish interview" },
-      { status: 500 }
+      { success: false, error: message },
+      { status: 500 },
     );
   }
 }

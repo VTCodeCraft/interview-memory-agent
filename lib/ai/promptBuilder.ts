@@ -5,10 +5,19 @@ export function buildInterviewGenerationPrompt(params: {
   difficulty?: string;
   resumeText?: string;
   jobDescriptionText?: string;
+  candidateMemoryText?: string;
 }): string {
-  const { role, companyType, interviewType, difficulty, resumeText, jobDescriptionText } = params;
+  const {
+    role,
+    companyType,
+    interviewType,
+    difficulty,
+    resumeText,
+    jobDescriptionText,
+    candidateMemoryText,
+  } = params;
 
-  let prompt = `Generate 8-10 interview questions for a ${difficulty || 'MEDIUM'} level ${role} interview.\n`;
+  let prompt = `Generate 8-10 interview questions for a ${difficulty || "MEDIUM"} level ${role} interview.\n`;
 
   if (interviewType === "Behavioral") {
     prompt += `\nINTERVIEW TYPE: Behavioral.
@@ -44,6 +53,10 @@ Include 1-2 Medium DSA questions, but focus on Core CS, Resume, and practical en
 
   if (jobDescriptionText) {
     prompt += `\n\nTARGET JOB DESCRIPTION:\n${jobDescriptionText.substring(0, 2000)}`;
+  }
+
+  if (candidateMemoryText) {
+    prompt += `\n\n--------------------------------\nCandidate Memory\n\nUse this concise history to adapt topic selection, depth, and follow-up style. It is secondary context: Resume, Job Description, and Interview Configuration remain primary.\n\n${candidateMemoryText.substring(0, 3500)}\n\nAdaptive personalization instructions for Gemini:\n- Preserve the existing interview rules, company template, interview type, and total question count.\n- Use Candidate Memory only to choose WHICH DSA, Core CS, backend, behavioral, or system-design topics to emphasize.\n- Focus more heavily on recurring weaknesses and previously missed topics. If relevant to the role/JD, include at least one discussion question that revisits a recurring weakness.\n- For recurring strengths, avoid beginner questions. Ask deeper architecture, scalability, debugging, trade-off, production, or edge-case questions instead.\n- If prior recommendations appear addressed, verify improvement with a more advanced or applied version rather than repeating the identical question.\n- If communication or confidence has improved, increase technical depth and reduce easy resume-only questions.\n- If previous interviews showed excellent performance in a topic, reduce its weight and allocate more attention to weaker areas.\n- Avoid repeating identical interview questions unless intentional reinforcement is clearly beneficial.\n- Memory should personalize the interview, not dominate it.\n--------------------------------`;
   }
 
   return prompt;

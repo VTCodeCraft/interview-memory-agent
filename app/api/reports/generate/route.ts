@@ -3,7 +3,7 @@ import { auth } from "@clerk/nextjs/server";
 import { z } from "zod";
 import { errorResponse, fail, ok } from "@/lib/utils/api";
 import { evaluateInterview } from "@/services/interview.service";
-import { rememberEvaluation } from "@/services/memory.service";
+import { persistInterviewMemory } from "@/services/memory.service";
 import { saveReport } from "@/services/report.service";
 import type { AIProvider } from "@/types";
 import { prisma } from "@/lib/db/prisma";
@@ -15,14 +15,16 @@ const bodySchema = z.object({
 export async function POST(request: NextRequest) {
   try {
     const { userId: clerkId } = await auth();
-    if (!clerkId) return NextResponse.json(fail("unauthorized"), { status: 401 });
+    if (!clerkId)
+      return NextResponse.json(fail("unauthorized"), { status: 401 });
 
     const user = await prisma.user.findUnique({
       where: { clerkId },
       select: { id: true },
     });
 
-    if (!user) return NextResponse.json(fail("user not found"), { status: 404 });
+    if (!user)
+      return NextResponse.json(fail("user not found"), { status: 404 });
 
     const body = (await request.json()) as unknown;
     const parsed = bodySchema.safeParse(body);
@@ -36,10 +38,29 @@ export async function POST(request: NextRequest) {
       provider: (body as { provider?: AIProvider }).provider,
     });
 
-    await Promise.allSettled([
-      saveReport(user.id, parsed.data.interviewId, evaluation),
-      rememberEvaluation(user.id, parsed.data.interviewId, evaluation),
-    ]);
+    const report = await saveReport(
+      user.id,
+      parsed.data.interviewId,
+      evaluation,
+    );
+    const interview = await prisma.interview.findFirst({
+      where: { id: parsed.data.interviewId, userId: user.id },
+      select: {
+        userId: true,
+        company: true,
+        customCompanyName: true,
+        role: true,
+        interviewType: true,
+      },
+    });
+
+    await persistInterviewMemory({
+      ...report,
+      interview: interview ?? undefined,
+    });
+
     return NextResponse.json(ok(evaluation));
-  } catch (reason) { return errorResponse(reason, "report generation error"); }
+  } catch (reason) {
+    return errorResponse(reason, "report generation error");
+  }
 }
