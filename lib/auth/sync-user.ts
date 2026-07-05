@@ -3,6 +3,7 @@ import "server-only";
 import { currentUser } from "@clerk/nextjs/server";
 import type { UserJSON } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/db";
+import { forget } from "@/services/cognee.service";
 
 type ClerkUserLike = {
   id: string;
@@ -95,7 +96,40 @@ export async function syncCurrentClerkUserToDatabase() {
 }
 
 export async function deleteClerkUserFromDatabase(clerkId: string) {
-  return prisma.user.deleteMany({
+  // Resolve the internal userId BEFORE deleting the row so we can pass it
+  // to Cognee.  If the user doesn't exist in the DB we skip Cognee silently.
+  const user = await prisma.user.findUnique({
+    where: { clerkId },
+    select: { id: true },
+  });
+
+  const result = await prisma.user.deleteMany({
     where: { clerkId },
   });
+
+  // ── Phase 7: forget() after DB deletion ──────────────────────────────────
+  // Only attempt Cognee deletion when a DB row was actually found and removed.
+  // Errors must NOT prevent the DB deletion from being reported as successful.
+  if (user) {
+    try {
+      console.log("[Cognee] Deleting Cognee memory for deleted user", {
+        userId: user.id,
+        clerkId,
+      });
+      await forget(user.id);
+      console.log("[Cognee] Cognee memory deleted for user", {
+        userId: user.id,
+      });
+    } catch (reason) {
+      // Log but do not re-throw — DB deletion already succeeded.
+      console.error("[Cognee] forget() failed during account deletion", {
+        userId: user.id,
+        clerkId,
+        reason: reason instanceof Error ? reason.message : String(reason),
+      });
+    }
+  }
+  // ─────────────────────────────────────────────────────────────────────────
+
+  return result;
 }

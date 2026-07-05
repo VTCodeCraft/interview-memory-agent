@@ -54,10 +54,12 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    await persistInterviewMemory({
-      ...report,
-      interview: interview ?? undefined,
-    });
+    // Phase 6: pass historical trend into stored memory so future recalls
+    // surface longitudinal patterns.
+    await persistInterviewMemory(
+      { ...report, interview: interview ?? undefined },
+      { historicalTrend: evaluation.historicalProgress?.overallTrend ?? null },
+    );
 
     return NextResponse.json(ok(evaluation));
   } catch (reason) {

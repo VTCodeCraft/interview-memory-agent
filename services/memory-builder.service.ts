@@ -54,6 +54,12 @@ export type InterviewSemanticMemory = {
   recommendations: string[];
   summary: string | null;
   createdAt: string | null;
+  /**
+   * Phase 6: Optional trend summary generated after evaluating with historical
+   * context.  Stored alongside current interview data so future recall queries
+   * can surface longitudinal patterns.
+   */
+  historicalTrend?: string | null;
 };
 
 function asCleanString(value: Nullable<string>): string | null {
@@ -165,14 +171,17 @@ export function buildSummary(memory: Omit<InterviewSemanticMemory, "summary">): 
   return `Candidate ${readiness}${roleContext}. Strengths include ${strengths}. Improvement areas include ${weaknesses}. Recommended next steps: ${recommendations}.`;
 }
 
-export function buildMemory(report: MemoryBuilderReport): InterviewSemanticMemory {
+export function buildMemory(
+  report: MemoryBuilderReport,
+  options?: { historicalTrend?: string | null },
+): InterviewSemanticMemory {
   const scores = buildScoreMemory(report);
   const strengths = buildStrengthMemory(report);
   const weaknesses = buildWeaknessMemory(report);
   const missingTopics = buildMissingTopicMemory(report);
   const recommendations = buildRecommendationMemory(report);
 
-  const memoryWithoutSummary: Omit<InterviewSemanticMemory, "summary"> = {
+  const memoryWithoutSummary: Omit<InterviewSemanticMemory, "summary" | "historicalTrend"> = {
     userId: asCleanString(report.userId) ?? asCleanString(report.interview?.userId),
     interviewId: asCleanString(report.interviewId),
     company:
@@ -190,6 +199,9 @@ export function buildMemory(report: MemoryBuilderReport): InterviewSemanticMemor
   return {
     ...memoryWithoutSummary,
     summary: buildSummary(memoryWithoutSummary),
+    ...(options?.historicalTrend != null
+      ? { historicalTrend: options.historicalTrend }
+      : {}),
   };
 }
 

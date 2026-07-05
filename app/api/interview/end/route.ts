@@ -66,15 +66,14 @@ export async function POST(request: NextRequest) {
     });
 
     // ── Step 4: Build semantic memory and store it in Cognee ──
-    await persistInterviewMemory({
-      ...report,
-      interview: completedInterview,
-    });
+    // Phase 6: carry the historical trend summary into stored memory so that
+    // future recall queries can surface longitudinal improvement patterns.
+    await persistInterviewMemory(
+      { ...report, interview: completedInterview },
+      { historicalTrend: evaluation.historicalProgress?.overallTrend ?? null },
+    );
 
-    // ── Step 5: Console log for MVP verification ──
-    console.log("[MVP REPORT]", JSON.stringify(report, null, 2));
-
-    // ── Step 6: Return to frontend ──
+    // ── Step 5: Return to frontend ──
     return NextResponse.json({ success: true, data: report });
   } catch (error: unknown) {
     console.error("[INTERVIEW_END_ERROR]", error);

@@ -1,82 +1,112 @@
-import { addMemory, cognify, listMemory, searchMemory } from "@/lib/cognee";
-import { remember as rememberInCognee } from "@/services/cognee.service";
+/**
+ * services/memory.service.ts
+ *
+ * Orchestrates interview memory persistence: validate → build → remember → improve.
+ *
+ * Phase 8: uses structured logger, timing, and validateMemory() before
+ * calling remember(). Legacy dead code (rememberEvaluation, getMemory,
+ * queryMemory) removed — those functions were never called from production
+ * code paths and referenced a legacy in-process Cognee stub.
+ */
+
+import {
+  improve as improveInCognee,
+  remember as rememberInCognee,
+} from "@/services/cognee.service";
 import {
   buildMemory,
   type MemoryBuilderReport,
 } from "@/services/memory-builder.service";
-import type { Evaluation, MemoryNode } from "@/types";
+import {
+  startTimer,
+  elapsed,
+  log,
+  logRememberStart,
+  logRememberComplete,
+  logRememberFailed,
+  logImproveStart,
+  logImproveComplete,
+  logImproveFailed,
+  logValidationFailed,
+} from "@/lib/cognee/logger";
+import { validateMemory } from "@/lib/cognee/validator";
 
-/** Persist evaluation insights into the candidate's long-term memory. */
-export async function rememberEvaluation(
-  userId: string,
-  interviewId: string,
-  evaluation: Evaluation,
-): Promise<void> {
-  await Promise.all([
-    ...evaluation.strengths.map((s) =>
-      addMemory(userId, s, "strength", interviewId),
-    ),
-    ...evaluation.weaknesses.map((w) =>
-      addMemory(userId, w, "weakness", interviewId),
-    ),
-    addMemory(
-      userId,
-      evaluation.recommendations?.[0] ?? "",
-      "note",
-      interviewId,
-    ),
-  ]);
-  await cognify(userId);
-}
+// ── Helpers ───────────────────────────────────────────────────────────────
 
-function getRememberResultId(result: unknown): string | null {
-  if (!result || typeof result !== "object") return null;
-
+function getRememberResultId(result: unknown): string {
+  if (!result || typeof result !== "object") return "unknown";
   const record = result as Record<string, unknown>;
   const id =
     record.id ?? record.data_id ?? record.dataset_id ?? record.pipeline_run_id;
-
-  return typeof id === "string" ? id : null;
+  return typeof id === "string" && id ? id : "unknown";
 }
 
 function getErrorMessage(reason: unknown): string {
   return reason instanceof Error ? reason.message : String(reason);
 }
 
+// ── Public API ────────────────────────────────────────────────────────────
+
+/**
+ * Build, validate, and persist interview memory to Cognee.
+ *
+ * Flow:
+ *   buildMemory(report)
+ *   → validateMemory(memory)     — skip and log if invalid
+ *   → remember(memory)           — timed, errors logged not thrown
+ *   → improve()                  — timed, errors logged not thrown
+ *
+ * This function never throws. All Cognee failures are logged and swallowed
+ * so interview/report completion is never blocked.
+ */
 export async function persistInterviewMemory(
   report: MemoryBuilderReport,
+  options?: { historicalTrend?: string | null },
 ): Promise<void> {
-  try {
-    console.log("[Cognee] Building semantic memory...");
+  // 1. Build semantic memory
+  log("Building semantic memory");
+  const memory = buildMemory(report, options);
 
-    const memory = buildMemory(report);
-    console.log("[Cognee] Memory created", {
-      userId: memory.userId,
+  // 2. Validate before touching Cognee
+  const validation = validateMemory(memory);
+  if (!validation.valid) {
+    logValidationFailed({
       interviewId: memory.interviewId,
-      company: memory.company,
-      role: memory.role,
-      interviewType: memory.interviewType,
+      issues: validation.issues,
     });
+    return;
+  }
 
-    console.log("[Cognee] Calling remember()...");
+  // 3. remember()
+  const rememberTimer = startTimer();
+  logRememberStart({ interviewId: memory.interviewId, userId: memory.userId });
+
+  try {
     const result = await rememberInCognee(memory);
     const memoryId = getRememberResultId(result);
-
-    console.log("[Cognee] Memory stored successfully", {
+    logRememberComplete({
       interviewId: memory.interviewId,
-      memoryId: memoryId ?? "unknown",
+      memoryId,
+      durationMs: elapsed(rememberTimer),
     });
   } catch (reason) {
-    console.error("[Cognee] Remember failed", {
+    logRememberFailed({
+      interviewId: memory.interviewId,
       reason: getErrorMessage(reason),
+      durationMs: elapsed(rememberTimer),
     });
+    // remember() failed — skip improve(), return gracefully
+    return;
   }
-}
 
-export async function getMemory(userId: string): Promise<MemoryNode[]> {
-  return listMemory(userId);
-}
+  // 4. improve() — best-effort, never blocks completion
+  const improveTimer = startTimer();
+  logImproveStart();
 
-export async function queryMemory(userId: string, q: string) {
-  return searchMemory(userId, q);
+  try {
+    await improveInCognee();
+    logImproveComplete(elapsed(improveTimer));
+  } catch (reason) {
+    logImproveFailed(getErrorMessage(reason), elapsed(improveTimer));
+  }
 }

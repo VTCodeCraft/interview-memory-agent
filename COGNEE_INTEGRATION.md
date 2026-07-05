@@ -11,11 +11,11 @@ Completed phases:
 - Phase 3: Persist semantic interview memory into Cognee
 - Phase 4: Retrieve candidate memory before Gemini question generation
 - Phase 5: Adaptive interview personalization using Cognee memory
+- Phase 6: Longitudinal Evaluation & Memory Evolution
+- Phase 7: Cognee Memory Lifecycle (improve() & forget())
 
 Not implemented yet:
 
-- `improve()`
-- `forget()`
 - automatic memory weighting updates
 - memory pruning
 - advanced per-user dataset isolation beyond the current configured Cognee dataset
@@ -549,6 +549,575 @@ If Cognee returns no usable memory or recall fails:
 
 No `improve()`, `forget()`, pruning, or automatic memory weighting was added.
 
+## Phase 6: Longitudinal Evaluation & Memory Evolution
+
+### Main files
+
+- `services/cognee.service.ts` — `recallHistoricalMemory()` and supporting types
+- `lib/ai/evaluationPromptBuilder.ts` — `buildHistoricalContextBlock()` and `buildEnhancedEvaluationPrompt()`
+- `lib/ai/prompts/evaluation.ts` — updated `evaluationSystemPrompt` with `historicalProgress` schema, updated `buildEvaluationPrompt()`
+- `services/interview.service.ts` — `evaluateInterview()` calls recall before Gemini
+- `services/memory-builder.service.ts` — `buildMemory()` includes `historicalTrend`
+- `services/memory.service.ts` — `persistInterviewMemory()` passes `historicalTrend` into stored memory
+- `types/report.ts` — `HistoricalProgress`, `HistoricalProgressTrend`, `Evaluation.historicalProgress?`
+- `app/api/interview/end/route.ts` — passes `historicalTrend` to `persistInterviewMemory()`
+- `app/api/reports/generate/route.ts` — passes `historicalTrend` to `persistInterviewMemory()`
+
+### Goal
+
+Use previous Cognee memories during **Gemini Evaluation** to compare the current interview against historical interviews and produce a **Historical Progress** section in the generated report.
+
+This phase does NOT change the interview flow itself.
+
+### New flow
+
+```txt
+Interview
+↓
+Deepgram Voice Agent
+↓
+Cognee.recallHistoricalMemory()          ← Phase 6 (new)
+↓
+Historical Memory context block          ← Phase 6 (new)
+↓
+Gemini Evaluation (with history)         ← Phase 6 (enriched)
+↓
+Enhanced Report + historicalProgress     ← Phase 6 (new field)
+↓
+Memory Builder (with historicalTrend)    ← Phase 6 (enriched)
+↓
+Cognee.remember()
+```
+
+### Where recall() is called during evaluation
+
+`services/interview.service.ts` → `evaluateInterview()`:
+
+```ts
+const historicalMemory = await recallHistoricalMemory({
+  userId,
+  role: interview.role,
+  interviewType: interview.interviewType ?? undefined,
+});
+const historicalContextBlock = buildHistoricalContextBlock(historicalMemory);
+```
+
+This happens **before** `complete()` is called with the Gemini prompt, so the history is always injected into the evaluation — not after.
+
+### `recallHistoricalMemory()` — evaluation-specific recall
+
+Lives in `services/cognee.service.ts`.  Intentionally separate from `recallCandidateMemory()` (which drives question personalization).
+
+Query focus:
+
+- Previous scores (overall, technical, communication, confidence, behavioral, problem-solving)
+- Recurring strengths and weaknesses across sessions
+- Communication trend and confidence trend
+- Topics that were previously weak but improved
+- Topics repeatedly recommended but unresolved
+- Topics mastered (no need to re-test)
+- Improvement summary since last interview
+
+Returns `HistoricalEvaluationContext`:
+
+```ts
+{
+  memories: string[];
+  formatted: string | null;
+  count: number;
+  previousScores: {
+    overall: number | null;
+    technical: number | null;
+    communication: number | null;
+    confidence: number | null;
+    behavioral: number | null;
+    problemSolving: number | null;
+  };
+  trends: {
+    recurringStrengths: string[];
+    recurringWeaknesses: string[];
+    communicationTrend: string | null;
+    confidenceTrend: string | null;
+    improvementAreas: string[];
+    stillNeedsWork: string[];
+    previousRecommendations: string[];
+  };
+}
+```
+
+### Example historical memory injected into Gemini
+
+```txt
+--------------------------------
+Historical Candidate Memory
+
+Use the following context ONLY to compare the candidate's current
+performance against their historical trends.  Do NOT hallucinate
+previous interviews.  Do NOT rewrite history.  If an area is not
+mentioned below, treat it as unknown.
+
+Previous Scores (most recent):
+  Overall:         78/100
+  Technical:       74/100
+  Communication:   80/100
+  Confidence:      72/100
+  Behavioral:      78/100
+  Problem-Solving: 68/100
+
+Recurring Strengths:
+  - Node.js
+  - Express
+  - REST APIs
+
+Recurring Weaknesses:
+  - Dynamic Programming
+  - Operating Systems
+
+Communication Trend:
+  Improving — went from Average to Good across last two sessions
+
+Confidence Trend:
+  Moderate, slight upward movement
+
+Previously Improved Areas:
+  - Redis
+  - API Design
+
+Topics Still Needing Work:
+  - Dynamic Programming
+  - Graphs
+
+Previous Recommendations (to track whether followed):
+  - Practice DP on LeetCode
+  - Revise OS scheduling concepts
+
+Full Historical Records (for deeper context):
+Historical Record 1:
+...
+--------------------------------
+
+Historical Comparison Instructions:
+- Compare the current interview performance against the historical records above.
+- Identify improvements, regressions, stable strengths.
+...
+```
+
+### Example `historicalProgress` section in the report
+
+```json
+{
+  "historicalProgress": {
+    "improvedAreas": ["Redis", "API Design"],
+    "regressedAreas": [],
+    "stableStrengths": ["Node.js", "Express"],
+    "stillNeedsImprovement": ["Dynamic Programming", "Operating Systems"],
+    "communication": {
+      "previous": "Average",
+      "current": "Good"
+    },
+    "confidence": {
+      "previous": "Moderate",
+      "current": "High"
+    },
+    "overallTrend": "Candidate has shown steady improvement across backend engineering interviews. Redis and API Design are now solid. Dynamic Programming remains the primary gap requiring dedicated practice."
+  }
+}
+```
+
+### Example updated memory stored in Cognee
+
+After each interview the stored `InterviewSemanticMemory` object now includes:
+
+```json
+{
+  "userId": "user_123",
+  "interviewId": "interview_456",
+  "company": "Google",
+  "role": "Backend Engineer",
+  "interviewType": "Technical",
+  "scores": {
+    "overall": 84,
+    "technical": 82,
+    "communication": 88,
+    "behavioral": 76,
+    "problemSolving": 80,
+    "confidence": 85
+  },
+  "strengths": ["Node.js", "Express", "Redis", "API Design"],
+  "weaknesses": ["Dynamic Programming", "Operating Systems"],
+  "missingTopics": ["Graphs"],
+  "recommendations": ["Practice DP", "Revise OS scheduling"],
+  "summary": "Candidate shows strong interview readiness for the Backend Engineer role. Strengths include Node.js, Express, Redis, and API Design. Improvement areas include Dynamic Programming, Operating Systems, and Graphs.",
+  "historicalTrend": "Candidate has shown steady improvement across backend engineering interviews. Redis and API Design are now solid. Dynamic Programming remains the primary gap requiring dedicated practice.",
+  "createdAt": "2026-07-05T15:00:00.000Z"
+}
+```
+
+The `historicalTrend` field means each subsequent `recallHistoricalMemory()` call will surface the evolving trend summary, making the graph progressively richer.
+
+### Evaluation without Cognee (graceful fallback)
+
+When `recallHistoricalMemory()` fails or returns zero memories:
+
+- `historicalContextBlock` is `null`
+- `buildEvaluationPrompt()` generates the same prompt as before Phase 6
+- Gemini evaluates exactly as today — no `historicalProgress` field in output
+- `persistInterviewMemory()` stores the memory without `historicalTrend`
+- The interview/report flow completes normally
+
+Cognee remains an enhancement layer. Zero Cognee failures propagate to the user.
+
+### New types
+
+```ts
+// types/report.ts
+interface HistoricalProgressTrend {
+  previous: string;
+  current: string;
+}
+
+interface HistoricalProgress {
+  improvedAreas: string[];
+  regressedAreas: string[];
+  stableStrengths: string[];
+  stillNeedsImprovement: string[];
+  communication?: HistoricalProgressTrend;
+  confidence?: HistoricalProgressTrend;
+  overallTrend: string;
+}
+
+// historicalProgress is optional on Evaluation — existing reports compatible
+interface Evaluation {
+  // ... existing fields ...
+  historicalProgress?: HistoricalProgress;
+}
+```
+
+### New logs
+
+When historical memory is found:
+
+```txt
+[Cognee] Retrieving historical interview memory...
+[Cognee] Historical memory loaded { count: 1, hasPreviousScores: true }
+[Cognee] Passing historical memory to evaluation { recurringWeaknesses: [...], recurringStrengths: [...] }
+[Cognee] Gemini evaluation completed { interviewId: "..." }
+[Cognee] Historical comparison generated { improvedAreas: [...], stableStrengths: [...], overallTrend: "..." }
+[Cognee] Building semantic memory...
+[Cognee] Memory created { ..., hasHistoricalTrend: true }
+[Cognee] Calling remember()...
+[Cognee] Updated semantic memory stored { interviewId: "...", memoryId: "..." }
+```
+
+When no history exists (baseline):
+
+```txt
+[Cognee] Retrieving historical interview memory...
+[Cognee] No historical memory — evaluating as baseline
+[Cognee] Gemini evaluation completed { interviewId: "..." }
+[Cognee] Building semantic memory...
+[Cognee] Memory created { ..., hasHistoricalTrend: false }
+[Cognee] Calling remember()...
+[Cognee] Updated semantic memory stored { interviewId: "...", memoryId: "..." }
+```
+
+### Phase 6 end-to-end test plan
+
+1. Ensure `.env.local` has Cognee variables.
+2. Run `npm run dev`.
+3. **Interview 1** — first interview for a user.
+   - Confirm: `[Cognee] No historical memory — evaluating as baseline`
+   - Report has NO `historicalProgress` field.
+   - Memory is stored with `hasHistoricalTrend: false`.
+4. **Interview 2** — same user, same role.
+   - Confirm: `[Cognee] Historical memory loaded { count: 1 }`
+   - Confirm: `[Cognee] Historical comparison generated { ... }`
+   - Report DOES have `historicalProgress` with `overallTrend` text.
+   - Memory is stored with `hasHistoricalTrend: true`.
+5. **Interview 3** — same user, same role.
+   - Confirm: accumulated memory is recalled.
+   - Improvements detected from Interview 2 are reflected.
+   - Regressions detected if applicable.
+   - `overallTrend` references multi-interview trajectory.
+
+Verify:
+
+- Improvements are detected when a previously weak area scores well.
+- Regressions are detected when a previously strong area scores poorly.
+- Stable strengths remain consistent across sessions.
+- Recommendations evolve instead of repeating unchanged advice.
+
+### Direct historical recall test
+
+```powershell
+npx.cmd tsx --env-file=.env.local -e "import { recallHistoricalMemory } from './services/cognee.service'; async function main() { const result = await recallHistoricalMemory({ userId: 'phase3-test-user', role: 'Backend Engineer', interviewType: 'Technical' }); console.log(JSON.stringify(result, null, 2)); } main().then(() => process.exit(0)).catch((e) => { console.error(e); process.exit(1); });"
+```
+
+### Readiness for the final Cognee lifecycle phase
+
+Phase 6 creates the complete memory loop:
+
+```txt
+recall history → evaluate with history → generate historicalProgress →
+store memory with historicalTrend → next recall sees the trend
+```
+
+This makes the graph continuously richer with each interview.
+
+The final phase (`improve()` / `forget()`) can now operate on this evolving graph to:
+
+- Reinforce confirmed improvements
+- Prune stale or contradicted memories
+- Merge repeated weaknesses into weighted nodes
+- Support user-facing memory management
+
+All the stored data structures (`historicalTrend`, `historicalProgress`) are in place to inform those operations.
+
+## Phase 7: Cognee Memory Lifecycle (improve() & forget())
+
+### Main files
+
+- `services/cognee.service.ts` — `improve()` and `forget()` added
+- `services/memory.service.ts` — `persistInterviewMemory()` calls `improve()` after `remember()`
+- `app/api/cognee/forget/route.ts` — `DELETE /api/cognee/forget` endpoint
+- `lib/auth/sync-user.ts` — `deleteClerkUserFromDatabase()` calls `forget()` on account deletion
+
+### Goal
+
+Complete the Cognee memory lifecycle:
+
+- `improve()` — called after every successful `remember()` to strengthen the graph
+- `forget()` — called when a user permanently deletes their account
+
+### New flow: improve()
+
+```txt
+Interview
+↓
+Gemini Evaluation
+↓
+Report
+↓
+Memory Builder
+↓
+remember()           ← Phase 3 (existing)
+↓
+improve()            ← Phase 7 (new)
+↓
+END
+```
+
+### New flow: forget()
+
+```txt
+User deletes account (Clerk user.deleted webhook)
+↓
+deleteClerkUserFromDatabase()
+  └─ prisma.user.deleteMany()    ← delete DB records first
+  └─ forget(userId)              ← Phase 7 (new)
+       └─ POST /api/v1/forget { dataset: clientUserId }
+↓
+All Cognee memories removed
+```
+
+### Part 1 — improve()
+
+#### Where it is called
+
+`services/memory.service.ts` → `persistInterviewMemory()`:
+
+```ts
+// After remember() succeeds:
+console.log("[Cognee] Running improve()...");
+try {
+  await improveInCognee();
+  console.log("[Cognee] Memory graph optimized");
+} catch (improveReason) {
+  console.error("[Cognee] Improve failed", { reason: ... });
+  // intentionally swallowed
+}
+```
+
+#### Cognee API call
+
+```
+POST /api/v1/improve
+{
+  "datasetName": "<COGNEE_USER_ID>",
+  "runInBackground": false
+}
+```
+
+#### Error handling
+
+`improve()` failures are caught inside `persistInterviewMemory()`.  They are logged but never re-thrown.  The interview completes normally regardless.
+
+#### Example improve() logs — success
+
+```txt
+[Cognee] Building semantic memory...
+[Cognee] Memory created { userId: "...", interviewId: "...", hasHistoricalTrend: true }
+[Cognee] Calling remember()...
+[Cognee] Updated semantic memory stored { interviewId: "...", memoryId: "..." }
+[Cognee] Running improve()...
+[Cognee] Memory graph optimized
+```
+
+#### Example improve() logs — failure (interview still completes)
+
+```txt
+[Cognee] Updated semantic memory stored { interviewId: "...", memoryId: "..." }
+[Cognee] Running improve()...
+[Cognee] Improve failed { reason: "Cognee request failed (409 Conflict) ..." }
+```
+
+### Part 2 — forget()
+
+#### `forget()` in `services/cognee.service.ts`
+
+```ts
+export async function forget(userId: string): Promise<ForgetResult> {
+  // Calls POST /api/v1/forget with the configured dataset name.
+  // Throws on failure so callers can surface errors to users.
+}
+```
+
+Cognee API call:
+
+```
+POST /api/v1/forget
+{
+  "dataset": "<COGNEE_USER_ID>",
+  "everything": false
+}
+```
+
+#### Where forget() is called
+
+**1. `lib/auth/sync-user.ts` — automatic on Clerk `user.deleted` webhook:**
+
+```ts
+export async function deleteClerkUserFromDatabase(clerkId: string) {
+  const user = await prisma.user.findUnique({ where: { clerkId }, select: { id: true } });
+  const result = await prisma.user.deleteMany({ where: { clerkId } });
+
+  if (user) {
+    try {
+      await forget(user.id);
+    } catch (reason) {
+      // logged, never re-thrown — DB deletion is already committed
+    }
+  }
+
+  return result;
+}
+```
+
+**2. `DELETE /api/cognee/forget` — manual or programmatic account deletion:**
+
+```txt
+DELETE /api/cognee/forget
+Content-Type: application/json
+Authorization: <Clerk session>
+
+{ "userId": "<internal app userId>" }
+```
+
+#### `DELETE /api/cognee/forget` response
+
+Success:
+
+```json
+{
+  "ok": true,
+  "data": {
+    "success": true,
+    "datasetDeleted": true,
+    "message": "Cognee memory dataset \"<dataset>\" deleted for user <userId>."
+  }
+}
+```
+
+Failure (e.g. Cognee unavailable):
+
+```json
+{
+  "ok": false,
+  "error": "Cognee request failed (500 ...) ..."
+}
+```
+
+#### Security
+
+The `DELETE /api/cognee/forget` route:
+
+- Requires Clerk authentication (`auth()`)
+- Resolves the authenticated user's internal `userId` from the database
+- Rejects with `403` if the `userId` in the request body does not match the authenticated user
+- This prevents cross-user memory deletion
+
+#### forget() error handling
+
+In `lib/auth/sync-user.ts`: `forget()` errors are caught and logged.  The DB deletion result is still returned to the Clerk webhook correctly.
+
+In `app/api/cognee/forget/route.ts`: `forget()` errors are NOT swallowed — they surface as a `500` response so callers know the Cognee deletion failed and can retry or alert.
+
+#### Example forget() logs
+
+Success (via webhook):
+
+```txt
+[Cognee] Deleting Cognee memory for deleted user { userId: "...", clerkId: "..." }
+[Cognee] forget() called { userId: "...", dataset: "..." }
+[Cognee] Memory dataset deleted { userId: "...", dataset: "..." }
+[Cognee] Cognee memory deleted for user { userId: "..." }
+```
+
+Failure (via webhook — DB deletion still succeeds):
+
+```txt
+[Cognee] forget() called { userId: "...", dataset: "..." }
+[Cognee] forget() failed during account deletion { userId: "...", reason: "..." }
+```
+
+### Confirmation: interview completion with improve() failure
+
+`improve()` is called inside a `try/catch` block that is itself inside the outer `persistInterviewMemory()` `try/catch`.  Even if `improve()` throws, the error is swallowed and only logged.  The interview/report API routes (`/api/interview/end` and `/api/reports/generate`) call `persistInterviewMemory()` non-blockingly and never depend on its return value for the success response.  Interview completion always succeeds.
+
+### Confirmation: recall() returns no memories after forget()
+
+`forget()` calls `POST /api/v1/forget` with `dataset: client.userId` and `everything: false`, which deletes the entire dataset including graph nodes, vector embeddings, and raw stored files.  After this call, `recall()` queries against `[client.userId]` will find no stored memories and return an empty array, causing `recallCandidateMemory()` and `recallHistoricalMemory()` to return empty/null contexts.
+
+### Test commands
+
+**Test improve():**
+
+Complete an interview and confirm these log lines appear in order:
+
+```txt
+[Cognee] Updated semantic memory stored
+[Cognee] Running improve()...
+[Cognee] Memory graph optimized
+```
+
+**Test forget():**
+
+```powershell
+# 1. Store test memories first (Phase 3 test)
+npx.cmd tsx --env-file=.env.local -e "..."
+
+# 2. Call forget endpoint
+curl -X DELETE http://localhost:3000/api/cognee/forget \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <clerk_token>" \
+  -d '{"userId":"<your_user_id>"}'
+
+# 3. Verify no memories remain
+npx.cmd tsx --env-file=.env.local -e "import { recallCandidateMemory } from './services/cognee.service'; async function main() { const r = await recallCandidateMemory({ userId: 'your-user-id', role: 'Backend Engineer' }); console.log('memories after forget:', r.count); } main().then(() => process.exit(0)).catch(e => { console.error(e); process.exit(1); });"
+```
+
+Expected: `memories after forget: 0`
+
 ## Validation commands
 
 Run typecheck:
@@ -575,32 +1144,59 @@ services/cognee.service.ts
   healthCheck()
   remember()
   recall()
-  recallCandidateMemory()
+  improve()                          ← Phase 7 (new)
+  forget(userId)                     ← Phase 7 (new)
+  recallCandidateMemory()            ← Phase 4/5: question-generation recall
+  recallHistoricalMemory()           ← Phase 6: evaluation-context recall
+
+lib/ai/evaluationPromptBuilder.ts   ← Phase 6 (new)
+  buildHistoricalContextBlock()
+  buildEnhancedEvaluationPrompt()
+
+lib/ai/prompts/evaluation.ts        ← Phase 6 (updated)
+  evaluationSystemPrompt             historicalProgress schema added
+  buildEvaluationPrompt()            now accepts historicalContextBlock
 
 services/memory-builder.service.ts
-  buildMemory(report)
+  buildMemory(report, options?)      ← Phase 6: accepts historicalTrend option
   semantic report-to-memory conversion
 
 services/memory.service.ts
-  persistInterviewMemory(report)
-  non-blocking post-report persistence into Cognee
+  persistInterviewMemory(report, options?)
+    remember() → improve()           ← Phase 7: improve() called after remember()
 
 services/promptBuilder.service.ts
   prepareInterviewPrompt(interview)
-  recalls memory before building Gemini prompt
+  recalls memory before building Gemini question-generation prompt
 
 lib/ai/promptBuilder.ts
   buildInterviewGenerationPrompt(...)
   appends adaptive Candidate Memory section
 
+types/report.ts
+  HistoricalProgress                 ← Phase 6 (new)
+  HistoricalProgressTrend            ← Phase 6 (new)
+  Evaluation.historicalProgress?     ← Phase 6 (new optional field)
+
+lib/auth/sync-user.ts
+  deleteClerkUserFromDatabase()
+    prisma.user.deleteMany() → forget(userId)  ← Phase 7: Cognee cleanup on deletion
+
 app/api/cognee/health/route.ts
   Phase 1 health + remember/recall smoke test
 
+app/api/cognee/forget/route.ts     ← Phase 7 (new)
+  DELETE /api/cognee/forget
+  authenticated, cross-user protected, calls forget(userId)
+
 app/api/interview/end/route.ts
-  saves report, then persists memory to Cognee
+  saves report → persistInterviewMemory() → remember() → improve()
 
 app/api/reports/generate/route.ts
-  saves report, then persists memory to Cognee
+  saves report → persistInterviewMemory() → remember() → improve()
+
+app/api/webhook/clerk/route.ts
+  user.deleted → deleteClerkUserFromDatabase() → forget()
 ```
 
 ## Recommended future work

@@ -5,6 +5,16 @@ import {
   buildEvaluationPrompt,
   evaluationSystemPrompt,
 } from "@/lib/ai/prompts";
+import { buildHistoricalContextBlock } from "@/lib/ai/evaluationPromptBuilder";
+import { recallHistoricalMemory } from "@/services/cognee.service";
+import {
+  startTimer,
+  elapsed,
+  log,
+  debug,
+  logEvaluationStart,
+  logEvaluationComplete,
+} from "@/lib/cognee/logger";
 import { uid } from "@/lib/utils";
 import type { AIProvider, Evaluation } from "@/types";
 
@@ -22,6 +32,7 @@ export async function evaluateInterview(params: {
     select: {
       id: true,
       role: true,
+      interviewType: true,
       questions: true,
       answer: {
         select: { answers: true },
@@ -33,6 +44,24 @@ export async function evaluateInterview(params: {
     throw new Error("INTERVIEW_NOT_FOUND");
   }
 
+  // ── Phase 6: Recall historical memory before evaluation ──────────────────
+  const historicalMemory = await recallHistoricalMemory({
+    userId,
+    role: interview.role,
+    interviewType: interview.interviewType ?? undefined,
+  });
+
+  const historicalContextBlock = buildHistoricalContextBlock(historicalMemory);
+
+  if (historicalMemory.count > 0) {
+    debug("Historical context ready for evaluation", {
+      count: historicalMemory.count,
+      hasPreviousScores: historicalMemory.previousScores.overall !== null,
+      recurringWeaknesses: historicalMemory.trends.recurringWeaknesses,
+    });
+  }
+  // ────────────────────────────────────────────────────────────────────────
+
   const questions = normalizeStoredQuestions(interview.questions);
   const answers = normalizeStoredAnswers(interview.answer?.answers);
   const qa = questions.map((question) => ({
@@ -40,15 +69,30 @@ export async function evaluateInterview(params: {
     answer: answers.find((answer) => answer.sequence === question.sequence),
   }));
 
+  const evalTimer = startTimer();
+  logEvaluationStart({ interviewId, hasHistory: historicalMemory.count > 0 });
+
   const raw = await complete(
     evaluationSystemPrompt,
-    buildEvaluationPrompt({ role: interview.role, qa }),
-    { provider, json: true }
+    buildEvaluationPrompt({ role: interview.role, qa, historicalContextBlock }),
+    { provider, json: true },
   );
 
-  const parsed = parseJSON<Omit<Evaluation, "id" | "interviewId" | "createdAt">>(
-    raw
-  );
+  const parsed = parseJSON<Omit<Evaluation, "id" | "interviewId" | "createdAt">>(raw);
+
+  logEvaluationComplete({
+    interviewId,
+    hasHistoricalProgress: Boolean(parsed.historicalProgress),
+    durationMs: elapsed(evalTimer),
+  });
+
+  if (parsed.historicalProgress) {
+    debug("Historical comparison generated", {
+      improvedAreas: parsed.historicalProgress.improvedAreas,
+      stableStrengths: parsed.historicalProgress.stableStrengths,
+      overallTrend: parsed.historicalProgress.overallTrend,
+    });
+  }
 
   return {
     id: uid("eval"),

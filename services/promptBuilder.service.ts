@@ -1,11 +1,25 @@
+/**
+ * services/promptBuilder.service.ts
+ *
+ * Prepares the Gemini question-generation prompt for a given interview.
+ * Recall executes exactly once per request here — the result is passed
+ * straight to buildInterviewGenerationPrompt() with no secondary calls.
+ *
+ * Phase 8: consolidated logging via structured logger, debug-gated verbose
+ * output (final prompt, focus details), timing on the full prompt build.
+ */
+
 import { buildInterviewGenerationPrompt } from "@/lib/ai/promptBuilder";
 import { parseJobDescription } from "@/lib/ai/questionGenerator";
 import { prisma } from "@/lib/db/prisma";
 import { recallCandidateMemory } from "@/services/cognee.service";
-
-function formatFocus(values: string[]) {
-  return values.length > 0 ? values.join(", ") : "none";
-}
+import {
+  startTimer,
+  elapsed,
+  log,
+  debug,
+  logPersonalizationSummary,
+} from "@/lib/cognee/logger";
 
 type PromptInterview = {
   userId: string;
@@ -25,19 +39,19 @@ type PromptInterview = {
   } | null;
 };
 
-export async function prepareInterviewPrompt(interview: PromptInterview) {
+export async function prepareInterviewPrompt(interview: PromptInterview): Promise<string> {
+  const t = startTimer();
+
+  // ── 1. Parse / reuse job description skills ──────────────────────────────
   let jdText = "";
 
   if (interview.jobDescription) {
-    // Check if it's already parsed
     if (
       !interview.jobDescription.parsedSkills ||
       interview.jobDescription.parsedSkills.length === 0
     ) {
       if (interview.jobDescription.rawText) {
-        const parsed = await parseJobDescription(
-          interview.jobDescription.rawText,
-        );
+        const parsed = await parseJobDescription(interview.jobDescription.rawText);
         if (parsed) {
           const skills = [
             ...(parsed.requiredSkills || []),
@@ -51,10 +65,13 @@ export async function prepareInterviewPrompt(interview: PromptInterview) {
         }
       }
     } else {
-      jdText = `Skills: ${interview.jobDescription.parsedSkills.join(", ")}\nText: ${interview.jobDescription.rawText?.substring(0, 500) || ""}`;
+      jdText = `Skills: ${interview.jobDescription.parsedSkills.join(", ")}\nText: ${
+        interview.jobDescription.rawText?.substring(0, 500) || ""
+      }`;
     }
   }
 
+  // ── 2. Recall candidate memory — exactly once per request ────────────────
   const candidateMemory = await recallCandidateMemory({
     userId: interview.userId,
     role: interview.role,
@@ -62,29 +79,7 @@ export async function prepareInterviewPrompt(interview: PromptInterview) {
     interviewType: interview.interviewType,
   });
 
-  console.log("[Cognee] Retrieved Memory", {
-    count: candidateMemory.count,
-    memory: candidateMemory.formatted,
-  });
-  console.log("[Cognee] Personalization Summary", {
-    hasMemory: candidateMemory.count > 0,
-    recurringWeaknesses: candidateMemory.focus.recurringWeaknesses,
-    recurringStrengths: candidateMemory.focus.recurringStrengths,
-    previouslyMissedTopics: candidateMemory.focus.previouslyMissedTopics,
-    recentRecommendations: candidateMemory.focus.recentRecommendations,
-  });
-  console.log(
-    "[Cognee] Weakness Focus:",
-    formatFocus(candidateMemory.focus.recurringWeaknesses),
-  );
-  console.log(
-    "[Cognee] Strength Focus:",
-    formatFocus(candidateMemory.focus.recurringStrengths),
-  );
-  console.log("[Cognee] Passing memory to Prompt Builder", {
-    hasMemory: candidateMemory.count > 0,
-  });
-
+  // ── 3. Build prompt ───────────────────────────────────────────────────────
   const prompt = buildInterviewGenerationPrompt({
     role: interview.role,
     companyType: interview.companyType || undefined,
@@ -95,14 +90,22 @@ export async function prepareInterviewPrompt(interview: PromptInterview) {
     candidateMemoryText: candidateMemory.formatted || undefined,
   });
 
-  console.log("[Cognee] Prompt Builder Updated", {
-    hasCandidateMemory: candidateMemory.count > 0,
+  // ── 4. Structured logs ────────────────────────────────────────────────────
+  logPersonalizationSummary({
+    hasMemory: candidateMemory.count > 0,
+    recurringWeaknesses: candidateMemory.focus.recurringWeaknesses,
+    recurringStrengths: candidateMemory.focus.recurringStrengths,
     promptLength: prompt.length,
   });
 
-  if (process.env.NODE_ENV !== "production") {
-    console.log("[Prompt Builder] Final Prompt", prompt);
-  }
+  log("Prompt ready", {
+    hasCandidateMemory: candidateMemory.count > 0,
+    promptLength: prompt.length,
+    duration: `${elapsed(t)} ms`,
+  });
+
+  // Final prompt logged only in development
+  debug("Final prompt", { prompt });
 
   return prompt;
 }
