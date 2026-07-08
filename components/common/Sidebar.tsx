@@ -41,13 +41,13 @@ export default function Sidebar({
     confirmOpen && typeof document !== "undefined"
       ? createPortal(
           <div
-            className="fixed inset-0 z-[100] grid place-items-center bg-black/40 backdrop-blur-sm p-4 sm:p-6"
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 sm:p-6"
             onClick={() => !signingOut && setConfirmOpen(false)}
           >
             <div
               role="dialog"
               aria-modal="true"
-              className="w-full max-w-sm rounded-3xl bg-surface border border-outline-variant/30 shadow-2xl p-6"
+              className="rounded-3xl bg-surface border border-outline-variant/30 shadow-2xl p-6"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="w-11 h-11 rounded-2xl bg-error-red/10 flex items-center justify-center mb-4">
