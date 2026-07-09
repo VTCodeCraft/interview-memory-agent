@@ -28,10 +28,11 @@ interface ChecklistItem {
   checked: boolean;
 }
 
-const WEEKLY_GOAL_TARGET = 5;
+import { useSettingsStore } from "@/store/useSettingsStore";
 
 export default function MemoryPage() {
   const { user } = useUser();
+  const { weeklyGoal } = useSettingsStore();
   const [nodes, setNodes] = useState<MemoryNode[]>([]);
   const [reports, setReports] = useState<Report[]>([]);
   const [profile, setProfile] = useState<ProfileData | null>(null);
@@ -186,10 +187,6 @@ export default function MemoryPage() {
                 <div>
                   <p className="text-[10px] font-bold text-on-surface-variant mb-1 uppercase tracking-wider">Interviews Taken</p>
                   <p className="text-base text-primary">{reports.length}</p>
-                </div>
-                <div>
-                  <p className="text-[10px] font-bold text-on-surface-variant mb-1 uppercase tracking-wider">Streak</p>
-                  <p className="text-base text-primary">{streak} {streak === 1 ? "day" : "days"}</p>
                 </div>
               </div>
             </div>
@@ -437,8 +434,8 @@ export default function MemoryPage() {
             ) : nodes.length > 0 ? (
               (() => {
                 const filtered = nodes.filter((n) => n.content && n.content.trim() !== "" && !n.content.includes("Candidate ID:**"));
-                const grouped = [];
-                let currentGroup = { title: "Memory Facts", nodes: [] };
+                const grouped: Array<{ title: string; nodes: MemoryNode[] }> = [];
+                let currentGroup: { title: string; nodes: MemoryNode[] } = { title: "Memory Facts", nodes: [] };
                 
                 filtered.forEach(node => {
                   if (node.content.startsWith("###")) {
@@ -475,7 +472,7 @@ export default function MemoryPage() {
                               <li key={i} className="flex items-start gap-3 text-sm text-on-surface font-semibold leading-relaxed">
                                 <span className="material-symbols-outlined text-primary/60 text-[16px] mt-0.5 shrink-0">arrow_right</span>
                                 <span>
-                                  {parts.map((p, j) => p.startsWith("**") && p.endsWith("**") ? <strong key={j} className="font-extrabold text-primary">{p.slice(2, -2)}</strong> : p)}
+                                  {parts.map((p: string, j: number) => p.startsWith("**") && p.endsWith("**") ? <strong key={j} className="font-extrabold text-primary">{p.slice(2, -2)}</strong> : p)}
                                 </span>
                               </li>
                             );
@@ -515,35 +512,18 @@ export default function MemoryPage() {
           </div>
         </div>
 
-        {/* Streak Widget */}
-        <div className="bg-primary/5 p-4 rounded-2xl border border-primary/10">
-          <div className="flex justify-between items-center mb-4">
-            <h4 className="text-[10px] font-bold text-primary uppercase tracking-wider">Active Streak</h4>
-            <span className="material-symbols-outlined text-primary text-sm">local_fire_department</span>
-          </div>
-          <div className="flex items-baseline gap-1">
-            <p className="text-3xl font-extrabold text-primary">{streak}</p>
-            <p className="text-xs text-on-surface-variant font-semibold">Days of growth</p>
-          </div>
-          <div className="mt-3 flex gap-2">
-            {Array.from({ length: Math.max(streak, 1) }).map((_, i) => (
-              <div key={i} className="flex-1 h-1 bg-primary rounded-full"></div>
-            ))}
-          </div>
-        </div>
-
         {/* Weekly Goal */}
         <div className="space-y-4">
           <h4 className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">Weekly Goal</h4>
           <div className="bg-white p-4 rounded-xl border border-outline-variant/30 shadow-sm space-y-2">
             <div className="flex justify-between text-xs font-semibold">
               <span>Mock Sessions</span>
-              <span>{weeklyCount}/{WEEKLY_GOAL_TARGET}</span>
+              <span>{weeklyCount}/{weeklyGoal}</span>
             </div>
             <div className="w-full h-1.5 bg-surface-container rounded-full overflow-hidden">
               <div
                 className="h-full bg-primary"
-                style={{ width: `${Math.min(100, (weeklyCount / WEEKLY_GOAL_TARGET) * 100)}%` }}
+                style={{ width: `${Math.min(100, (weeklyCount / weeklyGoal) * 100)}%` }}
               ></div>
             </div>
           </div>

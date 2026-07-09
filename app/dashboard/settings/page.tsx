@@ -57,6 +57,7 @@ export default function SettingsPage() {
     sessionReminders,
     weeklyReports,
     goalAchievements,
+    weeklyGoal,
     setProvider,
     setTargetRole,
     setVoiceEnabled,
@@ -65,6 +66,7 @@ export default function SettingsPage() {
     setSessionReminders,
     setWeeklyReports,
     setGoalAchievements,
+    setWeeklyGoal,
   } = useSettingsStore();
 
   const [activeTab, setActiveTab] = useState("profile");
@@ -170,7 +172,7 @@ export default function SettingsPage() {
   };
 
   const toggleCompany = (company: string) => {
-    setTargetCompanies((prev) => (prev.includes(company) ? prev.filter((c) => c !== company) : [...prev, company]));
+    setTargetCompanies([company]);
   };
 
   const toggleInterviewType = (type: string) => {
@@ -441,6 +443,17 @@ export default function SettingsPage() {
                     />
                   </div>
 
+                  <div className="bg-white border border-outline-variant/30 rounded-2xl p-6 space-y-4 shadow-sm">
+                    <label className="text-[10px] text-on-surface-variant uppercase tracking-wider">Weekly Goal (Interviews)</label>
+                    <input
+                      type="number"
+                      min="1"
+                      className="w-full bg-white border border-outline-variant rounded-xl px-4 py-2.5 text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none font-medium"
+                      value={weeklyGoal}
+                      onChange={(e) => setWeeklyGoal(parseInt(e.target.value) || 1)}
+                    />
+                  </div>
+
 
 
                   <div className="bg-white border border-outline-variant/30 rounded-2xl p-6 space-y-4 shadow-sm">
@@ -623,19 +636,6 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            {/* Current Streak */}
-            <div className="bg-gradient-to-br from-primary to-primary-container text-white rounded-2xl p-6 shadow-md">
-              <h4 className="text-[10px] font-bold opacity-60 uppercase tracking-wider mb-2">Current Streak</h4>
-              <div className="flex items-baseline gap-2">
-                <span className="text-4xl font-extrabold">{streak}</span>
-                <span className="text-sm font-semibold">{streak === 1 ? "Day" : "Days"}</span>
-              </div>
-              <div className="mt-4 flex gap-1">
-                {Array.from({ length: Math.max(streak, 1) }).map((_, i) => (
-                  <div key={i} className="flex-1 h-1 bg-white rounded-full"></div>
-                ))}
-              </div>
-            </div>
           </div>
         </div>
       </main>

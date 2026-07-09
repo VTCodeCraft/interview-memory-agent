@@ -167,18 +167,7 @@ export default function DashboardPage() {
             />
           </div>
         </div>
-        <div className="flex items-center gap-4 text-outline">
-          <button className="p-1 rounded-full hover:bg-surface-container-high transition-colors active:scale-95 cursor-pointer flex items-center justify-center">
-            <span className="material-symbols-outlined text-sm text-on-surface">notifications</span>
-          </button>
-          <button className="p-1 rounded-full hover:bg-surface-container-high transition-colors active:scale-95 cursor-pointer flex items-center justify-center">
-            <span className="material-symbols-outlined text-sm text-on-surface">help_outline</span>
-          </button>
-          <div className="h-6 w-[1px] bg-outline-variant/30 mx-1"></div>
-          <button className="bg-[#240A8A] text-white px-5 py-2 rounded-full text-xs font-bold transition-all hover:opacity-90 active:scale-95 cursor-pointer">
-            Go Premium
-          </button>
-        </div>
+
       </header>
 
       <main className="w-full lg:ml-64 lg:w-[calc(100%-16rem)] pt-20 lg:pt-16 min-h-screen">
@@ -192,19 +181,7 @@ export default function DashboardPage() {
                 <p className="text-on-surface-variant text-sm mt-1 font-medium">Ready to tackle your next session?</p>
               </div>
               <div className="flex items-center gap-8 bg-white p-3 rounded-2xl">
-                <div className="text-center flex flex-col items-center">
-                  <p className="text-[9px] font-bold text-on-surface-variant tracking-widest uppercase mb-1">STREAK</p>
-                  {totalInterviews >= 3 ? (
-                    <div className="flex items-center gap-1 text-base font-extrabold text-on-surface">
-                      {currentStreak}
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-1 text-[10px] text-outline font-medium">
-                      <span className="material-symbols-outlined text-[14px]">lock</span> Unlock at 3
-                    </div>
-                  )}
-                </div>
-                <div className="h-8 w-[1px] bg-outline-variant/30"></div>
+
                 <div className="text-center flex flex-col items-center">
                   <p className="text-[9px] font-bold text-on-surface-variant tracking-widest uppercase mb-1">INTERVIEWS</p>
                   <p className="text-base font-extrabold text-on-surface">{totalInterviews}</p>
@@ -427,19 +404,6 @@ export default function DashboardPage() {
             <div className="p-6 rounded-[24px] bg-white border border-outline-variant/20 shadow-sm flex flex-col items-center text-center">
               <div className="w-full flex items-center justify-between mb-6">
                 <p className="text-[9px] font-bold text-on-surface-variant tracking-widest uppercase">WEEKLY GOAL</p>
-                <button
-                  onClick={() => {
-                    const newGoal = window.prompt("Enter your new weekly goal:", weeklyGoal.toString());
-                    const parsed = parseInt(newGoal || "");
-                    if (!isNaN(parsed) && parsed > 0) {
-                      setWeeklyGoal(parsed);
-                    }
-                  }}
-                  className="text-outline-variant hover:text-primary transition-colors cursor-pointer"
-                  title="Edit Goal"
-                >
-                  <span className="material-symbols-outlined text-[14px]">edit</span>
-                </button>
               </div>
               <div className="relative w-28 h-28 flex items-center justify-center">
                 <svg className="w-full h-full transform -rotate-90">

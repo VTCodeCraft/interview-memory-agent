@@ -329,12 +329,7 @@ export default function Home() {
                   <div className="flex-1 bg-primary h-[95%] rounded-t-lg"></div>
                 </div>
               </div>
-              {/* Streak */}
-              <div className="p-8 rounded-[24px] border border-outline-variant bg-surface-container-lowest flex flex-col justify-center items-center text-center">
-                <p className="text-[11px] font-bold text-on-surface-variant mb-4 uppercase tracking-wider">INTERVIEW STREAK</p>
-                <span className="text-[64px] font-extrabold text-primary leading-none">12</span>
-                <p className="font-semibold text-sm mt-2 text-on-surface">DAYS IN A ROW</p>
-              </div>
+
             </div>
           </div>
         </section>
