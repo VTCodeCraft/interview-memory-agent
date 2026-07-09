@@ -121,7 +121,6 @@ export async function saveAnswerAndAdvance(
     sequence: input.sequence,
     transcript: input.transcript,
     duration: Math.round(input.durationSec ?? 0),
-    confidence: null,
   });
 
   // Next question is the one whose sequence directly follows the answered one.

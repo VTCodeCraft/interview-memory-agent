@@ -135,11 +135,11 @@ export default function Home() {
           <div className="max-w-container-max mx-auto px-8 text-center">
             <p className="text-[11px] font-bold text-on-surface-variant mb-10 tracking-widest uppercase">TRUSTED BY ASPIRING DEVELOPERS AND JOB SEEKERS</p>
             <div className="flex flex-wrap justify-center items-center gap-12 md:gap-20 opacity-40 grayscale">
-              <img alt="Google" className="h-8" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAIABCSPUqu7C-YepeP8wSNUunHw88DHtDZq_ZnM96p0Y4B5ZHgBCYsON_scylABswUSec2iSqAItuX5xNNSLVZbWo-SKoSGfYTgDjs2d8OiGBYMcj7GcivbudyGPeaogyRTPXioZUL4yraK8-JQiI8R2blEsUbo5GyhlzMOppa9UXfcJxKQjpvopSIiXhZTgy-S9JmqWbXT6GbLJkt_OLXi-fd9l_3tuaRLlmFzuhLrT9s7f-KIxvWj2D5UW37gYzzVa_3H8FXPJfi"/>
-              <img alt="JOB" className="h-6" src="https://lh3.googleusercontent.com/aida-public/AB6AXuACB3CrIJDzQwONCI438mpwr0hNqYOBimwEoTBJqVFzwxwtgJbYE9fAmFwHVVpopCjdzG3pPWTBXyufV_Ll8VUwb4wJZ4UJ_wpTlz2vLu7j27zI3nOon5IMM2S4SzHHylAIIvlftm-TcfxtgSCQzTdZvZNDZpz5Nq4Xb8PD8CehhbYkF3cpgi2Bd_xNFtKqfwOXGK2mhDfLHWC4LPjmrGu5KDugDuqnIUuKWMUGx9uBogKxsYn29vMM9ZImWd14Gf_76Qjh2QFe969_"/>
-              <img alt="Microsoft" className="h-8" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDcddI634_hKR2E76sL49lBFvzc39NKMxqvUOLz07mjmkBxTa3vrPCrzG3NWVbVBFcFSvzy_Y98HrmT_C4lHLGTTpDel8P2L7-dKOnk2PuRlVQ9YYc_W1LKpsMu1fcfPxSRoJuK1xEd3xRy4UUqm-rBj7FGveSqVIUSxp_nwWmDfGzfPgmqMPkJMebR9x7SCDhU8CSPgtJsi2TDmqeT4twHKtx1IsBtIF2EqUGyY4NtVMW12C18WrJOt9IEUoYgCGBscdaRLoME5PDV"/>
-              <img alt="Uber" className="h-6" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAsmQZu6y5g1XcNp0JP8kE1ZuIutrU_9MaKWCoF0BydTDXbaZrPWGwDPW4ffO2AL4nFmlWBb9dG0nMhHwFoe6oeVeI7Xhc7n4H7w41YRR44nZOcsqABXyrJQPkNhBopsWBprYyV6uZ5gSVw7nsUKQyr1tWBLUZ1_li8hlZawLSwKVO5NDsssk14J9rGYncQLDRHFz2DGS7VirG6kecOB2jj955_s8D_xN-RAtFJ_VFsQutIiSTowOd_anFAkFxbCVZaQU4fMEHnS7Ip"/>
-              <img alt="Atlassian" className="h-8" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAJGSZzICjLbR5x9RvTDH_7yEY6zM02ZmEFSVhLruzwjOXqfJHMwWHNxK9lIViVPP-wxc6zngnX0YgYlqKhpbIPi2jabU-FdY3qp5extrE2GFM5ihHRpcPstPwLO8HFBr5E60rAvCpU7xgDZGkPgjamufK5Xc-jfetXxhVPq-8iZp741oF6r_tdnZnGyZZWduyY3Wi4123m982DA4_VR7-qmYgosd8LxovDFz5PpKCAIeGRPbLBpzMsSJNlDHZUzpibxKt9q24a6LtE"/>
+              <img alt="Google" className="h-8 object-contain" src="https://upload.wikimedia.org/wikipedia/commons/2/2f/Google_2015_logo.svg"/>
+              <img alt="Amazon" className="h-8 object-contain" src="https://upload.wikimedia.org/wikipedia/commons/a/a9/Amazon_logo.svg"/>
+              <img alt="Microsoft" className="h-8 object-contain" src="https://upload.wikimedia.org/wikipedia/commons/9/96/Microsoft_logo_%282012%29.svg"/>
+              <img alt="Meta" className="h-8 object-contain" src="https://upload.wikimedia.org/wikipedia/commons/7/7b/Meta_Platforms_Inc._logo.svg"/>
+              <img alt="NVIDIA" className="h-8 object-contain" src="https://upload.wikimedia.org/wikipedia/commons/2/21/Nvidia_logo.svg"/>
             </div>
           </div>
         </section>

@@ -12,7 +12,6 @@ const bodySchema = z.object({
   text: z.string().optional(),
   duration: z.number().int().nonnegative().optional(),
   durationSec: z.number().int().nonnegative().optional(),
-  confidence: z.number().min(0).max(1).optional(),
 });
 
 export async function POST(request: NextRequest) {
@@ -61,7 +60,6 @@ export async function POST(request: NextRequest) {
       sequence: parsed.data.sequence,
       transcript,
       duration: parsed.data.duration ?? parsed.data.durationSec ?? 0,
-      confidence: parsed.data.confidence ?? null,
     });
 
     return NextResponse.json({

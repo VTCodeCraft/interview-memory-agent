@@ -8,7 +8,6 @@ type StoredAnswer = {
   sequence: number;
   transcript: string;
   duration: number;
-  confidence: number | null;
 };
 
 type StoredAnswersBlob = {
@@ -21,7 +20,6 @@ export interface SaveInterviewAnswerInput {
   sequence: number;
   transcript: string;
   duration: number;
-  confidence?: number | null;
 }
 
 export interface SaveInterviewAnswerResult {
@@ -46,8 +44,6 @@ function normalizeAnswers(raw: unknown): StoredAnswer[] {
       sequence: answer.sequence,
       transcript: String(answer.transcript ?? ""),
       duration: Number(answer.duration ?? 0),
-      confidence:
-        typeof answer.confidence === "number" ? answer.confidence : null,
     }))
     .sort((left, right) => left.sequence - right.sequence);
 }
@@ -93,7 +89,6 @@ export async function saveInterviewAnswer(
     sequence,
     transcript: input.transcript,
     duration: input.duration,
-    confidence: input.confidence ?? null,
   });
 
   await prisma.$transaction([
