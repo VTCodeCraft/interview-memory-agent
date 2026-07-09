@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireUserId, getOrCreateDBUser, AuthError } from "@/services/auth.service";
 import { errorResponse, ok } from "@/lib/utils/api";
 import type { MemoryNode } from "@/types";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/db/prisma";
 
 export async function GET(request: NextRequest) {
   try {

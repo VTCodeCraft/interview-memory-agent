@@ -206,42 +206,42 @@ export default function VoiceInterview({
   return (
     <div className="min-h-screen h-screen bg-surface text-on-surface flex flex-col overflow-hidden">
       {/* Header */}
-      <header className="flex items-center justify-between px-gutter h-16 border-b border-outline-variant/30 bg-surface/80 backdrop-blur-md">
-        <div className="flex items-center gap-md">
-          <span className="text-lg font-bold text-primary">InterviewAI</span>
+      <header className="flex items-center justify-between px-4 md:px-gutter h-16 border-b border-outline-variant/30 bg-surface/80 backdrop-blur-md">
+        <div className="flex items-center gap-2 md:gap-md">
+          <span className="text-base md:text-lg font-bold text-primary">InterviewAI</span>
           <span className="hidden sm:inline-flex items-center gap-sm bg-surface-container px-3 py-1.5 rounded-full border border-outline-variant/20">
             <span className="material-symbols-outlined text-primary text-sm">
               work
             </span>
             <span className="text-sm font-bold">
-              {interview.role} Interview
+              {interview.role}
             </span>
           </span>
         </div>
 
-        <div className="flex items-center gap-md">
+        <div className="flex items-center gap-2 md:gap-md">
           <span className="text-xs font-semibold text-on-surface-variant hidden md:inline">
             {progressLabel}
           </span>
-          <div className="flex items-center gap-sm bg-surface-container px-3 py-1.5 rounded-lg border border-outline-variant/20">
+          <div className="flex items-center gap-1 md:gap-sm bg-surface-container px-2 md:px-3 py-1.5 rounded-lg border border-outline-variant/20">
             <span className="material-symbols-outlined text-on-surface-variant text-sm">
               timer
             </span>
-            <span className="text-sm font-bold tabular-nums">
+            <span className="text-xs md:text-sm font-bold tabular-nums">
               {formatElapsed(elapsed)}
             </span>
           </div>
-          <div className="flex items-center gap-sm px-3 py-1.5 rounded-full border border-outline-variant/20">
+          <div className="flex items-center gap-1 md:gap-sm px-2 md:px-3 py-1.5 rounded-full border border-outline-variant/20">
             <span
               className={`w-2 h-2 rounded-full ${meta.orb} ${state !== "ERROR" ? "animate-pulse" : ""}`}
             />
-            <span className={`text-xs font-bold ${meta.tone}`}>
+            <span className={`hidden sm:inline text-xs font-bold ${meta.tone}`}>
               {meta.label}
             </span>
           </div>
           <button
             onClick={handleEnd}
-            className="px-4 py-1.5 border border-error-red text-error-red rounded-lg text-xs font-bold hover:bg-error-red hover:text-white transition-all active:scale-95 cursor-pointer"
+            className="px-3 md:px-4 py-1.5 border border-error-red text-error-red rounded-lg text-xs font-bold hover:bg-error-red hover:text-white transition-all active:scale-95 cursor-pointer"
           >
             End
           </button>

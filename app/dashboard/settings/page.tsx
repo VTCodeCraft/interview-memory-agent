@@ -252,8 +252,8 @@ export default function SettingsPage() {
       <Sidebar />
 
       {/* Main Content Area */}
-      <main className="ml-64 p-gutter w-full min-h-screen flex-1">
-        <div className="max-w-[1200px] mx-auto grid grid-cols-1 lg:grid-cols-[16rem_1fr] xl:grid-cols-[16rem_1fr_18rem] gap-xl pt-6 pb-32">
+      <main className="w-full lg:ml-64 lg:w-[calc(100%-16rem)] p-4 sm:p-gutter pt-20 lg:pt-6 min-h-screen flex-1">
+        <div className="max-w-[1200px] mx-auto grid grid-cols-1 lg:grid-cols-[16rem_1fr] xl:grid-cols-[16rem_1fr_18rem] gap-6 lg:gap-xl pb-32">
 
           {/* Left Side Settings Menu */}
           <div className="w-full space-y-1 lg:sticky lg:top-6 lg:self-start">

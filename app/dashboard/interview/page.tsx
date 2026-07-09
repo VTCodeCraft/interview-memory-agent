@@ -132,8 +132,8 @@ export default function InterviewPage() {
         <Sidebar />
 
         {/* Main Content Area */}
-        <main className="ml-64 p-gutter w-full min-h-screen flex-1">
-          <div className="max-w-[1000px] mx-auto space-y-lg pb-xxl pt-6">
+        <main className="w-full lg:ml-64 lg:w-[calc(100%-16rem)] p-4 sm:p-gutter pt-20 lg:pt-6 min-h-screen flex-1">
+          <div className="max-w-[1000px] mx-auto space-y-6 lg:space-y-lg pb-xxl">
           {/* Header Section */}
           <header className="mb-8 max-w-3xl">
             <div className="inline-flex items-center gap-sm px-4 py-1.5 bg-primary-fixed text-primary rounded-full mb-4">

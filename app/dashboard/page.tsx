@@ -71,7 +71,7 @@ export default function DashboardPage() {
     return (
       <div className="min-h-screen bg-surface text-on-surface font-body-md">
         <Sidebar profileLoaded={false} />
-        <main className="ml-64 min-h-screen flex items-center justify-center w-[calc(100%-16rem)]">
+        <main className="lg:ml-64 pt-16 lg:pt-0 min-h-screen flex items-center justify-center w-full lg:w-[calc(100%-16rem)]">
           <div className="animate-pulse flex flex-col items-center gap-4">
             <div className="w-12 h-12 rounded-full border-4 border-primary/30 border-t-primary animate-spin"></div>
             <p className="text-on-surface-variant font-medium">Loading your dashboard...</p>
@@ -85,7 +85,7 @@ export default function DashboardPage() {
     return (
       <div className="min-h-screen bg-surface text-on-surface font-body-md">
         <Sidebar profileLoaded={false} />
-        <main className="ml-64 min-h-screen flex items-center justify-center w-[calc(100%-16rem)]">
+        <main className="lg:ml-64 pt-16 lg:pt-0 min-h-screen flex items-center justify-center w-full lg:w-[calc(100%-16rem)]">
           <div className="p-xl bg-white border border-outline-variant/30 rounded-3xl shadow-sm text-center max-w-md w-full mx-4">
             <div className="w-16 h-16 bg-error-red/10 rounded-full flex items-center justify-center mx-auto mb-4">
               <span className="material-symbols-outlined text-error-red text-[32px]">error</span>
@@ -156,7 +156,7 @@ export default function DashboardPage() {
         profileLoaded={true}
       />
 
-      <header className="fixed top-0 right-0 w-[calc(100%-16rem)] z-40 flex justify-between items-center px-xl h-16 bg-white/80 backdrop-blur-md border-b border-outline-variant/30">
+      <header className="hidden lg:flex fixed top-0 right-0 w-full lg:w-[calc(100%-16rem)] z-40 justify-between items-center px-xl h-16 bg-white/80 backdrop-blur-md border-b border-outline-variant/30">
         <div className="flex items-center flex-1 max-w-xl">
           <div className="relative w-full max-w-md">
             <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline-variant text-sm">search</span>
@@ -181,8 +181,8 @@ export default function DashboardPage() {
         </div>
       </header>
 
-      <main className="ml-64 pt-16 min-h-screen">
-        <div className="p-xl grid grid-cols-12 gap-xl max-w-[1400px] mx-auto">
+      <main className="w-full lg:ml-64 lg:w-[calc(100%-16rem)] pt-20 lg:pt-16 min-h-screen">
+        <div className="p-4 md:p-xl grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-xl max-w-[1400px] mx-auto">
           {/* Left Column */}
           <div className="col-span-12 lg:col-span-9 space-y-xl">
 

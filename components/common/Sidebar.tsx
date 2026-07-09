@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -31,6 +31,29 @@ export default function Sidebar({
 
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  // Close sidebar on escape and prevent body scroll when open
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMobileOpen(false);
+    };
+    if (mobileOpen) {
+      document.body.style.overflow = "hidden";
+      window.addEventListener("keydown", handleEsc);
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+      window.removeEventListener("keydown", handleEsc);
+    };
+  }, [mobileOpen]);
+
+  // Close sidebar on navigation
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [pathname]);
 
   const handleSignOut = async () => {
     setSigningOut(true);
@@ -87,7 +110,35 @@ export default function Sidebar({
   ];
 
   return (
-    <nav className="h-screen w-64 fixed left-0 top-0 border-r border-outline-variant/30 flex flex-col py-lg px-md bg-white z-50">
+    <>
+      {/* Mobile Header (Visible only on < lg screens) */}
+      <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-white border-b border-outline-variant/30 flex items-center justify-between px-4 z-[40]">
+        <Link href={ROUTES.home} className="flex items-center gap-2">
+          <span className="font-display font-extrabold text-primary text-xl">Interview AI</span>
+        </Link>
+        <button
+          onClick={() => setMobileOpen(true)}
+          className="p-2 -mr-2 text-on-surface hover:bg-surface-container rounded-lg transition-colors cursor-pointer"
+          aria-label="Open menu"
+        >
+          <span className="material-symbols-outlined">menu</span>
+        </button>
+      </div>
+
+      {/* Mobile Backdrop */}
+      {mobileOpen && (
+        <div
+          className="lg:hidden fixed inset-0 bg-black/40 backdrop-blur-sm z-[45]"
+          onClick={() => setMobileOpen(false)}
+        />
+      )}
+
+      {/* Sidebar Navigation */}
+      <nav
+        className={`h-screen w-64 fixed left-0 top-0 border-r border-outline-variant/30 flex flex-col py-lg px-md bg-white z-[50] transition-transform duration-300 ease-in-out ${
+          mobileOpen ? "translate-x-0" : "-translate-x-full"
+        } lg:translate-x-0`}
+      >
       <div className="mb-10 px-sm">
         <Link href={ROUTES.home}>
           <h1 className="font-display text-xl md:text-2xl font-extrabold text-primary hover:opacity-85 transition-opacity">
@@ -143,7 +194,7 @@ export default function Sidebar({
         >
           <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center overflow-hidden shrink-0">
             {avatarUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
+              /* eslint-disable-next-line @next/next/no-img-element */
               <img
                 className="w-full h-full object-cover"
                 alt={displayName}
@@ -168,5 +219,6 @@ export default function Sidebar({
 
       {confirmDialog}
     </nav>
+    </>
   );
 }

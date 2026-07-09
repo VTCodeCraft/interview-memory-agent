@@ -125,8 +125,8 @@ export default function MemoryPage() {
       <Sidebar />
 
       {/* Main Content Area */}
-      <main className="ml-64 mr-80 p-gutter w-full min-h-screen flex-1">
-        <div className="max-w-[1200px] mx-auto space-y-xxl pb-xxl pt-6">
+      <main className="w-full lg:ml-64 xl:mr-80 lg:w-[calc(100%-16rem)] xl:w-[calc(100%-36rem)] p-4 sm:p-gutter pt-20 lg:pt-6 min-h-screen flex-1 overflow-x-hidden">
+        <div className="max-w-[1200px] mx-auto space-y-16 lg:space-y-xxl pb-xxl">
           {/* Header Section */}
           <header className="space-y-sm">
             <span className="inline-flex items-center gap-sm bg-primary-fixed text-primary font-bold text-[11px] uppercase tracking-wider px-4 py-1.5 rounded-full">
