@@ -60,7 +60,12 @@ export function useInterview() {
       });
       const json = await res.json();
 
-      if (!json.success && !json.ok) throw new Error(json.message || json.error);
+      if (!json.success && !json.ok) {
+        if (json.code === "INTERVIEW_LIMIT_REACHED") {
+          throw new Error("INTERVIEW_LIMIT_REACHED");
+        }
+        throw new Error(json.message || json.error);
+      }
 
       // Phase 2 Step 1 returns { interviewId, status: "GENERATING" }.
       // Call the Step 2 API to actually generate questions via Gemini

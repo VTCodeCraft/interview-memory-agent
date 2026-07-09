@@ -7,9 +7,11 @@ import { useUser } from "@clerk/nextjs";
 import Sidebar from "@/components/common/Sidebar";
 import { ROUTES } from "@/lib/utils/constants";
 import { FaGithub, FaLinkedin } from "react-icons/fa";
+import { useSettingsStore } from "@/store/useSettingsStore";
 
 export default function DashboardPage() {
   const router = useRouter();
+  const { weeklyGoal, setWeeklyGoal } = useSettingsStore();
   const { user, isLoaded: isUserLoaded } = useUser();
   const firstName = user?.firstName || user?.fullName || "User";
 
@@ -130,7 +132,7 @@ export default function DashboardPage() {
   // Check locks
   const hasHistory = totalInterviews > 0;
   const isChartsUnlocked = totalInterviews >= 3;
-  const isMemoryUnlocked = totalInterviews >= 5;
+  const isMemoryUnlocked = totalInterviews >= 3;
 
   const StatLock = ({ req }: { req: number }) => (
     <div className="flex flex-col items-center justify-center mt-2 py-2">
@@ -268,23 +270,23 @@ export default function DashboardPage() {
 
               <div className="p-4 rounded-2xl bg-white shadow-sm border border-outline-variant/20 flex flex-col items-center justify-center text-center">
                 <p className="text-[9px] font-bold text-on-surface-variant tracking-widest uppercase mb-1">TECHNICAL</p>
-                {technicalScore !== null && totalInterviews >= 5 ? (
+                {technicalScore !== null && totalInterviews >= 3 ? (
                   <h3 className="text-xl font-extrabold text-on-surface">{technicalScore}%</h3>
-                ) : <StatLock req={5} />}
+                ) : <StatLock req={3} />}
               </div>
 
               <div className="p-4 rounded-2xl bg-white shadow-sm border border-outline-variant/20 flex flex-col items-center justify-center text-center">
                 <p className="text-[9px] font-bold text-on-surface-variant tracking-widest uppercase mb-1">COMMUNICATION</p>
-                {communicationScore !== null && totalInterviews >= 5 ? (
+                {communicationScore !== null && totalInterviews >= 3 ? (
                   <h3 className="text-xl font-extrabold text-on-surface">{communicationScore}%</h3>
-                ) : <StatLock req={5} />}
+                ) : <StatLock req={3} />}
               </div>
 
               <div className="p-4 rounded-2xl bg-white shadow-sm border border-outline-variant/20 flex flex-col items-center justify-center text-center">
                 <p className="text-[9px] font-bold text-on-surface-variant tracking-widest uppercase mb-1">CONFIDENCE</p>
-                {confidenceScore !== null && totalInterviews >= 5 ? (
+                {confidenceScore !== null && totalInterviews >= 3 ? (
                   <h3 className="text-xl font-extrabold text-on-surface">{confidenceScore}%</h3>
-                ) : <StatLock req={5} />}
+                ) : <StatLock req={3} />}
               </div>
             </div>
 
@@ -333,11 +335,11 @@ export default function DashboardPage() {
                   <span className="material-symbols-outlined text-outline">lock</span>
                 </div>
                 <h3 className="text-base font-bold text-on-surface mb-2 flex items-center gap-2"><span className="text-xl">🔒</span> AI Memory</h3>
-                <p className="text-sm text-on-surface-variant mb-6 w-full max-w-[400px] leading-relaxed mx-auto">The AI builds long-term memory after multiple interviews.<br />Complete 5 interviews to unlock personalized coaching.</p>
+                <p className="text-sm text-on-surface-variant mb-6 w-full max-w-[400px] leading-relaxed mx-auto">The AI builds long-term memory after multiple interviews.<br />Complete 3 interviews to unlock personalized coaching.</p>
                 <div className="w-full max-w-[300px] bg-white h-2.5 rounded-full overflow-hidden shadow-inner mx-auto">
-                  <div className="bg-[#240A8A] h-full rounded-full" style={{ width: `${Math.min(100, (totalInterviews / 5) * 100)}%` }}></div>
+                  <div className="bg-[#240A8A] h-full rounded-full" style={{ width: `${Math.min(100, (totalInterviews / 3) * 100)}%` }}></div>
                 </div>
-                <p className="text-[10px] font-semibold text-on-surface-variant mt-2">{totalInterviews} / 5 Interviews</p>
+                <p className="text-[10px] font-semibold text-on-surface-variant mt-2">{totalInterviews} / 3 Interviews</p>
               </div>
             )}
 
@@ -408,11 +410,11 @@ export default function DashboardPage() {
                 <span className="material-symbols-outlined text-outline text-[24px]">lock</span>
                 <div>
                   <h3 className="text-sm font-bold text-on-surface">Personalized Recommendations</h3>
-                  <p className="text-xs text-on-surface-variant mt-1">Unlock expert tailored learning paths by completing 7 interviews.</p>
+                  <p className="text-xs text-on-surface-variant mt-1">Unlock expert tailored learning paths by completing 3 interviews.</p>
                 </div>
               </div>
               <div className="w-24 bg-[#F5F5FA] h-2 rounded-full overflow-hidden shrink-0">
-                <div className="bg-[#7373C3] h-full rounded-full" style={{ width: `${Math.min(100, (totalInterviews / 7) * 100)}%` }}></div>
+                <div className="bg-[#7373C3] h-full rounded-full" style={{ width: `${Math.min(100, (totalInterviews / 3) * 100)}%` }}></div>
               </div>
             </div>
 
@@ -423,18 +425,33 @@ export default function DashboardPage() {
 
             {/* Weekly Goal */}
             <div className="p-6 rounded-[24px] bg-white border border-outline-variant/20 shadow-sm flex flex-col items-center text-center">
-              <p className="text-[9px] font-bold text-on-surface-variant mb-6 self-start tracking-widest uppercase">WEEKLY GOAL</p>
+              <div className="w-full flex items-center justify-between mb-6">
+                <p className="text-[9px] font-bold text-on-surface-variant tracking-widest uppercase">WEEKLY GOAL</p>
+                <button
+                  onClick={() => {
+                    const newGoal = window.prompt("Enter your new weekly goal:", weeklyGoal.toString());
+                    const parsed = parseInt(newGoal || "");
+                    if (!isNaN(parsed) && parsed > 0) {
+                      setWeeklyGoal(parsed);
+                    }
+                  }}
+                  className="text-outline-variant hover:text-primary transition-colors cursor-pointer"
+                  title="Edit Goal"
+                >
+                  <span className="material-symbols-outlined text-[14px]">edit</span>
+                </button>
+              </div>
               <div className="relative w-28 h-28 flex items-center justify-center">
                 <svg className="w-full h-full transform -rotate-90">
                   <circle className="text-[#F5F5FA]" cx="56" cy="56" fill="transparent" r="48" stroke="currentColor" strokeWidth="8"></circle>
-                  <circle className="text-[#240A8A]" cx="56" cy="56" fill="transparent" r="48" stroke="currentColor" strokeDasharray="301.6" strokeDashoffset={301.6 - (301.6 * Math.min(totalInterviews, 5)) / 5} strokeWidth="8" strokeLinecap="round"></circle>
+                  <circle className="text-[#240A8A]" cx="56" cy="56" fill="transparent" r="48" stroke="currentColor" strokeDasharray="301.6" strokeDashoffset={301.6 - (301.6 * Math.min(totalInterviews, weeklyGoal)) / weeklyGoal} strokeWidth="8" strokeLinecap="round"></circle>
                 </svg>
                 <div className="absolute flex flex-col items-center">
-                  <span className="text-2xl font-extrabold">{totalInterviews}/5</span>
+                  <span className="text-2xl font-extrabold">{totalInterviews}/{weeklyGoal}</span>
                   <span className="text-[10px] text-on-surface-variant font-medium mt-1">Interviews</span>
                 </div>
               </div>
-              <p className="mt-6 text-xs font-medium text-on-surface-variant leading-relaxed">Keep going! Just {Math.max(0, 5 - totalInterviews)} more<br />to reach your goal.</p>
+              <p className="mt-6 text-xs font-medium text-on-surface-variant leading-relaxed">Keep going! Just {Math.max(0, weeklyGoal - totalInterviews)} more<br />to reach your goal.</p>
             </div>
 
             {/* Target Profile Widget */}

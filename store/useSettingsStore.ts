@@ -11,6 +11,7 @@ interface SettingsState {
   sessionReminders: boolean;
   weeklyReports: boolean;
   goalAchievements: boolean;
+  weeklyGoal: number;
   setProvider: (p: AIProvider) => void;
   setTargetRole: (r: string) => void;
   setVoiceEnabled: (v: boolean) => void;
@@ -19,6 +20,7 @@ interface SettingsState {
   setSessionReminders: (v: boolean) => void;
   setWeeklyReports: (v: boolean) => void;
   setGoalAchievements: (v: boolean) => void;
+  setWeeklyGoal: (g: number) => void;
 }
 
 export const useSettingsStore = create<SettingsState>()(
@@ -32,6 +34,7 @@ export const useSettingsStore = create<SettingsState>()(
       sessionReminders: true,
       weeklyReports: true,
       goalAchievements: false,
+      weeklyGoal: 3,
       setProvider: (provider) => set({ provider }),
       setTargetRole: (targetRole) => set({ targetRole }),
       setVoiceEnabled: (voiceEnabled) => set({ voiceEnabled }),
@@ -40,6 +43,7 @@ export const useSettingsStore = create<SettingsState>()(
       setSessionReminders: (sessionReminders) => set({ sessionReminders }),
       setWeeklyReports: (weeklyReports) => set({ weeklyReports }),
       setGoalAchievements: (goalAchievements) => set({ goalAchievements }),
+      setWeeklyGoal: (weeklyGoal) => set({ weeklyGoal }),
     }),
     { name: "ima-settings" }
   )

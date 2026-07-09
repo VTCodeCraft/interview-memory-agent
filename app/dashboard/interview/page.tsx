@@ -61,8 +61,24 @@ export default function InterviewPage() {
         const json = await res.json();
         if (json.success) {
           setProfileData(json.data);
-          if (json.data.profile?.targetRole) {
-            setTargetRole(json.data.profile.targetRole);
+          const p = json.data.profile;
+          if (p) {
+            if (p.targetRole) setTargetRole(p.targetRole);
+            
+            if (p.preferredDifficulty === "EASY") setDifficulty("Junior");
+            else if (p.preferredDifficulty === "HARD") setDifficulty("Senior+");
+            else if (p.preferredDifficulty === "MEDIUM") setDifficulty("Mid-Level");
+
+            if (p.interviewTypes && p.interviewTypes.length > 0) {
+              const t = p.interviewTypes[0];
+              if (t === "behavioral") setInterviewType("Behavioral");
+              else if (t === "system_design") setInterviewType("System Design");
+              else if (t === "technical") setInterviewType("Technical");
+            }
+
+            if (p.targetCompanies && p.targetCompanies.length > 0) {
+              setSelectedCompany(p.targetCompanies[0]);
+            }
           }
           const userId = json.data.user.id;
           const totalInterviews = json.data.analytics?.totalInterviews || 0;
@@ -128,7 +144,22 @@ export default function InterviewPage() {
             <p className="text-base text-on-surface-variant">Configure your session and let the AI tailor questions based on your history and goals.</p>
           </header>
 
-          {loading ? (
+          {error === "INTERVIEW_LIMIT_REACHED" ? (
+            <div className="flex flex-col items-center justify-center p-8 sm:p-12 bg-white border border-outline-variant/30 rounded-xxl shadow-2xl w-full max-w-3xl mx-auto min-h-[400px] text-center">
+              <div className="w-16 h-16 rounded-full bg-error-red/10 flex items-center justify-center mb-6">
+                <span className="material-symbols-outlined text-error-red text-3xl">block</span>
+              </div>
+              <h3 className="text-xl font-bold mb-4">Monthly Interview Limit Reached</h3>
+              <p className="text-on-surface-variant font-medium mb-2">You have used all 3 interviews available this month.</p>
+              <p className="text-on-surface-variant font-medium">Please come back next month.</p>
+              <button
+                onClick={() => router.push(ROUTES.dashboard)}
+                className="mt-8 px-8 py-3 bg-primary text-white font-bold rounded-xl shadow-lg transition-all active:scale-95 cursor-pointer"
+              >
+                Return to Dashboard
+              </button>
+            </div>
+          ) : loading ? (
             <div className="flex flex-col items-center justify-center p-8 sm:p-12 bg-white border border-outline-variant/30 rounded-xxl shadow-2xl ai-glow w-full max-w-3xl mx-auto min-h-[400px] text-center">
               <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-6 animate-pulse">
                 <span className="material-symbols-outlined text-primary text-3xl animate-spin">progress_activity</span>

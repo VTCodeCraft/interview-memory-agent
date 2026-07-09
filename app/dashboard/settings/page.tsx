@@ -11,7 +11,7 @@ import { computeStreak } from "@/lib/utils/memoryInsights";
 
 const EXPERIENCE_OPTIONS = ["0-2 Years", "3-5 Years", "6-10 Years", "10+ Years"];
 const COMPANY_OPTIONS = ["Google", "Amazon", "Microsoft", "Meta", "NVIDIA"];
-const INTERVIEW_TYPE_OPTIONS = ["behavioral", "technical", "system_design", "coding"];
+const INTERVIEW_TYPE_OPTIONS = ["behavioral", "technical", "system_design"];
 const DIFFICULTY_OPTIONS = ["EASY", "MEDIUM", "HARD"] as const;
 
 interface ProfileData {
@@ -174,7 +174,7 @@ export default function SettingsPage() {
   };
 
   const toggleInterviewType = (type: string) => {
-    setInterviewTypes((prev) => (prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type]));
+    setInterviewTypes([type]);
   };
 
   const handleResetMemory = async () => {
@@ -373,6 +373,43 @@ export default function SettingsPage() {
                       />
                     </div>
                   </div>
+
+                  <div className="md:col-span-2 space-y-2 pt-4 border-t border-outline-variant/30">
+                    <label className="text-[10px] text-on-surface-variant uppercase tracking-wider">Resume</label>
+                    <div className="flex items-center gap-4">
+                      <label className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-bold text-primary bg-primary/10 hover:bg-primary/20 transition-all cursor-pointer">
+                        <span className="material-symbols-outlined text-[16px]">upload_file</span>
+                        Upload New Resume
+                        <input
+                          type="file"
+                          accept="application/pdf"
+                          className="hidden"
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+                            try {
+                              const formData = new FormData();
+                              formData.append("file", file);
+                              setSavingProfile(true);
+                              const res = await fetch("/api/user/resume", {
+                                method: "POST",
+                                body: formData,
+                              });
+                              const j = await res.json();
+                              if (!res.ok || !j.success) throw new Error(j.error || "Failed to upload resume");
+                              setProfileSaveState("saved");
+                            } catch (err: any) {
+                              setProfileError(err.message || "Failed to upload resume");
+                              setProfileSaveState("error");
+                            } finally {
+                              setSavingProfile(false);
+                            }
+                          }}
+                        />
+                      </label>
+                      <span className="text-xs text-on-surface-variant font-medium">PDF format only. Uploading will replace your active resume.</span>
+                    </div>
+                  </div>
                 </div>
 
                 <div className="flex items-center gap-4 pt-2">
@@ -404,27 +441,7 @@ export default function SettingsPage() {
                     />
                   </div>
 
-                  <div className="bg-white border border-outline-variant/30 rounded-2xl p-6 space-y-4 shadow-sm">
-                    <label className="text-[10px] text-on-surface-variant uppercase tracking-wider">AI provider</label>
-                    <div className="flex gap-4">
-                      {(["openai", "gemini"] as AIProvider[]).map((p) => {
-                        const isSelected = provider === p;
-                        return (
-                          <button
-                            key={p}
-                            onClick={() => setProvider(p)}
-                            className={`flex-1 py-2.5 rounded-lg border text-xs font-bold uppercase transition-all cursor-pointer ${
-                              isSelected
-                                ? "bg-primary border-primary text-white shadow-md shadow-primary/20"
-                                : "border-outline-variant/30 text-on-surface hover:bg-surface-container"
-                            }`}
-                          >
-                            {p}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
+
 
                   <div className="bg-white border border-outline-variant/30 rounded-2xl p-6 space-y-4 shadow-sm">
                     <label className="text-[10px] text-on-surface-variant uppercase tracking-wider">Preferred Difficulty</label>
@@ -445,15 +462,7 @@ export default function SettingsPage() {
                     </div>
                   </div>
 
-                  <div className="bg-white border border-outline-variant/30 rounded-2xl p-6 space-y-4 shadow-sm md:col-span-2">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h4 className="text-sm font-bold text-on-surface">Voice Response Model</h4>
-                        <p className="text-xs text-on-surface-variant font-medium mt-1">Practice with speech inputs instead of typing.</p>
-                      </div>
-                      <ToggleSwitch checked={voiceEnabled} onChange={setVoiceEnabled} />
-                    </div>
-                  </div>
+
 
                   <div className="bg-white border border-outline-variant/30 rounded-2xl p-6 space-y-4 shadow-sm md:col-span-2">
                     <label className="text-[10px] text-on-surface-variant uppercase tracking-wider">Target Companies</label>
