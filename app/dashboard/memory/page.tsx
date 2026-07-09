@@ -195,38 +195,45 @@ export default function MemoryPage() {
             </div>
           </section>
 
+          {/* Skills & Readiness Grid */}
+          <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-lg">
+            {CATEGORY_KEYS.map((key) => {
+              const { value, delta } = latestAndDelta(reports, key);
+              const isWeak = skillExtremes?.weakest.label === CATEGORY_LABELS[key];
+              return (
+                <div
+                  key={key}
+                  className={`bg-white p-6 rounded-2xl border border-outline-variant/30 shadow-sm ${
+                    skillExtremes?.strongest.label === CATEGORY_LABELS[key] ? "ai-glow" : ""
+                  }`}
+                >
+                  <p className="text-[10px] font-bold text-on-surface-variant mb-1 uppercase tracking-wider">{CATEGORY_LABELS[key]}</p>
+                  <div className="flex items-end justify-between">
+                    <h5 className={`text-xl font-extrabold ${isWeak ? "text-error-red" : "text-primary"}`}>
+                      {reports.length > 0 ? `${value}%` : "—"}
+                    </h5>
+                    {delta !== null && (
+                      <span className={`font-bold text-xs ${delta >= 0 ? "text-success-green" : "text-error-red"}`}>
+                        {delta >= 0 ? "+" : ""}
+                        {delta}%
+                      </span>
+                    )}
+                  </div>
+                  <div className="mt-3 w-full h-1.5 bg-surface-container rounded-full overflow-hidden">
+                    <div className={`h-full ${isWeak ? "bg-error-red/40" : "bg-primary"}`} style={{ width: `${value}%` }}></div>
+                  </div>
+                </div>
+              );
+            })}
+          </section>
+
           {/* Layout Split: Timeline & Insights */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-xl">
-            {/* Main Timeline */}
+            {/* Recent Sessions */}
             <section className="lg:col-span-7 space-y-6">
-              <h3 className="text-lg font-bold text-on-surface">Experience Log & Memory Nodes</h3>
+              <h3 className="text-lg font-bold text-on-surface">Recent Sessions</h3>
 
-              <div className="relative pl-8 space-y-6 border-l border-outline-variant/30">
-                {/* Dynamically Loaded Memory Nodes (live Cognee recall) */}
-                {loadingNodes ? (
-                  <div className="text-sm text-on-surface-variant flex items-center gap-2 p-4">
-                    <span className="material-symbols-outlined animate-spin">progress_activity</span>
-                    Loading memory...
-                  </div>
-                ) : nodes.length > 0 ? (
-                  nodes.map((node, idx) => (
-                    <div key={node.id || idx} className="relative group">
-                      <div className="absolute -left-[41px] top-1.5 w-6 h-6 rounded-full bg-primary-container text-white border-4 border-background flex items-center justify-center">
-                        <span className="material-symbols-outlined text-[10px]">neurology</span>
-                      </div>
-                      <div className="bg-white border border-outline-variant/30 p-6 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
-                        <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">{node.kind || "FACT"}</span>
-                        <p className="mt-2 text-sm text-on-surface font-semibold">{node.content}</p>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="text-xs text-on-surface-variant p-4 bg-white rounded-xl border border-outline-variant/20 italic">
-                    No AI memory facts recalled yet.
-                  </div>
-                )}
-
-                {/* Real interview session history */}
+              <div className="space-y-4">
                 {loadingReports ? (
                   <div className="text-sm text-on-surface-variant flex items-center gap-2 p-4">
                     <span className="material-symbols-outlined animate-spin">progress_activity</span>
@@ -237,7 +244,7 @@ export default function MemoryPage() {
                     No completed interviews yet — your session history will appear here.
                   </div>
                 ) : (
-                  sortedDesc.map((report) => {
+                  sortedDesc.slice(0, 3).map((report) => {
                     const dateLabel = new Date(report.createdAt).toLocaleDateString("en-US", {
                       month: "long",
                       day: "numeric",
@@ -246,27 +253,29 @@ export default function MemoryPage() {
                     const companyLabel =
                       report.interviewContext?.customCompanyName || report.interviewContext?.company;
                     return (
-                      <div key={report.id} className="relative group">
-                        <div className="absolute -left-[41px] top-1.5 w-6 h-6 rounded-full bg-surface-container-highest border-4 border-background flex items-center justify-center">
-                          <span className="material-symbols-outlined text-[10px] text-primary">apartment</span>
-                        </div>
-                        <div className="bg-white border border-outline-variant/30 p-6 rounded-2xl shadow-sm hover:shadow-md transition-shadow group-hover:border-primary/30">
-                          <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">{dateLabel}</span>
-                          <h4 className="text-sm font-bold text-on-surface mt-1">
-                            {report.interviewContext?.role ?? "Mock Interview"}
-                            {companyLabel && <span className="font-semibold text-on-surface-variant"> · {companyLabel}</span>}
-                          </h4>
-                          <div className="mt-3 space-y-2 text-xs">
-                            <div className="flex justify-between font-semibold">
-                              <span>Overall Score</span>
-                              <span className="font-bold">{report.evaluation.overallScore}%</span>
-                            </div>
-                            <div className="w-full h-1.5 bg-surface-container rounded-full overflow-hidden">
-                              <div className="h-full bg-primary" style={{ width: `${report.evaluation.overallScore}%` }}></div>
-                            </div>
+                      <div key={report.id} className="bg-white border border-outline-variant/30 p-5 rounded-2xl shadow-sm hover:shadow-md transition-shadow group hover:border-primary/30 flex flex-col md:flex-row gap-4 justify-between items-start md:items-center">
+                        <div className="flex items-start gap-4">
+                          <div className="w-10 h-10 rounded-full bg-surface-container-highest flex items-center justify-center shrink-0">
+                            <span className="material-symbols-outlined text-[16px] text-primary">apartment</span>
+                          </div>
+                          <div>
+                            <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">{dateLabel}</span>
+                            <h4 className="text-sm font-bold text-on-surface mt-1">
+                              {report.interviewContext?.role ?? "Mock Interview"}
+                              {companyLabel && <span className="font-semibold text-on-surface-variant"> · {companyLabel}</span>}
+                            </h4>
                             {topWeakness && (
-                              <p className="text-xs text-error-red leading-relaxed font-semibold">{topWeakness}</p>
+                              <p className="text-xs text-error-red leading-relaxed font-semibold mt-1">{topWeakness}</p>
                             )}
+                          </div>
+                        </div>
+                        <div className="w-full md:w-32 flex flex-col items-end gap-1">
+                          <div className="flex justify-between w-full text-xs font-semibold">
+                            <span>Score</span>
+                            <span className="font-bold">{report.evaluation.overallScore}%</span>
+                          </div>
+                          <div className="w-full h-1.5 bg-surface-container rounded-full overflow-hidden">
+                            <div className="h-full bg-primary" style={{ width: `${report.evaluation.overallScore}%` }}></div>
                           </div>
                         </div>
                       </div>
@@ -275,7 +284,7 @@ export default function MemoryPage() {
                 )}
               </div>
             </section>
-
+            
             {/* Memory Graph & Patterns */}
             <section className="lg:col-span-5 space-y-lg">
               {/* Memory Graph Visualizer */}
@@ -343,37 +352,7 @@ export default function MemoryPage() {
             </section>
           </div>
 
-          {/* Skills & Readiness Grid */}
-          <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-lg">
-            {CATEGORY_KEYS.map((key) => {
-              const { value, delta } = latestAndDelta(reports, key);
-              const isWeak = skillExtremes?.weakest.label === CATEGORY_LABELS[key];
-              return (
-                <div
-                  key={key}
-                  className={`bg-white p-6 rounded-2xl border border-outline-variant/30 shadow-sm ${
-                    skillExtremes?.strongest.label === CATEGORY_LABELS[key] ? "ai-glow" : ""
-                  }`}
-                >
-                  <p className="text-[10px] font-bold text-on-surface-variant mb-1 uppercase tracking-wider">{CATEGORY_LABELS[key]}</p>
-                  <div className="flex items-end justify-between">
-                    <h5 className={`text-xl font-extrabold ${isWeak ? "text-error-red" : "text-primary"}`}>
-                      {reports.length > 0 ? `${value}%` : "—"}
-                    </h5>
-                    {delta !== null && (
-                      <span className={`font-bold text-xs ${delta >= 0 ? "text-success-green" : "text-error-red"}`}>
-                        {delta >= 0 ? "+" : ""}
-                        {delta}%
-                      </span>
-                    )}
-                  </div>
-                  <div className="mt-3 w-full h-1.5 bg-surface-container rounded-full overflow-hidden">
-                    <div className={`h-full ${isWeak ? "bg-error-red/40" : "bg-primary"}`} style={{ width: `${value}%` }}></div>
-                  </div>
-                </div>
-              );
-            })}
-          </section>
+          
 
           {/* Patterns & Insights */}
           <section className="grid grid-cols-1 lg:grid-cols-2 gap-lg">
@@ -447,31 +426,74 @@ export default function MemoryPage() {
             )}
           </section>
 
-          {/* Next Steps Checklist */}
-          <section className="bg-inverse-surface text-inverse-on-surface p-8 rounded-2xl shadow-xl">
-            <div className="flex items-center gap-4 mb-6">
-              <span className="material-symbols-outlined text-primary-fixed-dim text-2xl">task_alt</span>
-              <h3 className="text-xl font-bold">ARIA-Generated Next Steps</h3>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {checklist.map((item) => (
-                <div
-                  key={item.id}
-                  onClick={() => toggleChecklist(item.id)}
-                  className={`flex items-center gap-4 p-4 rounded-xl border transition-all cursor-pointer ${
-                    item.checked
-                      ? "bg-white/10 border-white/20 opacity-50"
-                      : "bg-white/5 border-white/10 hover:bg-white/10"
-                  }`}
-                >
-                  <span className={`material-symbols-outlined ${item.checked ? "text-primary-fixed-dim" : "opacity-40"}`}>
-                    {item.checked ? "check_box" : "check_box_outline_blank"}
-                  </span>
-                  <p className="text-xs font-semibold leading-relaxed">{item.text}</p>
-                </div>
-              ))}
-            </div>
+          {/* Structured AI Memory */}
+          <section className="space-y-6">
+            <h3 className="text-lg font-bold text-on-surface">Structured AI Memory</h3>
+            {loadingNodes ? (
+              <div className="text-sm text-on-surface-variant flex items-center gap-2 p-4">
+                <span className="material-symbols-outlined animate-spin">progress_activity</span>
+                Loading memory...
+              </div>
+            ) : nodes.length > 0 ? (
+              (() => {
+                const filtered = nodes.filter((n) => n.content && n.content.trim() !== "" && !n.content.includes("Candidate ID:**"));
+                const grouped = [];
+                let currentGroup = { title: "Memory Facts", nodes: [] };
+                
+                filtered.forEach(node => {
+                  if (node.content.startsWith("###")) {
+                    if (currentGroup.nodes.length > 0) grouped.push(currentGroup);
+                    let title = node.content.replace(/^###\s*/, "");
+                    title = title.split(/(\**.*?\**)/g).map(p => p.startsWith("**") ? p.slice(2, -2) : p).join("");
+                    currentGroup = { title, nodes: [] };
+                  } else {
+                    currentGroup.nodes.push(node);
+                  }
+                });
+                if (currentGroup.nodes.length > 0) grouped.push(currentGroup);
+
+                const allowedTitles = [
+                  "Recommendations from Past Interviews",
+                  "Evident Skills / Knowledge",
+                  "Weaknesses",
+                  "Strengths"
+                ];
+                const finalGroups = grouped.filter(g => allowedTitles.some(t => g.title.includes(t)));
+
+                return (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {finalGroups.map((group, idx) => (
+                      <div key={idx} className="bg-white border border-outline-variant/30 p-6 rounded-2xl shadow-sm hover:shadow-md transition-shadow h-full">
+                        <div className="flex items-center gap-2 mb-4">
+                          <span className="material-symbols-outlined text-primary text-xl">neurology</span>
+                          <h4 className="text-base font-bold text-primary">{group.title}</h4>
+                        </div>
+                        <ul className="space-y-3">
+                          {group.nodes.map((node, i) => {
+                            const parts = node.content.split(/(\**.*?\**)/g);
+                            return (
+                              <li key={i} className="flex items-start gap-3 text-sm text-on-surface font-semibold leading-relaxed">
+                                <span className="material-symbols-outlined text-primary/60 text-[16px] mt-0.5 shrink-0">arrow_right</span>
+                                <span>
+                                  {parts.map((p, j) => p.startsWith("**") && p.endsWith("**") ? <strong key={j} className="font-extrabold text-primary">{p.slice(2, -2)}</strong> : p)}
+                                </span>
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()
+            ) : (
+              <div className="text-xs text-on-surface-variant p-4 bg-white rounded-xl border border-outline-variant/20 italic">
+                No AI memory facts recalled yet.
+              </div>
+            )}
           </section>
+
+          
         </div>
       </main>
 

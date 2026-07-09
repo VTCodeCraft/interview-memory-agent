@@ -1,27 +1,58 @@
 import { NextRequest, NextResponse } from "next/server";
-import { recallFacts } from "@/services/cognee.service";
 import { requireUserId, getOrCreateDBUser, AuthError } from "@/services/auth.service";
 import { errorResponse, ok } from "@/lib/utils/api";
 import type { MemoryNode } from "@/types";
-
-const DEFAULT_QUERY =
-  "List everything you know about this candidate: strengths, weaknesses, skills, target companies, and recommendations from past interviews.";
+import { prisma } from "@/lib/prisma";
 
 export async function GET(request: NextRequest) {
   try {
     const clerkId = await requireUserId();
     await getOrCreateDBUser(clerkId);
 
-    const q = request.nextUrl.searchParams.get("q")?.trim();
-    const facts = await recallFacts(q || DEFAULT_QUERY);
+    // Fetch all reports for the user to aggregate memory facts directly from DB
+    const reports = await prisma.report.findMany({
+      where: { interview: { user: { clerkId } } },
+      orderBy: { createdAt: "desc" },
+      take: 10,
+    });
 
-    const nodes: MemoryNode[] = facts.map((content, index) => ({
-      id: `mem-${index}`,
-      userId: clerkId,
-      content,
-      kind: "fact",
-      createdAt: new Date().toISOString(),
-    }));
+    const nodes: MemoryNode[] = [];
+    let index = 0;
+
+    const addNode = (content: string) => {
+      if (!content || content.trim() === "") return;
+      nodes.push({
+        id: `mem-${index++}`,
+        userId: clerkId,
+        content,
+        kind: "fact",
+        createdAt: new Date().toISOString(),
+      });
+    };
+
+    // Aggregate unique lists
+    const allStrengths = Array.from(new Set(reports.flatMap((r) => r.strengths)));
+    const allWeaknesses = Array.from(new Set(reports.flatMap((r) => [...r.weaknesses, ...r.missingTopics])));
+    const allRecs = Array.from(new Set(reports.flatMap((r) => r.recommendations)));
+
+    if (allStrengths.length > 0) {
+      addNode("### Strengths");
+      allStrengths.forEach(addNode);
+      
+      // We will also use strengths to populate Evident Skills
+      addNode("### Evident Skills / Knowledge");
+      allStrengths.slice(0, 4).forEach(s => addNode(`**Demonstrated:** ${s}`));
+    }
+
+    if (allWeaknesses.length > 0) {
+      addNode("### Weaknesses");
+      allWeaknesses.forEach(addNode);
+    }
+
+    if (allRecs.length > 0) {
+      addNode("### Recommendations from Past Interviews");
+      allRecs.forEach(addNode);
+    }
 
     return NextResponse.json(ok({ nodes, edges: [] as Array<{ source: string; target: string }> }));
   } catch (reason) {
