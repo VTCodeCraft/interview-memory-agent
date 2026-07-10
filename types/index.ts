@@ -1,6 +1,6 @@
 export type ID = string;
 export type Role = "candidate" | "admin";
-export type AIProvider = "openai" | "gemini";
+export type AIProvider = "gemini";
 
 export interface User {
   id: ID;

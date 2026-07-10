@@ -8,25 +8,24 @@ import {
 } from "@/lib/ai/prompts";
 import { buildHistoricalContextBlock } from "@/lib/ai/evaluationPromptBuilder";
 import { recallHistoricalMemory } from "@/services/cognee.service";
+import { resolveCompanyName, replaceCompanyPlaceholder } from "@/lib/utils/company";
 import {
   startTimer,
   elapsed,
-  log,
   debug,
   logEvaluationStart,
   logEvaluationComplete,
 } from "@/lib/cognee/logger";
 import { uid } from "@/lib/utils";
-import type { AIProvider, Evaluation } from "@/types";
+import type { Evaluation } from "@/types";
 
 
 /** Evaluate answered questions and return a structured evaluation. */
 export async function evaluateInterview(params: {
   interviewId: string;
   userId: string;
-  provider?: AIProvider;
 }): Promise<Evaluation> {
-  const { interviewId, userId, provider } = params;
+  const { interviewId, userId } = params;
 
   const interview = await prisma.interview.findFirst({
     where: { id: interviewId, userId },
@@ -34,6 +33,8 @@ export async function evaluateInterview(params: {
       id: true,
       role: true,
       interviewType: true,
+      company: true,
+      customCompanyName: true,
       questions: true,
       answer: {
         select: { answers: true },
@@ -73,13 +74,25 @@ export async function evaluateInterview(params: {
   const evalTimer = startTimer();
   logEvaluationStart({ interviewId, hasHistory: historicalMemory.count > 0 });
 
+  const company = resolveCompanyName(interview);
+
   const raw = await complete(
     evaluationSystemPrompt,
-    buildEvaluationPrompt({ role: interview.role, qa, historicalContextBlock }),
-    { provider, json: true },
+    buildEvaluationPrompt({
+      role: interview.role,
+      qa,
+      company,
+      historicalContextBlock,
+    }),
+    { json: true },
   );
 
-  const parsed = parseJSON<Omit<Evaluation, "id" | "interviewId" | "createdAt">>(raw);
+  // Issue #5: defensive final pass — never let a "[Company Name]" placeholder
+  // survive into the evaluation the candidate sees.
+  const sanitizedRaw = replaceCompanyPlaceholder(raw, company);
+  const parsed = parseJSON<Omit<Evaluation, "id" | "interviewId" | "createdAt">>(
+    sanitizedRaw,
+  );
 
   logEvaluationComplete({
     interviewId,

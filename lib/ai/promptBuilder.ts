@@ -1,5 +1,6 @@
 export function buildInterviewGenerationPrompt(params: {
   role: string;
+  company?: string;
   companyType?: string;
   interviewType?: string; // Technical, Behavioral, System Design
   difficulty?: string;
@@ -9,6 +10,7 @@ export function buildInterviewGenerationPrompt(params: {
 }): string {
   const {
     role,
+    company,
     companyType,
     interviewType,
     difficulty,
@@ -18,6 +20,10 @@ export function buildInterviewGenerationPrompt(params: {
   } = params;
 
   let prompt = `Generate 8-10 interview questions for a ${difficulty || "MEDIUM"} level ${role} interview.\n`;
+
+  if (company) {
+    prompt += `\nCOMPANY: The candidate is interviewing for ${company}. Reference this company naturally where relevant (e.g. "Here at ${company}…"). Never use placeholder tokens such as "[Company Name]", "COMPANY_NAME", or "Company Name". Always write the real company name above.`;
+  }
 
   if (interviewType === "Behavioral") {
     prompt += `\nINTERVIEW TYPE: Behavioral.

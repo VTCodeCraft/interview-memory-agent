@@ -123,6 +123,8 @@ export type EnhancedEvaluationPromptParams = {
       confidence?: number | null;
     };
   }[];
+  /** Resolved company name, injected so Gemini never uses a placeholder. */
+  company?: string | null;
   /** Pre-built historical context block from buildHistoricalContextBlock(). */
   historicalContextBlock?: string | null;
 };
@@ -135,7 +137,7 @@ export type EnhancedEvaluationPromptParams = {
 export function buildEnhancedEvaluationPrompt(
   params: EnhancedEvaluationPromptParams,
 ): string {
-  const { role, qa, historicalContextBlock } = params;
+  const { role, qa, company, historicalContextBlock } = params;
 
   const qaBody = qa
     .map(
@@ -155,6 +157,11 @@ export function buildEnhancedEvaluationPrompt(
   }
 
   parts.push(`Evaluate this interview for the role "${role}".`);
+  if (company) {
+    parts.push(
+      `The candidate interviewed for ${company}. Reference this company by its real name. Never use placeholder tokens such as "[Company Name]", "COMPANY_NAME", or "Company Name".`,
+    );
+  }
   parts.push("");
   parts.push("Questions and Answers:");
   parts.push("");

@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import type { ZodError } from "zod";
 
+import { toFriendlyError } from "./errors";
+
 // Legacy response helpers (ok / fail shape)
 export function ok<T>(data: T) {
   return { ok: true as const, data };
@@ -34,7 +36,9 @@ export function notImplemented(feature: string) {
 }
 
 export function errorResponse(reason: unknown, fallback: string) {
-  const message = reason instanceof Error ? reason.message : fallback;
+  // Log the real error server-side; never expose it to the client.
+  console.error("[API] error", reason);
+  const message = toFriendlyError(reason, fallback);
   return NextResponse.json(fail(message), { status: 500 });
 }
 

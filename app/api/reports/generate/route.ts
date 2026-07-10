@@ -4,9 +4,10 @@ import { z } from "zod";
 import { errorResponse, fail, ok } from "@/lib/utils/api";
 import { evaluateInterview } from "@/services/interview.service";
 import { persistInterviewMemory } from "@/services/memory.service";
-import { saveReport } from "@/services/report.service";
-import type { AIProvider } from "@/types";
+import { saveReport, getReport } from "@/services/report.service";
 import { prisma } from "@/lib/db/prisma";
+import { withInFlight } from "@/lib/utils/dedup";
+import { FRIENDLY } from "@/lib/utils/messages";
 
 const bodySchema = z.object({
   interviewId: z.string().min(1),
@@ -32,37 +33,66 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(fail("interviewId required"), { status: 400 });
     }
 
-    const evaluation = await evaluateInterview({
-      interviewId: parsed.data.interviewId,
-      userId: user.id,
-      provider: (body as { provider?: AIProvider }).provider,
-    });
+    const { interviewId } = parsed.data;
 
-    const report = await saveReport(
-      user.id,
-      parsed.data.interviewId,
-      evaluation,
-    );
-    const interview = await prisma.interview.findFirst({
-      where: { id: parsed.data.interviewId, userId: user.id },
-      select: {
-        userId: true,
-        company: true,
-        customCompanyName: true,
-        role: true,
-        interviewType: true,
-      },
-    });
+    // De-duplicated + idempotent: shares the same lock key as /api/interview/end
+    // so the two routes never evaluate the same interview twice, and a cached
+    // report is returned instead of re-running Gemini / re-writing memory.
+    const evaluation = await withInFlight(`eval:${interviewId}`, async () => {
+      const existing = await prisma.report.findUnique({
+        where: { interviewId },
+      });
 
-    // Phase 6: pass historical trend into stored memory so future recalls
-    // surface longitudinal patterns.
-    await persistInterviewMemory(
-      { ...report, interview: interview ?? undefined },
-      { historicalTrend: evaluation.historicalProgress?.overallTrend ?? null },
-    );
+      if (existing) {
+        console.log("[Interview] Report already exists — returning cached", {
+          interviewId,
+        });
+        const cached = await getReport(existing.id);
+        if (cached) return cached.evaluation;
+      }
+
+      console.log("[Interview] Evaluation started (reports/generate)", {
+        interviewId,
+      });
+
+      const result = await evaluateInterview({
+        interviewId,
+        userId: user.id,
+      });
+
+      const report = await saveReport(user.id, interviewId, result);
+
+      const completedInterview = await prisma.interview.findFirst({
+        where: { id: interviewId, userId: user.id },
+        select: {
+          userId: true,
+          company: true,
+          customCompanyName: true,
+          role: true,
+          interviewType: true,
+        },
+      });
+
+      await prisma.interview.update({
+        where: { id: interviewId },
+        data: { status: "COMPLETED", endedAt: new Date() },
+      });
+
+      await persistInterviewMemory(
+        { ...report, interview: completedInterview ?? undefined },
+        { historicalTrend: result.historicalProgress?.overallTrend ?? null },
+      );
+
+      console.log("[Interview] Evaluation completed (reports/generate)", {
+        interviewId,
+      });
+      return result;
+    });
 
     return NextResponse.json(ok(evaluation));
   } catch (reason) {
-    return errorResponse(reason, "report generation error");
+    console.error("[Interview] Report generation failed", { reason });
+    // errorResponse already sanitizes to a friendly message server-side.
+    return errorResponse(reason, FRIENDLY.aiRetry);
   }
 }

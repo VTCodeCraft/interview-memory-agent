@@ -67,6 +67,7 @@ export function buildEvaluationPrompt(
   return buildEnhancedEvaluationPrompt({
     role: params.role,
     qa: params.qa,
+    company: params.company ?? null,
     historicalContextBlock: params.historicalContextBlock ?? null,
   });
 }

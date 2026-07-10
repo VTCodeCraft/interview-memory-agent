@@ -13,6 +13,7 @@ import { buildInterviewGenerationPrompt } from "@/lib/ai/promptBuilder";
 import { parseJobDescription } from "@/lib/ai/questionGenerator";
 import { prisma } from "@/lib/db/prisma";
 import { recallCandidateMemory } from "@/services/cognee.service";
+import { resolveCompanyName } from "@/lib/utils/company";
 import {
   startTimer,
   elapsed,
@@ -82,6 +83,7 @@ export async function prepareInterviewPrompt(interview: PromptInterview): Promis
   // ── 3. Build prompt ───────────────────────────────────────────────────────
   const prompt = buildInterviewGenerationPrompt({
     role: interview.role,
+    company: resolveCompanyName(interview) ?? undefined,
     companyType: interview.companyType || undefined,
     interviewType: interview.interviewType || undefined,
     difficulty: interview.difficulty || undefined,
@@ -104,8 +106,8 @@ export async function prepareInterviewPrompt(interview: PromptInterview): Promis
     duration: `${elapsed(t)} ms`,
   });
 
-  // Final prompt logged only in development
-  debug("Final prompt", { prompt });
+  // Final prompt is never logged in full (no resume/PII). Length only.
+  debug("Final prompt ready", { length: prompt.length });
 
   return prompt;
 }

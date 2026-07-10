@@ -393,12 +393,12 @@ Not implemented (interview lookup). Returns `notImplemented`.
 
 ### POST `/api/reports/generate`
 
-Same pipeline as `interview/end` but returns the raw evaluation (legacy envelope). Optional `provider` selects the AI provider.
+Same pipeline as `interview/end` but returns the raw evaluation (legacy envelope). All evaluation runs on Gemini (`gemini-2.5-flash-lite`).
 
 **Body:**
 
 ```json
-{ "interviewId": "int_...", "provider": "gemini" }
+{ "interviewId": "int_..." }
 ```
 
 ```json

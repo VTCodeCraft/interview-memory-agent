@@ -63,17 +63,22 @@ export async function POST(request: NextRequest) {
     });
 
     return NextResponse.json({ success: true, data: result });
-  } catch (error: any) {
-    if (error?.message === "INTERVIEW_NOT_FOUND") {
+  } catch (error: unknown) {
+    if (
+      error instanceof Error &&
+      error.message === "INTERVIEW_NOT_FOUND"
+    ) {
       return NextResponse.json(
         { success: false, error: "Interview not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
+    // Never expose internal/DB error details to the client.
+    console.error("[VoiceAnswer] failed to save answer", { error });
     return NextResponse.json(
-      { success: false, error: error?.message || "Failed to save answer" },
-      { status: 500 }
+      { success: false, error: "Failed to save your answer. Please try again." },
+      { status: 500 },
     );
   }
 }

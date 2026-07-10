@@ -3,6 +3,8 @@ import { Difficulty, InterviewStatus } from "@prisma/client";
 import { generateInterviewQuestions } from "@/lib/ai/questionGenerator";
 import { prisma } from "@/lib/db/prisma";
 import { prepareInterviewPrompt } from "./promptBuilder.service";
+import { resolveCompanyName, replaceCompanyPlaceholder } from "@/lib/utils/company";
+import { withInFlight } from "@/lib/utils/dedup";
 
 type StoredInterviewQuestion = {
   sequence: number;
@@ -154,66 +156,89 @@ export async function processInterviewGeneration(params: {
     };
   }
 
-  if (
-    interview.status !== InterviewStatus.GENERATING &&
-    interview.status !== InterviewStatus.FAILED
-  ) {
-    throw new Error("Interview is not ready for generation");
-  }
-
-  if (interview.status === InterviewStatus.FAILED) {
-    await prisma.interview.update({
-      where: { id: interview.id },
-      data: { status: InterviewStatus.GENERATING },
-    });
-  }
-
-  try {
-    const prompt = await prepareInterviewPrompt(interview);
-    console.log("[Cognee] Gemini Generation Started", {
-      interviewId: interview.id,
-      promptLength: prompt.length,
-    });
-    const questionsData = await generateInterviewQuestions(prompt);
-
-    if (!questionsData || questionsData.length === 0) {
-      throw new Error("AI returned no questions");
+  // De-duplicate concurrent generation for the same interview: the first caller
+  // runs Gemini, every other concurrent caller (double-click, retry race) awaits
+  // the SAME result. No duplicate Gemini requests, no duplicate interviews.
+  return withInFlight(interview.id, async () => {
+    if (
+      interview.status !== InterviewStatus.GENERATING &&
+      interview.status !== InterviewStatus.FAILED
+    ) {
+      throw new Error("Interview is not ready for generation");
     }
 
-    const storedQuestions = questionsData.map((question, index) =>
-      toStoredQuestion(question as GeneratedQuestion, index),
-    );
+    if (interview.status === InterviewStatus.FAILED) {
+      await prisma.interview.update({
+        where: { id: interview.id },
+        data: { status: InterviewStatus.GENERATING },
+      });
+    }
 
-    const questionsBlob: InterviewQuestionsBlob = {
-      questions: storedQuestions,
-    };
+    const company = resolveCompanyName(interview);
+    console.log("[Interview] Generation started", { interviewId: interview.id });
 
-    await prisma.interview.update({
-      where: { id: interview.id },
-      data: {
-        questions: questionsBlob,
+    try {
+      const prompt = await prepareInterviewPrompt(interview);
+      const questionsData = await generateInterviewQuestions(prompt);
+
+      if (!questionsData || questionsData.length === 0) {
+        throw new Error("AI returned no questions");
+      }
+
+      const storedQuestions = questionsData.map((question, index) => {
+        const q = toStoredQuestion(question as GeneratedQuestion, index);
+        // Issue #5: never let a "[Company Name]" placeholder reach the candidate.
+        return {
+          ...q,
+          displayQuestion: replaceCompanyPlaceholder(q.displayQuestion, company),
+          ttsTranscript: replaceCompanyPlaceholder(q.ttsTranscript, company),
+          expectedDiscussion: q.expectedDiscussion
+            ? replaceCompanyPlaceholder(q.expectedDiscussion, company)
+            : null,
+        };
+      });
+
+      const questionsBlob: InterviewQuestionsBlob = {
+        questions: storedQuestions,
+      };
+
+      await prisma.interview.update({
+        where: { id: interview.id },
+        data: {
+          questions: questionsBlob,
+          status: InterviewStatus.READY,
+        },
+      });
+
+      const uiQuestions = storedQuestions.map(
+        (question: StoredInterviewQuestion) =>
+          toUiQuestion(interview.id, question),
+      );
+
+      console.log("[Interview] Generation completed", {
+        interviewId: interview.id,
+        totalQuestions: uiQuestions.length,
+      });
+
+      return {
+        interviewId: interview.id,
         status: InterviewStatus.READY,
-      },
-    });
-
-    const uiQuestions = storedQuestions.map(
-      (question: StoredInterviewQuestion) =>
-        toUiQuestion(interview.id, question),
-    );
-
-    return {
-      interviewId: interview.id,
-      status: InterviewStatus.READY,
-      totalQuestions: uiQuestions.length,
-      questions: uiQuestions,
-      currentQuestion: uiQuestions[0] ?? null,
-    };
-  } catch (error) {
-    console.error("Error generating interview questions:", error);
-    await prisma.interview.update({
-      where: { id: interview.id },
-      data: { status: InterviewStatus.FAILED },
-    });
-    throw error;
-  }
+        totalQuestions: uiQuestions.length,
+        questions: uiQuestions,
+        currentQuestion: uiQuestions[0] ?? null,
+      };
+    } catch (error) {
+      console.error("[Interview] Generation failed", {
+        interviewId: interview.id,
+        error,
+      });
+      // Leave the row in FAILED so it can be retried safely later — never stuck
+      // forever in GENERATING.
+      await prisma.interview.update({
+        where: { id: interview.id },
+        data: { status: InterviewStatus.FAILED },
+      });
+      throw error;
+    }
+  });
 }

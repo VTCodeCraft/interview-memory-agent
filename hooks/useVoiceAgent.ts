@@ -22,6 +22,7 @@ import {
 } from "@/lib/deepgram/voice-agent/settings";
 import { useVoiceAgentStore } from "@/store/useVoiceAgentStore";
 import { API } from "@/lib/utils/constants";
+import { FRIENDLY } from "@/lib/utils/messages";
 import type { VoiceQuestion } from "@/services/voiceInterview.service";
 import {
   buildVoiceAgentTransitionLog,
@@ -189,6 +190,8 @@ export function useVoiceAgent(): UseVoiceAgentReturn {
   const expectedAgentSpeechTextsRef = useRef<string[]>([]);
   const expectedAgentSpeechKindsRef = useRef<("question" | "other")[]>([]);
   const currentAgentSpeechKindRef = useRef<"question" | "other" | null>(null);
+  /** Handler attached to window unload events so we always tear the socket down. */
+  const unloadHandlerRef = useRef<(() => void) | null>(null);
 
   const clearSilenceTimer = useCallback(() => {
     if (silenceTimerRef.current) {
@@ -232,6 +235,12 @@ export function useVoiceAgent(): UseVoiceAgentReturn {
     expectedAgentSpeechKindsRef.current = [];
     currentAgentSpeechKindRef.current = null;
     lastUserSpeechAtRef.current = 0;
+    // Detach any window unload handlers we registered in start().
+    if (unloadHandlerRef.current && typeof window !== "undefined") {
+      window.removeEventListener("beforeunload", unloadHandlerRef.current);
+      window.removeEventListener("pagehide", unloadHandlerRef.current);
+      unloadHandlerRef.current = null;
+    }
   }, [clearTurnTimers]);
 
   const stop = useCallback(() => {
@@ -369,14 +378,16 @@ export function useVoiceAgent(): UseVoiceAgentReturn {
       expectedAgentSpeechRef.current += 1;
       expectedAgentSpeechTextsRef.current.push(message);
       expectedAgentSpeechKindsRef.current.push("question");
-      store.getState().appendTurn("ai", message);
+      // Issue #1: REPLAY the existing question only. Do NOT append a new chat
+      // bubble, do NOT advance the question index, do NOT change progress. The
+      // question already exists in conversation history as a single bubble.
       connRef.current?.sendInjectAgentMessage({
         type: "InjectAgentMessage",
         message,
         behavior: "queue",
       });
     },
-    [clearTurnTimers, getCurrentQuestionText, store]
+    [clearTurnTimers, getCurrentQuestionText]
   );
 
   /** End the interview: run existing evaluation pipeline, then flag report ready. */
@@ -408,6 +419,10 @@ export function useVoiceAgent(): UseVoiceAgentReturn {
         clearInterval(keepAliveRef.current);
         keepAliveRef.current = null;
       }
+      // Issue #4: gracefully close the Deepgram socket now that the interview
+      // is complete. finishedRef is already true, so onClose stays silent.
+      connRef.current?.close();
+      connRef.current = null;
     }
   }, [clearSilenceTimer, failVoiceAgent, transition]);
 
@@ -976,11 +991,12 @@ export function useVoiceAgent(): UseVoiceAgentReturn {
 
         case "Error":
           warn("event: Error", msg);
-          failVoiceAgent(
-            typeof msg.description === "string"
-              ? msg.description
-              : "Voice Agent error"
-          );
+          // Issue #4/#7: never surface raw Deepgram protocol/timeout errors
+          // (e.g. CLIENT_MESSAGE_TIMEOUT, "We waited too long…"). After the
+          // interview has finished they are ignored entirely. Mid-interview
+          // they map to a single friendly, non-technical message.
+          if (finishedRef.current) break;
+          failVoiceAgent(FRIENDLY.connectionLost);
           break;
 
         default:
@@ -1064,8 +1080,8 @@ export function useVoiceAgent(): UseVoiceAgentReturn {
         const message =
           err instanceof Error ? err.message : "Token request failed";
         warn("start: token error =", message);
-        failVoiceAgent(message);
-        return { ok: false, error: message };
+        failVoiceAgent(FRIENDLY.voiceStartFailed);
+        return { ok: false, error: FRIENDLY.voiceStartFailed };
       }
 
       // 2. Prepare playback + open the agent socket.
@@ -1081,16 +1097,16 @@ export function useVoiceAgent(): UseVoiceAgentReturn {
         },
         onClose: () => {
           log("WebSocket: onClose, finished =", finishedRef.current);
-          // Unexpected close mid-interview surfaces as a lost connection; a
-          // close after finish/stop is expected and ignored.
+          // Issue #4: a close after finish/stop is expected and ignored. A close
+          // mid-interview surfaces a friendly, non-technical message.
           if (!finishedRef.current && store.getState().state !== "REPORT_READY") {
-            failVoiceAgent("Voice connection closed");
+            failVoiceAgent(FRIENDLY.connectionLost);
           }
         },
         onError: () => {
           warn("WebSocket: onError");
           if (!finishedRef.current) {
-            failVoiceAgent("Voice connection lost");
+            failVoiceAgent(FRIENDLY.connectionLost);
           }
         },
       });
@@ -1104,9 +1120,17 @@ export function useVoiceAgent(): UseVoiceAgentReturn {
         const message =
           err instanceof Error ? err.message : "Connection failed";
         warn("start: WebSocket error =", message);
-        failVoiceAgent(message);
+        failVoiceAgent(FRIENDLY.connectionLost);
         cleanup();
-        return { ok: false, error: message };
+        return { ok: false, error: FRIENDLY.connectionLost };
+      }
+
+      // Issue #4: tear the socket down on tab close / refresh / unload so no
+      // orphaned Deepgram WebSocket is left running.
+      if (typeof window !== "undefined") {
+        unloadHandlerRef.current = () => cleanup();
+        window.addEventListener("beforeunload", unloadHandlerRef.current);
+        window.addEventListener("pagehide", unloadHandlerRef.current);
       }
 
       // 3. Settings must be the first frame after open.
