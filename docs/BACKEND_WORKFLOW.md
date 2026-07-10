@@ -76,7 +76,7 @@ Interview Session
 
 ↓
 
-Deepgram Voice Interview
+Deepgram Voice Agent Interview (single WebSocket: STT + LLM control + TTS)
 
 ↓
 
@@ -288,31 +288,66 @@ Rules
 
 # Phase 5
 
-Voice Interview
+Voice Interview (Deepgram Voice Agent)
 
-Question
+Current architecture uses the Deepgram **Voice Agent** runtime — a single
+unified WebSocket — instead of the earlier separate TTS + Streaming STT calls.
+One socket handles listen (STT), think (LLM control), and speak (TTS) together.
 
+Endpoint
+
+wss://agent.deepgram.com/v1/agent/converse
+
+Agent config (buildInterviewAgentSettings)
+
+- listen: deepgram nova-3        (STT)
+- think:  open_ai gpt-4o         (silent control layer, Deepgram-hosted)
+- speak:  deepgram aura-2-thalia-en   (TTS)
+- audio in:  linear16 @ 16000 Hz (mic)
+- audio out: linear16 @ 24000 Hz (playback)
+
+The agent ("Aria") is a SILENT control layer. It NEVER generates questions,
+follow-ups, or commentary. Gemini already produced the questions; the backend
+injects each one verbatim.
+
+Token
+
+GET /api/interview/voice/token
 ↓
-
-Deepgram TTS
-
+Mint short-lived Deepgram access token (TTL 300s)
 ↓
+Browser opens WebSocket, token rides in Sec-WebSocket-Protocol
+as ["bearer", <token>]
 
+Turn Flow
+
+Client opens socket
+↓
+Send Settings (agent config)
+↓
+InjectAgentMessage (Gemini question, spoken verbatim)
+↓
 User Speaks
-
 ↓
-
-Deepgram Streaming STT
-
+Agent STT streams transcript to client (client accumulates buffer)
 ↓
-
-Transcript
-
+Answer complete? → agent calls complete_answer function (client-side)
+   fallback: client-side silence timers if the LLM stalls
 ↓
+POST /api/interview/voice/answer
+   { interviewId, sequence, transcript, durationSec }
+↓
+saveAnswerAndAdvance()
+   - saveInterviewAnswer() (shared with V1, flips interview to ONGOING)
+   - resolve next question by sequence
+↓
+Return { done, index, totalQuestions, nextQuestion }
+↓
+Not done → InjectAgentMessage(nextQuestion), repeat
+Done → client ends session → POST /api/interview/end
 
-Store Answer
-
-Repeat
+Turn-taking is client-driven (silence timers), never decided by the agent LLM.
+KeepAlive frames every 5s sustain the open socket.
 
 Store
 
@@ -324,7 +359,13 @@ Answer
 - confidence
 - feedback
 
-No audio storage.
+No audio storage. Client STT buffer is authoritative transcript.
+
+Legacy note
+
+The separate /api/speech/* routes (token, speak, transcribe) still exist for
+standalone TTS/STT but the voice interview now runs entirely through the
+Voice Agent socket above.
 
 ---
 
@@ -507,11 +548,23 @@ Interview
 
 POST /api/interview/start
 
+POST /api/interview/generate
+
 POST /api/interview/answer
 
 POST /api/interview/end
 
+POST /api/interview/cancel
+
 GET /api/interview/history
+
+---
+
+Voice Agent
+
+GET /api/interview/voice/token
+
+POST /api/interview/voice/answer
 
 ---
 
@@ -572,13 +625,15 @@ Responsible for
 - Feedback
 - Report Generation
 
-Deepgram
+Deepgram (Voice Agent)
 
+Single unified WebSocket runtime (wss://agent.deepgram.com/v1/agent/converse).
 Responsible for
 
-- Speech to Text
-- Text to Speech
-- Voice Conversation
+- Speech to Text (listen: nova-3)
+- Text to Speech (speak: aura-2-thalia-en)
+- Voice Conversation control (think: gpt-4o, silent — speaks only injected questions)
+- Turn conducting (backend injects Gemini questions, agent never generates them)
 
 Cognee
 
