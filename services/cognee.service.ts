@@ -161,22 +161,30 @@ export async function recall(
   });
 }
 
-// ── improve() ─────────────────────────────────────────────────────────────
-
 /**
- * Enrich and strengthen the knowledge graph for the current user's dataset.
+ * Enrich and strengthen the knowledge graph for a user's dataset.
  * POST /api/v1/improve
  * Runs synchronously so the result is confirmed before continuing.
  * Callers are responsible for catching errors.
+ *
+ * @param userId - The user whose dataset to improve. Falls back to the shared
+ *   COGNEE_USER_ID env var if omitted (dev-only fallback).
  */
-export async function improve(): Promise<unknown> {
+export async function improve(
+  /** Per-user dataset to optimize. Falls back to the global COGNEE_USER_ID if not supplied. */
+  userId?: string | null,
+): Promise<unknown> {
   const client = getCogneeClient();
   await client.initialize();
+
+  // Must match the datasetName used in remember() — otherwise improve() runs
+  // on the shared service bucket while the user's actual graph goes un-optimized.
+  const datasetName = userId?.trim() || client.userId;
 
   return client.request("/api/v1/improve", {
     method: "POST",
     body: {
-      datasetName: client.userId,
+      datasetName,
       runInBackground: false,
     },
   });

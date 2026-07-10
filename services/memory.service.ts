@@ -106,7 +106,8 @@ export async function persistInterviewMemory(
   logImproveStart();
 
   try {
-    await improveInCognee();
+    // Pass memory.userId so improve() enriches the same dataset that remember() wrote to.
+    await improveInCognee(memory.userId);
     logImproveComplete(elapsed(improveTimer));
   } catch (reason) {
     logImproveFailed(getErrorMessage(reason), elapsed(improveTimer));
