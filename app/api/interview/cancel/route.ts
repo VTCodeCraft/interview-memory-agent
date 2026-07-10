@@ -49,9 +49,12 @@ export async function POST(request: NextRequest) {
 
     const cancellableStatuses = ["READY", "GENERATING", "ONGOING", "FAILED"];
     if (cancellableStatuses.includes(interview.status)) {
+      const nextStatus = ["GENERATING", "FAILED"].includes(interview.status)
+        ? "FAILED"
+        : "CANCELLED";
       await prisma.interview.update({
         where: { id: interviewId },
-        data: { status: "CANCELLED", endedAt: new Date() },
+        data: { status: nextStatus, endedAt: new Date() },
       });
     }
 

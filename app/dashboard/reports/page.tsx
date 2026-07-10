@@ -25,11 +25,8 @@ function ReportsPageInner() {
   const [loading, setLoading] = useState(true);
   // True while we're evaluating a just-finished interview into a report.
   const [generating, setGenerating] = useState(Boolean(generateId));
-  // Set when report generation fails, so we can offer a Retry button.
+  // Set when report generation fails.
   const [genError, setGenError] = useState(false);
-  // The interview id to (re)generate a report for, kept after the URL param is
-  // cleared so Retry still works.
-  const [pendingId, setPendingId] = useState<string | null>(generateId);
 
   async function loadReports() {
     try {
@@ -67,20 +64,13 @@ function ReportsPageInner() {
     }
   }
 
-  const handleRetry = async () => {
-    if (!pendingId) return;
-    const okDone = await generateReport(pendingId);
-    if (okDone) await loadReports();
-  };
-
   useEffect(() => {
     let cancelled = false;
 
     async function run() {
       if (generateId) {
         await generateReport(generateId);
-        // Drop the ?generate param so a refresh doesn't re-trigger, but keep
-        // pendingId in state for the Retry button.
+        // Drop the ?generate param so a refresh doesn't re-trigger.
         if (!cancelled) router.replace(ROUTES.reports);
       }
 
@@ -133,19 +123,12 @@ function ReportsPageInner() {
               </div>
               <h3 className="text-xl font-bold mb-2">Couldn&apos;t generate your report</h3>
               <p className="text-sm text-on-surface-variant mb-6">
-                Something went wrong while analyzing your interview. Your answers are saved — you can try again.
+                Something went wrong while analyzing your interview.
               </p>
               <div className="flex items-center gap-3">
                 <button
-                  onClick={handleRetry}
-                  className="bg-primary text-white px-8 py-3 rounded-xl text-xs font-bold shadow-lg hover:bg-[#4338CA] transition-all active:scale-95 cursor-pointer flex items-center gap-2"
-                >
-                  <span className="material-symbols-outlined text-sm">refresh</span>
-                  Retry
-                </button>
-                <button
                   onClick={() => setGenError(false)}
-                  className="px-6 py-3 rounded-xl text-xs font-bold text-on-surface-variant hover:bg-surface-container transition-colors active:scale-95 cursor-pointer"
+                  className="bg-primary text-white px-8 py-3 rounded-xl text-xs font-bold shadow-lg hover:bg-[#4338CA] transition-all active:scale-95 cursor-pointer"
                 >
                   Dismiss
                 </button>

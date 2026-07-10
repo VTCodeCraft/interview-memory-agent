@@ -231,9 +231,12 @@ export async function createInterviewSession(params: CreateInterviewParams) {
     latestInterview &&
     ["READY", "ONGOING", "GENERATING", "FAILED"].includes(latestInterview.status)
   ) {
+    const nextStatus = ["GENERATING", "FAILED"].includes(latestInterview.status)
+      ? "FAILED"
+      : "CANCELLED";
     await prisma.interview.update({
       where: { id: latestInterview.id },
-      data: { status: "CANCELLED", endedAt: new Date() },
+      data: { status: nextStatus, endedAt: new Date() },
     });
   }
 

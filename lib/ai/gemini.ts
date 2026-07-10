@@ -3,16 +3,11 @@ import { DEFAULT_MODELS } from "@/lib/utils/constants";
 
 let client: GoogleGenerativeAI | null = null;
 
+/** Primary → single fallback. No other models are tried. */
 const GEMINI_FALLBACK_MODELS = [
-  DEFAULT_MODELS.gemini,
-  "gemini-2.5-flash",
-  "gemini-flash-latest",
+  DEFAULT_MODELS.gemini,   // gemini-2.5-flash-lite (primary)
+  "gemini-2.5-flash",      // fallback only
 ] as const;
-
-const GEMINI_MODEL_ALIASES: Record<string, string> = {
-  "gemini-1.5-flash-latest": DEFAULT_MODELS.gemini,
-  "gemini-1.5-flash": DEFAULT_MODELS.gemini,
-};
 
 const RETRYABLE_STATUS = new Set([429, 500, 502, 503, 504]);
 
@@ -53,9 +48,6 @@ export function isRetryableGeminiError(error: unknown): boolean {
   );
 }
 
-function normalizeGeminiModel(model: string) {
-  return GEMINI_MODEL_ALIASES[model] ?? model;
-}
 
 function isGeminiModelNotFoundError(error: unknown): boolean {
   if (!(error instanceof Error)) return false;
@@ -85,9 +77,7 @@ export async function geminiComplete(
   user: string,
   opts: { json?: boolean; model?: string } = {},
 ): Promise<string> {
-  const requestedModel = normalizeGeminiModel(
-    opts.model ?? process.env.GEMINI_MODEL ?? DEFAULT_MODELS.gemini,
-  );
+  const requestedModel = opts.model ?? DEFAULT_MODELS.gemini;
   const modelsToTry = [
     requestedModel,
     ...GEMINI_FALLBACK_MODELS.filter((model) => model !== requestedModel),

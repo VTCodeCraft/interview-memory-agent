@@ -1,9 +1,25 @@
-import { Show, SignInButton, SignUpButton } from "@clerk/nextjs";
+import { SignInButton, SignUpButton } from "@clerk/nextjs";
+import { auth } from "@clerk/nextjs/server";
 import Link from "next/link";
 import { ROUTES } from "@/lib/utils/constants";
 import Header from "@/components/Header";
+import { prisma } from "@/lib/db/prisma";
 
-export default function Home() {
+export default async function Home() {
+  const { userId: clerkId } = await auth();
+
+  let setupDone = false;
+  if (clerkId) {
+    const profile = await prisma.userProfile.findFirst({
+      where: {
+        user: {
+          clerkId: clerkId,
+        },
+      },
+    });
+    setupDone = !!profile;
+  }
+
   return (
     <div className="min-h-screen bg-background text-on-surface flex flex-col font-sans">
       <main className="flex-1">
@@ -23,20 +39,20 @@ export default function Home() {
               Practice interviews with an AI that remembers your mistakes, tracks your growth, and prepares you for your dream company.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 mb-20">
-              <Show when="signed-out">
+              {!clerkId && (
                 <SignUpButton mode="modal">
                   <button className="w-full sm:w-auto bg-primary text-white px-8 py-4 rounded-[14px] font-semibold text-base shadow-lg shadow-primary/20 hover:bg-[#4338CA] transition-all active:scale-98 cursor-pointer">
                     Start Free
                   </button>
                 </SignUpButton>
-              </Show>
-              <Show when="signed-in">
+              )}
+              {clerkId && !setupDone && (
                 <Link href={ROUTES.onboarding}>
                   <button className="w-full sm:w-auto bg-primary text-white px-8 py-4 rounded-[14px] font-semibold text-base shadow-lg shadow-primary/20 hover:bg-[#4338CA] transition-all active:scale-98 cursor-pointer">
                     Continue Setup
                   </button>
                 </Link>
-              </Show>
+              )}
               <Link href={ROUTES.dashboard}>
                 <button className="w-full sm:w-auto bg-white border border-outline-variant text-on-surface px-8 py-4 rounded-[14px] font-semibold text-base hover:bg-surface-container transition-all active:scale-98 flex items-center justify-center gap-2 cursor-pointer">
                   <span className="material-symbols-outlined">dashboard</span> Open Dashboard
@@ -342,25 +358,27 @@ export default function Home() {
               Stop practicing blindly. Start building memory with the most advanced AI preparation tool.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Show when="signed-out">
-                <SignInButton mode="modal">
-                  <button className="w-full sm:w-auto bg-primary text-white px-10 py-4 rounded-[14px] font-bold text-sm hover:bg-[#4338CA] transition-all shadow-xl shadow-primary/20 cursor-pointer">
-                    Sign in
-                  </button>
-                </SignInButton>
-                <SignUpButton mode="modal">
-                  <button className="w-full sm:w-auto bg-white/50 backdrop-blur-sm border border-primary/20 text-primary px-10 py-4 rounded-[14px] font-bold text-sm hover:bg-white transition-all cursor-pointer">
-                    Sign up
-                  </button>
-                </SignUpButton>
-              </Show>
-              <Show when="signed-in">
+              {!clerkId && (
+                <>
+                  <SignInButton mode="modal">
+                    <button className="w-full sm:w-auto bg-primary text-white px-10 py-4 rounded-[14px] font-bold text-sm hover:bg-[#4338CA] transition-all shadow-xl shadow-primary/20 cursor-pointer">
+                      Sign in
+                    </button>
+                  </SignInButton>
+                  <SignUpButton mode="modal">
+                    <button className="w-full sm:w-auto bg-white/50 backdrop-blur-sm border border-primary/20 text-primary px-10 py-4 rounded-[14px] font-bold text-sm hover:bg-white transition-all cursor-pointer">
+                      Sign up
+                    </button>
+                  </SignUpButton>
+                </>
+              )}
+              {clerkId && (
                 <Link href={ROUTES.interview}>
                   <button className="w-full sm:w-auto bg-primary text-white px-10 py-4 rounded-[14px] font-bold text-sm hover:bg-[#4338CA] transition-all shadow-xl shadow-primary/20 cursor-pointer">
                     Start Interview
                   </button>
                 </Link>
-              </Show>
+              )}
               <a href="#how-it-works" className="w-full sm:w-auto">
                 <button className="w-full bg-white/50 backdrop-blur-sm border border-primary/20 text-primary px-10 py-4 rounded-[14px] font-bold text-sm hover:bg-white transition-all cursor-pointer">
                   Learn More
