@@ -110,9 +110,19 @@ function memoryFileName(memory: unknown): string {
   return `memory-${Date.now()}.txt`;
 }
 
-export async function remember(memory: unknown): Promise<unknown> {
+export async function remember(
+  memory: unknown,
+  /** Per-user dataset name. Falls back to the global COGNEE_USER_ID if not supplied. */
+  userId?: string | null,
+): Promise<unknown> {
   const client = getCogneeClient();
   await client.initialize();
+
+  // Use the caller-supplied userId to keep each user's memories in their own
+  // Cognee dataset. Falling back to client.userId means memories land in the
+  // shared service account bucket — OK for single-tenant dev, but causes 409
+  // conflicts in multi-user production when concurrent pipelines hit the same dataset.
+  const datasetName = userId?.trim() || client.userId;
 
   const serializedMemory = serializeMemory(memory);
   const formData = new FormData();
@@ -121,7 +131,7 @@ export async function remember(memory: unknown): Promise<unknown> {
     new Blob([serializedMemory], { type: "application/json" }),
     memoryFileName(memory),
   );
-  formData.append("datasetName", client.userId);
+  formData.append("datasetName", datasetName);
   formData.append("run_in_background", "false");
 
   return client.request("/api/v1/remember", {
@@ -130,15 +140,21 @@ export async function remember(memory: unknown): Promise<unknown> {
   });
 }
 
-export async function recall(query: string): Promise<CogneeRecallResult> {
+export async function recall(
+  query: string,
+  /** Per-user dataset to search. Falls back to the global COGNEE_USER_ID if not supplied. */
+  userId?: string | null,
+): Promise<CogneeRecallResult> {
   const client = getCogneeClient();
   await client.initialize();
+
+  const datasetName = userId?.trim() || client.userId;
 
   return client.request<CogneeRecallResult>("/api/v1/recall", {
     method: "POST",
     body: {
       query,
-      datasets: [client.userId],
+      datasets: [datasetName],
       scope: "graph",
       topK: 5,
     },
@@ -177,7 +193,11 @@ export async function forget(userId: string): Promise<ForgetResult> {
   const client = getCogneeClient();
   await client.initialize();
 
-  const dataset = client.userId;
+  // BUG FIX: use the caller-supplied userId as the dataset name, NOT client.userId
+  // (which is the static COGNEE_USER_ID env var — a different value entirely).
+  // memories are stored under the per-user dataset name, so the delete must target
+  // that same name, otherwise Cognee returns 500 "An error occurred during deletion."
+  const dataset = userId;
   const t = startTimer();
 
   logForgetStart({ userId, dataset });
@@ -260,9 +280,13 @@ function extractSectionItems(
 // ── Generic memory read (used by /dashboard/memory) ──────────────────────
 
 /** Free-form recall for UI display — returns clean fact lines, never throws. */
-export async function recallFacts(query: string): Promise<string[]> {
+export async function recallFacts(
+  query: string,
+  /** User whose Cognee dataset to search. Falls back to COGNEE_USER_ID if omitted. */
+  userId?: string | null,
+): Promise<string[]> {
   try {
-    const result = await recall(query);
+    const result = await recall(query, userId);
     return result
       .map(getRecallText)
       .filter((m): m is string => Boolean(m))
@@ -354,7 +378,7 @@ export async function recallCandidateMemory(
   });
 
   try {
-    const result = await recall(buildCandidateMemoryQuery(params));
+    const result = await recall(buildCandidateMemoryQuery(params), params.userId);
     const memories = result
       .map(getRecallText)
       .filter((m): m is string => Boolean(m))
@@ -520,7 +544,7 @@ export async function recallHistoricalMemory(
   });
 
   try {
-    const result = await recall(buildHistoricalEvaluationQuery(params));
+    const result = await recall(buildHistoricalEvaluationQuery(params), params.userId);
     const memories = result
       .map(getRecallText)
       .filter((m): m is string => Boolean(m))
