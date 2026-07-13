@@ -21,6 +21,7 @@ export const BUG_REPORT_FORM_URL =
 
 export const ROUTES = {
   home: "/",
+  faq: "/faq",
   onboarding: "/onboarding",
   dashboard: "/dashboard",
   interview: "/dashboard/interview",

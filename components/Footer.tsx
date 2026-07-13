@@ -23,6 +23,7 @@ const productLinks: FooterLink[] = [
 
 // Temporary Typeform placeholders — swap the URLs in constants.ts later.
 const supportLinks: FooterLink[] = [
+  { label: "FAQ", href: ROUTES.faq },
   { label: "Contact", href: CONTACT_FORM_URL, external: true },
   { label: "Feedback", href: FEEDBACK_FORM_URL, external: true },
   { label: "Report a Bug", href: BUG_REPORT_FORM_URL, external: true },
