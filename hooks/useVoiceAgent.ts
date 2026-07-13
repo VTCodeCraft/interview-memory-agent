@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useCallback, useEffect, useRef } from "react";
 
@@ -21,6 +21,7 @@ import {
   buildInterviewAgentSettings,
 } from "@/lib/deepgram/voice-agent/settings";
 import { useVoiceAgentStore } from "@/store/useVoiceAgentStore";
+import { useInterviewStore } from "@/store/useInterviewStore";
 import { API } from "@/lib/utils/constants";
 import { FRIENDLY } from "@/lib/utils/messages";
 import type { VoiceQuestion } from "@/services/voiceInterview.service";
@@ -712,14 +713,15 @@ export function useVoiceAgent(): UseVoiceAgentReturn {
           logVoiceEvent("WAIT_FOR_BACKEND_QUESTION", "client", {
             interviewId: interviewIdRef.current,
           });
-          const first = questionsRef.current[0];
+          const startIndex = useInterviewStore.getState().currentIndex || 0;
+          const first = questionsRef.current[startIndex];
           if (first) {
-            log("SettingsApplied: injecting first question, total =", questionsRef.current.length);
-            store.getState().setProgress(1, questionsRef.current.length);
-            const onlyQuestion = questionsRef.current.length === 1;
+            log(`SettingsApplied: injecting question at index ${startIndex}, total = ${questionsRef.current.length}`);
+            store.getState().setProgress(startIndex + 1, questionsRef.current.length);
+            const isFinalQuestion = startIndex >= questionsRef.current.length - 1;
             transition(
-              onlyQuestion ? "FINAL_QUESTION" : "ASKING_QUESTION",
-              `first question seq=${first.sequence}`
+              isFinalQuestion ? "FINAL_QUESTION" : "ASKING_QUESTION",
+              `starting at seq=${first.sequence}`
             );
             injectQuestion(first);
           } else {
@@ -1061,7 +1063,9 @@ export function useVoiceAgent(): UseVoiceAgentReturn {
       let token: string;
       try {
         log("start: fetching voice token...");
-        const res = await fetch(API.interviewVoiceToken);
+        const clientId = useInterviewStore.getState().clientId;
+        const url = `${API.interviewVoiceToken}?interviewId=${interview.id}&clientId=${clientId}`;
+        const res = await fetch(url);
         const json = await res.json();
         
         // React Strict Mode race condition: stop() might have been called while we were fetching the token.

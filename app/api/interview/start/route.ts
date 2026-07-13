@@ -1,4 +1,4 @@
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { auth } from "@clerk/nextjs/server";
 import { createInterviewSession } from "@/services/interview.service";
@@ -6,6 +6,7 @@ import { success, failure, errorResponse, unauthorized, handleZodError } from "@
 import { prisma } from "@/lib/db/prisma";
 import { getWindowLabel } from "@/lib/config/limits";
 import { Difficulty } from "@prisma/client";
+import { ActiveInterviewError } from "@/lib/errors/ActiveInterviewError";
 
 const StartInterviewSchema = z.object({
   company: z.string().min(1, "Company is required").optional(),
@@ -78,6 +79,18 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error: any) {
+    // ── Business-logic errors (expected control flow) ─────────────────────
+    if (error instanceof ActiveInterviewError) {
+      return NextResponse.json(
+        {
+          success: false,
+          code: error.code,              // "ACTIVE_INTERVIEW_EXISTS"
+          interviewId: error.interviewId,
+          status: error.status,          // "PENDING"|"GENERATING"|"READY"|"ONGOING"
+        },
+        { status: 409 },
+      );
+    }
     if (error.message === "INTERVIEW_LIMIT_REACHED") {
       return new Response(JSON.stringify({
         success: false,

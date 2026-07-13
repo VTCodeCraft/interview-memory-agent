@@ -2,6 +2,7 @@ import { create } from "zustand";
 import type { Answer, Interview, InterviewQuestion } from "@/types";
 
 interface InterviewState {
+  clientId: string;
   current: Interview | null;
   currentIndex: number;
   isRecording: boolean;
@@ -15,6 +16,7 @@ interface InterviewState {
 }
 
 export const useInterviewStore = create<InterviewState>((set, get) => ({
+  clientId: typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 15),
   current: null,
   currentIndex: 0,
   isRecording: false,

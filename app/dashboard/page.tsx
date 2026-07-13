@@ -22,6 +22,7 @@ export default function DashboardPage() {
   const [analyticsData, setAnalyticsData] = useState<any>(null);
   const [memoryData, setMemoryData] = useState<any>(null);
   const [historyData, setHistoryData] = useState<any[]>([]);
+  const [hasActiveInterview, setHasActiveInterview] = useState(false);
 
   useEffect(() => {
     async function fetchData() {
@@ -41,19 +42,22 @@ export default function DashboardPage() {
 
         const dbUserId = fetchedProfile.user.id;
 
-        const [analyticsRaw, historyRaw, memoryRaw] = await Promise.all([
+        const [analyticsRaw, historyRaw, memoryRaw, activeRaw] = await Promise.all([
           fetch(`/api/analytics?userId=${dbUserId}`),
           fetch(`/api/interview/history?userId=${dbUserId}`),
           fetch(`/api/memory/insights?userId=${dbUserId}&q=strengths weaknesses focus`),
+          fetch('/api/interview/active'),
         ]);
 
         const analyticsRes = analyticsRaw.ok ? await analyticsRaw.json() : null;
         const historyRes = historyRaw.ok ? await historyRaw.json() : null;
         const memoryRes = memoryRaw.ok ? await memoryRaw.json() : null;
+        const activeRes = activeRaw.ok ? await activeRaw.json() : null;
 
         setAnalyticsData(analyticsRes?.ok ? analyticsRes.data : null);
         setHistoryData(historyRes?.ok ? historyRes.data : []);
         setMemoryData(memoryRes?.ok ? memoryRes.data : null);
+        setHasActiveInterview(!!activeRes?.data?.interviewId);
       } catch (err) {
         console.error(err);
         setError("Failed to load dashboard data.");
@@ -191,11 +195,21 @@ export default function DashboardPage() {
                 className="flex items-center gap-4 p-5 rounded-[20px] bg-[#240A8A] text-white transition-all hover:opacity-90 active:scale-95 group text-left cursor-pointer"
               >
                 <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center">
-                  <span className="material-symbols-outlined text-white text-[20px] group-hover:scale-110 transition-transform">mic</span>
+                  <span className="material-symbols-outlined text-white text-[20px] group-hover:scale-110 transition-transform">
+                    {hasActiveInterview ? "play_arrow" : "mic"}
+                  </span>
                 </div>
                 <div>
-                  <p className="text-base font-bold">Start<br />Interview</p>
-                  <p className="text-white/70 text-[10px] mt-1 font-semibold">Practice now with AI</p>
+                  <p className="text-base font-bold">
+                    {hasActiveInterview ? (
+                      <>Resume<br />Interview</>
+                    ) : (
+                      <>Start<br />Interview</>
+                    )}
+                  </p>
+                  <p className="text-white/70 text-[10px] mt-1 font-semibold">
+                    {hasActiveInterview ? "Pick up where you left off" : "Practice now with AI"}
+                  </p>
                 </div>
               </button>
 
@@ -393,7 +407,9 @@ export default function DashboardPage() {
               ) : (
                 <div className="p-12 text-center flex flex-col items-center">
                   <p className="text-sm text-on-surface-variant mb-4 font-medium">No interview history yet</p>
-                  <button onClick={() => router.push(ROUTES.interview)} className="bg-[#240A8A] text-white font-bold text-xs px-6 py-2.5 rounded-full hover:opacity-90 transition-opacity">Start First Interview</button>
+                  <button onClick={() => router.push(ROUTES.interview)} className="bg-[#240A8A] text-white font-bold text-xs px-6 py-2.5 rounded-full hover:opacity-90 transition-opacity">
+                    {hasActiveInterview ? "Resume Interview" : "Start First Interview"}
+                  </button>
                 </div>
               )}
             </div>
@@ -409,7 +425,7 @@ export default function DashboardPage() {
                   You haven't completed any interviews. Start your first practice session to generate your personalized AI profile and performance metrics!
                 </p>
                 <button onClick={() => router.push(ROUTES.interview)} className="bg-[#240A8A] text-white font-bold text-sm px-8 py-3 rounded-full hover:scale-105 transition-transform shadow-lg shadow-primary/20 cursor-pointer">
-                  Start First Interview
+                  {hasActiveInterview ? "Resume Interview" : "Start First Interview"}
                 </button>
               </div>
             )}
@@ -485,8 +501,11 @@ export default function DashboardPage() {
       <button
         onClick={() => router.push(ROUTES.interview)}
         className="fixed bottom-8 right-8 w-14 h-14 rounded-2xl bg-[#240A8A] text-white shadow-xl shadow-primary/20 flex items-center justify-center hover:scale-105 transition-transform active:scale-95 z-50 cursor-pointer"
+        title={hasActiveInterview ? "Resume Interview" : "Start New Interview"}
       >
-        <span className="material-symbols-outlined text-[28px]">add</span>
+        <span className="material-symbols-outlined text-[28px]">
+          {hasActiveInterview ? "play_arrow" : "add"}
+        </span>
       </button>
     </div>
   );

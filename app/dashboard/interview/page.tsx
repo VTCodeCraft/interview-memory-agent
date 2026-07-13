@@ -38,7 +38,7 @@ import { toast } from "react-hot-toast";
 
 export default function InterviewPage() {
   const router = useRouter();
-  const { current, loading, error, start, cancel } = useInterview();
+  const { current, loading, error, start, cancel, conflict, resume, clearConflict, isRecovering, recoverActiveInterview } = useInterview();
   const { targetRole, setTargetRole } = useSettingsStore();
 
   // Setup form states
@@ -50,6 +50,17 @@ export default function InterviewPage() {
   const [interviewType, setInterviewType] = useState("Technical");
   const [jobDescription, setJobDescription] = useState("");
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
+  /** Two-step confirm inside the conflict modal. */
+  const [conflictCancelConfirming, setConflictCancelConfirming] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  /** Stores the last submitted payload so we can retry after cancelling an existing interview. */
+  const lastPayloadRef = useRef<any>(null);
+  /**
+   * Ensures recoverActiveInterview() is called exactly once on mount.
+   * A ref guard is used instead of an empty dep array so ESLint is happy
+   * and StrictMode double-mount doesn’t fire it twice.
+   */
+  const hasRecoveredRef = useRef(false);
 
   // Data Fetching states
   const [profileData, setProfileData] = useState<any>(null);
@@ -121,7 +132,8 @@ export default function InterviewPage() {
     if (error) {
       if (error === "INTERVIEW_LIMIT_REACHED") {
         toast.error(`You have reached the interview limit for this ${usageInfo?.windowLabel ?? "month"}.`);
-      } else {
+      } else if (error !== "ACTIVE_INTERVIEW_EXISTS") {
+        // ACTIVE_INTERVIEW_EXISTS is surfaced via the conflict modal, not a toast.
         toast.error(error);
       }
       // A new interview was consumed (or blocked) — sync the usage card.
@@ -141,7 +153,27 @@ export default function InterviewPage() {
     }
   }, [current, refreshUsage]);
 
+  // ── On-load session recovery ─────────────────────────────────────────
+  // Fires once when the interview page mounts (refresh, browser reopen, new tab).
+  // If the user has an unfinished active interview, resume() will hydrate the
+  // store and VoiceInterview will mount + reconnect Deepgram automatically.
+  useEffect(() => {
+    if (hasRecoveredRef.current) return;
+    hasRecoveredRef.current = true;
+    recoverActiveInterview();
+  }, [recoverActiveInterview]);
+
+  // Auto-resume when the conflicting interview is still GENERATING.
+  // The resume() polling loop will wait for READY, then mount VoiceInterview.
+  useEffect(() => {
+    if (conflict?.status === "GENERATING") {
+      resume(conflict.interviewId);
+    }
+  }, [conflict, resume]);
+
   const handleStart = async () => {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
     const result = setupSchema.safeParse({
       company: selectedCompany,
       companyType,
@@ -150,6 +182,7 @@ export default function InterviewPage() {
 
     if (!result.success) {
       setValidationErrors(result.error.flatten().fieldErrors);
+      setIsSubmitting(false);
       return;
     }
     setValidationErrors({});
@@ -164,9 +197,121 @@ export default function InterviewPage() {
       ? { company: "Other", companyType, customCompanyName, jobDescription, difficulty: mapDifficulty(difficulty), interviewType } 
       : { company: selectedCompany, jobDescription, difficulty: mapDifficulty(difficulty), interviewType };
 
-    await start(payload);
+    // Store so we can retry the same payload after cancelling an existing interview.
+    lastPayloadRef.current = payload;
+
+    try {
+      await start(payload);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
+  // ── Conflict modal: shown when POST /start returns 409 ACTIVE_INTERVIEW_EXISTS ──
+  const conflictModal =
+    conflict !== null && typeof document !== "undefined"
+      ? createPortal(
+          <div
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 sm:p-6"
+          >
+            <div
+              role="dialog"
+              aria-modal="true"
+              className="rounded-3xl bg-surface border border-outline-variant/30 shadow-2xl p-6 "
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="w-11 h-11 rounded-2xl bg-amber-500/10 flex items-center justify-center mb-4">
+                <span className="material-symbols-outlined text-amber-500">pending</span>
+              </div>
+
+              {/* Case C: two-step cancel confirm */}
+              {conflictCancelConfirming ? (
+                <>
+                  <h2 className="text-xl font-bold text-on-surface">Are you sure?</h2>
+                  <p className="text-sm text-on-surface-variant mt-2">
+                    This will permanently end your current interview. You will not be able to resume it.
+                  </p>
+                  <div className="flex justify-end gap-3 mt-6">
+                    <button
+                      onClick={() => setConflictCancelConfirming(false)}
+                      className="px-5 py-2.5 rounded-xl border border-outline-variant/30 text-sm font-semibold text-on-surface-variant hover:border-primary/50 transition-all cursor-pointer"
+                    >
+                      Go Back
+                    </button>
+                    <button
+                      onClick={async () => {
+                        setConflictCancelConfirming(false);
+                        clearConflict();
+                        await cancel(); // aborts polling + marks DB CANCELLED
+                        await start(lastPayloadRef.current); // fresh interview
+                      }}
+                      className="px-5 py-2.5 rounded-xl bg-error-red text-white text-sm font-bold hover:bg-error-red/90 transition-colors active:scale-95 shadow-md shadow-error-red/20 cursor-pointer"
+                    >
+                      Yes, Cancel It
+                    </button>
+                  </div>
+                </>
+              ) : conflict.status === "GENERATING" ? (
+                /* Case A: GENERATING — resume() is already polling, show spinner */
+                <>
+                  <h2 className="text-xl font-bold text-on-surface">Interview Already Running</h2>
+                  <p className="text-sm text-on-surface-variant mt-2">
+                    You already have an interview in progress.
+                  </p>
+                  <div className="flex items-center gap-3 mt-5 p-4 bg-surface-container rounded-xl">
+                    <span className="material-symbols-outlined text-primary animate-spin text-[20px]">progress_activity</span>
+                    <p className="text-sm font-semibold text-on-surface">
+                      Your interview is still being prepared…
+                    </p>
+                  </div>
+                  <button
+                    onClick={async () => {
+                      clearConflict();
+                      await cancel();
+                    }}
+                    className="mt-5 w-full px-5 py-2.5 rounded-xl border border-error-red text-error-red text-sm font-semibold hover:bg-error-red hover:text-white transition-colors active:scale-95 cursor-pointer"
+                  >
+                    Cancel Interview
+                  </button>
+                </>
+              ) : (
+                /* Case B: READY or ONGOING — show Continue / Cancel buttons */
+                <>
+                  <h2 className="text-xl font-bold text-on-surface">Interview Already Running</h2>
+                  <p className="text-sm text-on-surface-variant mt-2">
+                    You already have an interview in progress.
+                  </p>
+                  <div className="flex flex-col gap-3 mt-6">
+                    <button
+                      onClick={() => resume(conflict.interviewId)}
+                      className="w-full px-5 py-3 rounded-xl bg-primary text-white text-sm font-bold hover:bg-primary/90 transition-colors active:scale-95 shadow-md cursor-pointer flex items-center justify-center gap-2"
+                    >
+                      <span className="material-symbols-outlined text-[18px]">play_arrow</span>
+                      Continue Existing
+                    </button>
+                    <button
+                      onClick={() => resume(conflict.interviewId)}
+                      className="w-full px-5 py-3 rounded-xl bg-surface-container-highest text-on-surface text-sm font-bold hover:bg-outline-variant/30 transition-colors active:scale-95 shadow-sm cursor-pointer flex items-center justify-center gap-2"
+                    >
+                      <span className="material-symbols-outlined text-[18px]">phonelink_erase</span>
+                      Force Takeover
+                    </button>
+                    <button
+                      onClick={() => setConflictCancelConfirming(true)}
+                      className="w-full px-5 py-3 rounded-xl border border-error-red text-error-red text-sm font-semibold hover:bg-error-red/5 transition-colors active:scale-95 cursor-pointer"
+                    >
+                      Cancel Existing Interview
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>,
+          document.body,
+        )
+      : null;
+
+  // ── Existing cancel-interview confirmation modal ──────────────────────────
   const cancelModal =
     isCancelModalOpen && typeof document !== "undefined"
       ? createPortal(
@@ -230,7 +375,24 @@ export default function InterviewPage() {
             <p className="text-base text-on-surface-variant">Configure your session and let the AI tailor questions based on your history and goals.</p>
           </header>
 
-          {error === "INTERVIEW_LIMIT_REACHED" ? (
+          {isRecovering ? (
+            /* Recovery: on-load silent resume — shown instead of form during check */
+            <div className="flex flex-col items-center justify-center p-8 sm:p-12 bg-white border border-outline-variant/30 rounded-xxl shadow-2xl ai-glow w-full max-w-3xl mx-auto min-h-[400px] text-center">
+              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-6 animate-pulse">
+                <span className="material-symbols-outlined text-primary text-3xl animate-spin">progress_activity</span>
+              </div>
+              <h3 className="text-lg sm:text-xl font-bold mb-2">Resuming your interview…</h3>
+              <p className="w-full text-sm sm:text-base text-on-surface-variant">
+                Restoring your session and reconnecting. This will only take a moment.
+              </p>
+              <button
+                onClick={async () => { await cancel(); }}
+                className="px-6 py-2 rounded-xl border border-error-red text-error-red hover:bg-error-red hover:text-white font-bold transition-colors shadow-sm active:scale-95 text-xs uppercase tracking-wider cursor-pointer mt-6"
+              >
+                Cancel
+              </button>
+            </div>
+          ) : error === "INTERVIEW_LIMIT_REACHED" ? (
             <div className="flex flex-col items-center justify-center p-8 sm:p-12 bg-white border border-outline-variant/30 rounded-xxl shadow-2xl w-full max-w-3xl mx-auto min-h-[400px] text-center">
               <div className="w-16 h-16 rounded-full bg-error-red/10 flex items-center justify-center mb-6">
                 <span className="material-symbols-outlined text-error-red text-3xl">block</span>
@@ -439,11 +601,20 @@ export default function InterviewPage() {
                     </button>
                     <button
                       onClick={handleStart}
-                      disabled={usageInfo?.isLimitReached}
+                      disabled={usageInfo?.isLimitReached || isSubmitting}
                       className="flex-1 md:flex-initial px-6 py-3 bg-white text-primary hover:bg-surface-container font-bold rounded-xl flex items-center justify-center gap-2 shadow-lg transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer text-xs"
                     >
-                      <span className="material-symbols-outlined text-[18px]">mic</span>
-                      Start Interview
+                      {isSubmitting ? (
+                        <>
+                          <div className="w-4 h-4 rounded-full border-2 border-primary/30 border-t-primary animate-spin"></div>
+                          Starting...
+                        </>
+                      ) : (
+                        <>
+                          <span className="material-symbols-outlined text-[18px]">mic</span>
+                          Start Interview
+                        </>
+                      )}
                     </button>
                   </div>
                 </div>
@@ -579,6 +750,7 @@ export default function InterviewPage() {
           )}
           </div>
           {cancelModal}
+          {conflictModal}
         </main>
       </div>
     );

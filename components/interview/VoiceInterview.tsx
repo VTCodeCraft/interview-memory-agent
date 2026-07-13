@@ -118,12 +118,14 @@ export default function VoiceInterview({
   const { start, stop } = useVoiceAgent();
   const { state, turns, error, currentQuestion, totalQuestions } =
     useVoiceAgentStore();
+  const clientId = useInterviewStore((s) => s.clientId);
 
   const [elapsed, setElapsed] = useState(0);
   const startedRef = useRef(false);
   const scrollRef = useRef<HTMLDivElement | null>(null);
   // End-flow dialog: null -> hidden, "confirm" -> "End interview?", "report" -> "Generate report?"
   const [endStep, setEndStep] = useState<null | "confirm" | "report">(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   // Guard so the natural-completion redirect fires only once.
   const navigatedRef = useRef(false);
 
@@ -187,6 +189,49 @@ export default function VoiceInterview({
     return () => clearInterval(interval);
   }, []);
 
+  // Cross-device force-takeover eviction polling (3s for faster eviction)
+  useEffect(() => {
+    const checkEviction = async () => {
+      try {
+        const res = await fetch(`/api/interview/active?clientId=${clientId}`);
+        const json = await res.json();
+        if (json.success && json.data?.taken_over) {
+          useVoiceAgentStore.setState({ error: "Session taken over by another device." });
+          stop();
+          useInterviewStore.getState().setInterview(null as any);
+          router.push(ROUTES.dashboard);
+        }
+      } catch (err) {
+        // ignore network error, keep polling
+      }
+    };
+    const interval = setInterval(checkEviction, 3000);
+    return () => clearInterval(interval);
+  }, [clientId, stop, router]);
+
+  // Instant cross-tab eviction (same browser)
+  useEffect(() => {
+    const channel = new BroadcastChannel("clutchly-interview-sync");
+    
+    // Broadcast that this tab is now active
+    channel.postMessage({ type: "TAKEOVER", interviewId: interview.id, clientId });
+    
+    channel.onmessage = (event) => {
+      if (
+        event.data?.type === "TAKEOVER" &&
+        event.data.interviewId === interview.id &&
+        event.data.clientId !== clientId
+      ) {
+        useVoiceAgentStore.setState({ error: "Session taken over by another tab." });
+        stop();
+        useInterviewStore.getState().setInterview(null as any);
+        router.push(ROUTES.dashboard);
+      }
+    };
+    
+    return () => channel.close();
+  }, [interview.id, clientId, stop, router]);
+
   // Auto-scroll conversation to the newest turn.
   useEffect(() => {
     scrollRef.current?.scrollTo({
@@ -217,14 +262,25 @@ export default function VoiceInterview({
     return `Question ${current} of ${totalQuestions}`;
   }, [currentQuestion, totalQuestions]);
 
+  const isEvicted = error?.includes("taken over");
+
   // "End" button -> confirm dialog first (mirrors the cancel flow).
-  const handleEnd = () => setEndStep("confirm");
+  // If evicted by another tab/device, we just exit without touching the DB.
+  const handleEnd = () => {
+    if (isEvicted) {
+      router.push(ROUTES.dashboard);
+      return;
+    }
+    setEndStep("confirm");
+  };
 
   // User confirmed ending early -> ask whether to generate a report.
   const handleConfirmEnd = () => setEndStep("report");
 
   // Early end, generate a report from answers given so far.
   const handleEndWithReport = async () => {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
     setEndStep(null);
     try {
       // Manually trigger the end endpoint to queue the report generation
@@ -235,6 +291,8 @@ export default function VoiceInterview({
       });
     } catch (e) {
       console.error("Failed to trigger early report generation", e);
+    } finally {
+      setIsSubmitting(false);
     }
     goToReport();
   };
@@ -288,22 +346,31 @@ export default function VoiceInterview({
                 </>
               ) : (
                 <>
-                  <h2 className="text-xl font-bold text-on-surface">Generate report?</h2>
+                  <h2 className="text-xl font-bold text-on-surface">Generate a report?</h2>
                   <p className="text-sm text-on-surface-variant mt-2">
-                    Do you want a feedback report for this interview? We&apos;ll analyze your answers and take you to the report page.
+                    We can evaluate the answers you provided so far and give you feedback.
                   </p>
-                  <div className="grid grid-cols-2 gap-3 mt-6">
-                    <button
-                      onClick={handleEndNoReport}
-                      className="py-3 rounded-xl bg-surface-container text-sm font-semibold text-on-surface hover:bg-surface-container-high transition-colors active:scale-95 cursor-pointer"
-                    >
-                      No, just exit
-                    </button>
+                  <div className="flex flex-col gap-3 mt-6">
                     <button
                       onClick={handleEndWithReport}
-                      className="py-3 rounded-xl bg-primary text-white text-sm font-bold hover:opacity-90 transition-all active:scale-95 cursor-pointer"
+                      disabled={isSubmitting}
+                      className="py-3 rounded-xl bg-primary text-white text-sm font-bold hover:opacity-90 transition-all disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2"
                     >
-                      Yes, generate
+                      {isSubmitting ? (
+                        <>
+                          <div className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin"></div>
+                          Processing...
+                        </>
+                      ) : (
+                        "End & Generate Report"
+                      )}
+                    </button>
+                    <button
+                      onClick={handleEndNoReport}
+                      disabled={isSubmitting}
+                      className="py-3 rounded-xl border-2 border-outline-variant/30 text-sm font-bold text-on-surface hover:bg-surface-container-low transition-colors disabled:opacity-50 cursor-pointer"
+                    >
+                      No, just end it
                     </button>
                   </div>
                 </>
@@ -320,7 +387,7 @@ export default function VoiceInterview({
       {/* Header */}
       <header className="flex items-center justify-between px-4 md:px-gutter h-16 border-b border-outline-variant/30 bg-surface/80 backdrop-blur-md">
         <div className="flex items-center gap-2 md:gap-md">
-          <span className="text-base md:text-lg font-bold text-primary">InterviewAI</span>
+          <span className="text-base md:text-lg font-bold text-primary">Clutchly</span>
           <span className="hidden sm:inline-flex items-center gap-sm bg-surface-container px-3 py-1.5 rounded-full border border-outline-variant/20">
             <span className="material-symbols-outlined text-primary text-sm">
               work
@@ -353,9 +420,13 @@ export default function VoiceInterview({
           </div>
           <button
             onClick={handleEnd}
-            className="px-3 md:px-4 py-1.5 border border-error-red text-error-red rounded-lg text-xs font-bold hover:bg-error-red hover:text-white transition-all active:scale-95 cursor-pointer"
+            className={`px-3 md:px-4 py-1.5 border rounded-lg text-xs font-bold transition-all active:scale-95 cursor-pointer ${
+              isEvicted 
+                ? "border-outline-variant text-on-surface-variant hover:bg-surface-container" 
+                : "border-error-red text-error-red hover:bg-error-red hover:text-white"
+            }`}
           >
-            End
+            {isEvicted ? "Exit" : "End"}
           </button>
         </div>
       </header>

@@ -9,6 +9,8 @@ import {
 } from "@/services/resume.service";
 import { unauthorized } from "@/lib/utils/api";
 import { logger } from "@/lib/utils/logger";
+import { prisma } from "@/lib/db/prisma";
+import { InterviewStatus } from "@prisma/client";
 
 export const runtime = "nodejs";
 
@@ -18,6 +20,29 @@ export async function POST(request: NextRequest) {
 
     if (!user) {
       return unauthorized();
+    }
+
+    // Block upload if the user has an active interview
+    const activeInterview = await prisma.interview.findFirst({
+      where: {
+        userId: user.id,
+        status: {
+          in: [
+            InterviewStatus.PENDING,
+            InterviewStatus.READY,
+            InterviewStatus.ONGOING,
+            InterviewStatus.GENERATING,
+          ],
+        },
+      },
+      select: { id: true },
+    });
+
+    if (activeInterview) {
+      return Response.json(
+        { success: false, error: "Finish your interview before uploading a new resume." },
+        { status: 400 }
+      );
     }
 
     const formData = await request.formData();

@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db/prisma";
 import { Difficulty, InterviewStatus } from "@prisma/client";
+import { ActiveInterviewError } from "@/lib/errors/ActiveInterviewError";
 import { getLimits, getUsageWindowBounds } from "@/lib/config/limits";
 import { complete, parseJSON } from "@/lib/ai";
 import {
@@ -217,34 +218,33 @@ export async function createInterviewSession(params: CreateInterviewParams) {
     throw new Error("RESUME_NOT_FOUND");
   }
 
-  // Abort any stale interview (READY, ONGOING, GENERATING, FAILED) so we always
-  // create a clean new session. The old row is tombstoned as ABORTED.
-  const latestInterview = forceNew
-    ? null
-    : await prisma.interview.findFirst({
-        where: { userId },
-        orderBy: { createdAt: "desc" },
-        select: { id: true, status: true },
-      });
-
-  if (
-    latestInterview &&
-    ["READY", "ONGOING", "GENERATING", "FAILED"].includes(latestInterview.status)
-  ) {
-    const nextStatus = ["GENERATING", "FAILED"].includes(latestInterview.status)
-      ? "FAILED"
-      : "CANCELLED";
-    await prisma.interview.update({
-      where: { id: latestInterview.id },
-      data: { status: nextStatus, endedAt: new Date() },
-    });
-  }
-
-
-
-
   return prisma.$transaction(async (tx) => {
-    // Check the usage limit inside the transaction to prevent race conditions.
+    // ── STEP 1: Acquire a row-level lock on this user ─────────────────────
+    // SELECT ... FOR UPDATE serialises concurrent transactions for the same
+    // userId. Request B blocks here until Request A commits or rolls back.
+    // After A commits (having created an interview), B re-reads and finds
+    // an active interview → throws ActiveInterviewError. No duplicate rows.
+    await tx.$queryRaw`SELECT id FROM "User" WHERE id = ${userId} FOR UPDATE`;
+
+    // ── STEP 2: Reject if an active interview already exists ──────────────
+    const ACTIVE_STATUSES = [
+      InterviewStatus.PENDING,
+      InterviewStatus.GENERATING,
+      InterviewStatus.READY,
+      InterviewStatus.ONGOING,
+    ] as const;
+
+    const activeInterview = await tx.interview.findFirst({
+      where: { userId, status: { in: [...ACTIVE_STATUSES] } },
+      orderBy: { createdAt: "desc" },
+      select: { id: true, status: true },
+    });
+
+    if (activeInterview) {
+      throw new ActiveInterviewError(activeInterview.id, activeInterview.status);
+    }
+
+    // ── STEP 3: Check the usage limit ────────────────────────────────────
     // Window (day/week/month) + max count come from env-driven config.
     const { MAX_INTERVIEWS } = getLimits();
     const { start: windowStart, end: windowEnd } = getUsageWindowBounds();

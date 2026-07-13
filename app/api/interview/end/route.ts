@@ -67,6 +67,38 @@ export async function POST(request: NextRequest) {
           }
         }
 
+        // ── DISTRIBUTED DATABASE LOCK ──────────────────────────────────────────
+        let gotLock = false;
+        try {
+          await prisma.reportGenerationJob.create({
+            data: {
+              interviewId,
+              userId: user.id,
+              status: "PROCESSING",
+              startedAt: new Date(),
+            },
+          });
+          gotLock = true;
+        } catch (e: any) {
+          if (e.code === "P2002") {
+            const updated = await prisma.reportGenerationJob.updateMany({
+              where: {
+                interviewId,
+                status: { in: ["PENDING", "FAILED"] },
+              },
+              data: { status: "PROCESSING", startedAt: new Date() },
+            });
+            if (updated.count > 0) gotLock = true;
+          } else {
+            throw e;
+          }
+        }
+
+        if (!gotLock) {
+          console.log("[Interview] Evaluation already running/queued on another node", { interviewId });
+          return { _isQueuedSentinel: true };
+        }
+
         console.log("[Interview] Evaluation started", { interviewId });
 
         const evaluation = await evaluateInterview({
@@ -88,6 +120,12 @@ export async function POST(request: NextRequest) {
           },
         });
 
+        // Release lock
+        await prisma.reportGenerationJob.updateMany({
+          where: { interviewId },
+          data: { status: "COMPLETED", completedAt: new Date() },
+        });
+
         // Best-effort memory — never blocks completion (swallowed inside).
         await persistInterviewMemory(
           { ...saved, interview: completedInterview },
@@ -98,26 +136,27 @@ export async function POST(request: NextRequest) {
         return saved;
       });
 
+      if ((report as any)._isQueuedSentinel) {
+        return NextResponse.json({
+          success: true,
+          queued: true,
+          message: "Your interview report is currently being generated. It will appear on your dashboard when it's ready."
+        });
+      }
+
       return NextResponse.json({ success: true, data: report });
     } catch (error: unknown) {
       console.error("[Interview] Evaluation failed", { error });
 
       if (isRetryableGeminiError(error)) {
         try {
-          await prisma.reportGenerationJob.upsert({
+          await prisma.reportGenerationJob.updateMany({
             where: { interviewId },
-            update: {
+            data: {
               status: "PENDING",
               nextRetryAt: new Date(Date.now() + 60000), // Retry in 1 min
               lastError: error instanceof Error ? error.message : String(error)
             },
-            create: {
-              interviewId,
-              userId: user.id,
-              status: "PENDING",
-              nextRetryAt: new Date(Date.now() + 60000),
-              lastError: error instanceof Error ? error.message : String(error)
-            }
           });
           
           // Ensure interview is marked COMPLETED so it doesn't stay ONGOING
@@ -130,6 +169,19 @@ export async function POST(request: NextRequest) {
           });
         } catch (jobError) {
           console.error("[Interview] Failed to queue report generation job", { jobError });
+        }
+      } else {
+        // Non-retryable error -> Release lock as FAILED
+        try {
+          await prisma.reportGenerationJob.updateMany({
+            where: { interviewId },
+            data: {
+              status: "FAILED",
+              lastError: error instanceof Error ? error.message : String(error)
+            },
+          });
+        } catch (jobError) {
+          console.error("[Interview] Failed to release lock as FAILED", { jobError });
         }
       }
 

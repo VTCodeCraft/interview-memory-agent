@@ -70,29 +70,32 @@ export async function saveInterviewAnswer(
 ): Promise<SaveInterviewAnswerResult> {
   const sequence = input.sequence;
 
-  const interview = await prisma.interview.findFirst({
-    where: { id: input.interviewId, userId: input.userId },
-    select: { id: true, status: true, startedAt: true },
-  });
+  return prisma.$transaction(async (tx) => {
+    // 1. Serialize concurrent requests by taking a row-level lock on the Interview.
+    // This strictly prevents the read-modify-write race condition for answers.
+    const lockedInterview = await tx.$queryRaw<
+      { id: string; status: string; startedAt: Date | null }[]
+    >`SELECT id, status, "startedAt" FROM "Interview" WHERE id = ${input.interviewId} AND "userId" = ${input.userId} FOR UPDATE`;
 
-  if (!interview) {
-    throw new Error("INTERVIEW_NOT_FOUND");
-  }
+    if (!lockedInterview || lockedInterview.length === 0) {
+      throw new Error("INTERVIEW_NOT_FOUND");
+    }
 
-  const existingAnswer = await prisma.answer.findUnique({
-    where: { interviewId: input.interviewId },
-    select: { id: true, answers: true },
-  });
+    const interview = lockedInterview[0];
 
-  const answers = normalizeAnswers(existingAnswer?.answers);
-  const nextAnswers = upsertAnswerEntry(answers, {
-    sequence,
-    transcript: input.transcript,
-    duration: input.duration,
-  });
+    const existingAnswer = await tx.answer.findUnique({
+      where: { interviewId: input.interviewId },
+      select: { id: true, answers: true },
+    });
 
-  await prisma.$transaction([
-    prisma.answer.upsert({
+    const answers = normalizeAnswers(existingAnswer?.answers);
+    const nextAnswers = upsertAnswerEntry(answers, {
+      sequence,
+      transcript: input.transcript,
+      duration: input.duration,
+    });
+
+    await tx.answer.upsert({
       where: { interviewId: input.interviewId },
       create: {
         interviewId: input.interviewId,
@@ -103,23 +106,26 @@ export async function saveInterviewAnswer(
         userId: input.userId,
         answers: { answers: nextAnswers },
       },
-    }),
-    prisma.interview.update({
+    });
+
+    await tx.interview.update({
       where: { id: input.interviewId },
       data: {
-        status: interview.status === InterviewStatus.COMPLETED
-          ? InterviewStatus.COMPLETED
-          : InterviewStatus.ONGOING,
+        status:
+          interview.status === InterviewStatus.COMPLETED
+            ? InterviewStatus.COMPLETED
+            : InterviewStatus.ONGOING,
         startedAt: interview.startedAt ?? new Date(),
       },
-    }),
-  ]);
+    });
 
-  return {
-    interviewId: input.interviewId,
-    sequence,
-    answers: nextAnswers,
-  };
+    return {
+      interviewId: input.interviewId,
+      sequence,
+      answers: nextAnswers,
+    };
+  });
+
 }
 
 export async function getInterviewAnswers(interviewId: string, userId: string) {

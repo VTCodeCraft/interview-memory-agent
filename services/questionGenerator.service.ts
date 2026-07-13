@@ -168,10 +168,14 @@ export async function processInterviewGeneration(params: {
     }
 
     if (interview.status === InterviewStatus.FAILED) {
-      await prisma.interview.update({
-        where: { id: interview.id },
+      const updateResult = await prisma.interview.updateMany({
+        where: { id: interview.id, status: InterviewStatus.FAILED },
         data: { status: InterviewStatus.GENERATING },
       });
+      if (updateResult.count === 0) {
+        // Another serverless lambda already took the lock!
+        throw new Error("CONCURRENT_GENERATION");
+      }
     }
 
     const company = resolveCompanyName(interview);
@@ -201,6 +205,29 @@ export async function processInterviewGeneration(params: {
       const questionsBlob: InterviewQuestionsBlob = {
         questions: storedQuestions,
       };
+
+      // ── Race guard: re-check status before writing ──────────────────────
+      // cancel() may have set status to CANCELLED while Gemini was running.
+      // If so, discard the result silently — never flip CANCELLED → READY.
+      const freshStatus = await prisma.interview.findUnique({
+        where: { id: interview.id },
+        select: { status: true },
+      });
+
+      if (freshStatus?.status !== InterviewStatus.GENERATING) {
+        console.warn(
+          "[Interview] Discarding Gemini result — interview no longer GENERATING",
+          { interviewId: interview.id, currentStatus: freshStatus?.status },
+        );
+        return {
+          interviewId: interview.id,
+          status: freshStatus?.status ?? "CANCELLED",
+          totalQuestions: 0,
+          questions: [],
+          currentQuestion: null,
+        };
+      }
+      // ───────────────────────────────────────────────────────────────────
 
       await prisma.interview.update({
         where: { id: interview.id },

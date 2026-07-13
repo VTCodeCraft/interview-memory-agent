@@ -65,6 +65,12 @@ export async function POST(req: NextRequest) {
         { status: 404 }
       );
     }
+    if (error.message === "CONCURRENT_GENERATION") {
+      return NextResponse.json(
+        { success: false, error: "Interview generation is already in progress" },
+        { status: 409 }
+      );
+    }
     if (error.message === "Unauthorized") {
       return NextResponse.json(
         { success: false, error: "Unauthorized" },
