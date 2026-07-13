@@ -7,10 +7,14 @@ export const SOCIAL_LINKS = {
   linkedin: "https://linkedin.com/company/aria-interview",
 } as const;
 
-// Support contacts used by the footer. Temporary placeholders — easy to replace later.
-export const CONTACT_EMAIL = "support@interviewmemoryagent.com";
-export const FEEDBACK_EMAIL = "feedback@interviewmemoryagent.com";
-export const BUG_REPORT_EMAIL = "support@interviewmemoryagent.com";
+// Support forms (Typeform) used by the footer. Temporary placeholder URLs —
+// replace with the real Typeform form links when available.
+export const CONTACT_FORM_URL =
+  "https://form.typeform.com/to/JddmsEdK";
+export const FEEDBACK_FORM_URL =
+  "https://form.typeform.com/to/REPLACE_WITH_FEEDBACK_FORM";
+export const BUG_REPORT_FORM_URL =
+  "https://form.typeform.com/to/REPLACE_WITH_BUG_REPORT_FORM";
 
 export const ROUTES = {
   home: "/",

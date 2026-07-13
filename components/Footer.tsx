@@ -1,9 +1,9 @@
 import Link from "next/link";
 import {
   ROUTES,
-  CONTACT_EMAIL,
-  FEEDBACK_EMAIL,
-  BUG_REPORT_EMAIL,
+  CONTACT_FORM_URL,
+  FEEDBACK_FORM_URL,
+  BUG_REPORT_FORM_URL,
 } from "@/lib/utils/constants";
 
 // Footer brand copy is specified explicitly by the product/legal requirements.
@@ -21,19 +21,11 @@ const productLinks: FooterLink[] = [
   { label: "Settings", href: ROUTES.settings },
 ];
 
-// Temporary mailto placeholders — swap for a real contact/feedback form later.
+// Temporary Typeform placeholders — swap the URLs in constants.ts later.
 const supportLinks: FooterLink[] = [
-  { label: "Contact", href: `mailto:${CONTACT_EMAIL}`, external: true },
-  {
-    label: "Feedback",
-    href: `mailto:${FEEDBACK_EMAIL}?subject=Product%20Feedback`,
-    external: true,
-  },
-  {
-    label: "Report a Bug",
-    href: `mailto:${BUG_REPORT_EMAIL}?subject=Bug%20Report`,
-    external: true,
-  },
+  { label: "Contact", href: CONTACT_FORM_URL, external: true },
+  { label: "Feedback", href: FEEDBACK_FORM_URL, external: true },
+  { label: "Report a Bug", href: BUG_REPORT_FORM_URL, external: true },
 ];
 
 const legalLinks: FooterLink[] = [
@@ -47,7 +39,12 @@ function FooterLinkItem({ link }: { link: FooterLink }) {
 
   if (link.external) {
     return (
-      <a href={link.href} className={className}>
+      <a
+        href={link.href}
+        className={className}
+        target="_blank"
+        rel="noopener noreferrer"
+      >
         {link.label}
       </a>
     );
