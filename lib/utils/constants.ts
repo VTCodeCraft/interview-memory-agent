@@ -1,4 +1,20 @@
-export const APP_NAME = "Interview Memory Agent";
+export const APP_NAME = "ARIA";
+export const APP_DESCRIPTION = "AI mock interviews with long-term memory. ARIA tracks your performance and tailors questions to help you land your dream job.";
+
+export const SOCIAL_LINKS = {
+  twitter: "https://twitter.com/aria_interview",
+  github: "https://github.com/aria-interview",
+  linkedin: "https://linkedin.com/company/aria-interview",
+} as const;
+
+// Support forms (Typeform) used by the footer. Temporary placeholder URLs —
+// replace with the real Typeform form links when available.
+export const CONTACT_FORM_URL =
+  "https://form.typeform.com/to/JddmsEdK";
+export const FEEDBACK_FORM_URL =
+  "https://form.typeform.com/to/REPLACE_WITH_FEEDBACK_FORM";
+export const BUG_REPORT_FORM_URL =
+  "https://form.typeform.com/to/REPLACE_WITH_BUG_REPORT_FORM";
 
 export const ROUTES = {
   home: "/",
