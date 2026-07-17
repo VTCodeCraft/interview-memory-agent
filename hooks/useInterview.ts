@@ -39,6 +39,7 @@ export function useInterview() {
   const [conflict, setConflict] = useState<InterviewConflict | null>(null);
   /** True while the on-load recovery check (and the subsequent resume) is running. */
   const [isRecovering, setIsRecovering] = useState(false);
+  const [isCheckingActive, setIsCheckingActive] = useState(false);
 
   const abortControllerRef = useRef<AbortController | null>(null);
   const pendingInterviewIdRef = useRef<string | null>(null);
@@ -293,11 +294,12 @@ export function useInterview() {
    * setup form or a blank flash.
    */
   const recoverActiveInterview = useCallback(async () => {
-    setIsRecovering(true);
+    setIsCheckingActive(true);
     try {
       const res = await fetch("/api/interview/active");
       const json = await res.json();
       if (json.success && json.data?.interviewId) {
+        setIsRecovering(true);
         // Active interview found — resume it silently (no modal, no user input).
         await resume(json.data.interviewId);
       } else {
@@ -309,6 +311,7 @@ export function useInterview() {
       // Network error or server down — fail silently and show setup form.
       setInterview(null as any);
     } finally {
+      setIsCheckingActive(false);
       setIsRecovering(false);
     }
   }, [resume]);
@@ -365,6 +368,7 @@ export function useInterview() {
     error,
     conflict,
     isRecovering,
+    isCheckingActive,
     start,
     resume,
     recoverActiveInterview,

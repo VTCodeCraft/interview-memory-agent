@@ -38,7 +38,7 @@ import { toast } from "react-hot-toast";
 
 export default function InterviewPage() {
   const router = useRouter();
-  const { current, loading, error, start, cancel, conflict, resume, clearConflict, isRecovering, recoverActiveInterview } = useInterview();
+  const { current, loading, error, start, cancel, conflict, resume, clearConflict, isRecovering, isCheckingActive, recoverActiveInterview } = useInterview();
   const { targetRole, setTargetRole } = useSettingsStore();
 
   // Setup form states
@@ -375,22 +375,28 @@ export default function InterviewPage() {
             <p className="text-base text-on-surface-variant">Configure your session and let the AI tailor questions based on your history and goals.</p>
           </header>
 
-          {isRecovering ? (
+          {isRecovering || isCheckingActive ? (
             /* Recovery: on-load silent resume — shown instead of form during check */
             <div className="flex flex-col items-center justify-center p-8 sm:p-12 bg-white border border-outline-variant/30 rounded-xxl shadow-2xl ai-glow w-full max-w-3xl mx-auto min-h-[400px] text-center">
               <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-6 animate-pulse">
                 <span className="material-symbols-outlined text-primary text-3xl animate-spin">progress_activity</span>
               </div>
-              <h3 className="text-lg sm:text-xl font-bold mb-2">Resuming your interview…</h3>
+              <h3 className="text-lg sm:text-xl font-bold mb-2">
+                {isRecovering ? "Resuming your interview…" : "Loading setup…"}
+              </h3>
               <p className="w-full text-sm sm:text-base text-on-surface-variant">
-                Restoring your session and reconnecting. This will only take a moment.
+                {isRecovering 
+                  ? "Restoring your session and reconnecting. This will only take a moment." 
+                  : "Checking your session status and preparing the interview setup."}
               </p>
-              <button
-                onClick={async () => { await cancel(); }}
-                className="px-6 py-2 rounded-xl border border-error-red text-error-red hover:bg-error-red hover:text-white font-bold transition-colors shadow-sm active:scale-95 text-xs uppercase tracking-wider cursor-pointer mt-6"
-              >
-                Cancel
-              </button>
+              {isRecovering && (
+                <button
+                  onClick={async () => { await cancel(); }}
+                  className="px-6 py-2 rounded-xl border border-error-red text-error-red hover:bg-error-red hover:text-white font-bold transition-colors shadow-sm active:scale-95 text-xs uppercase tracking-wider cursor-pointer mt-6"
+                >
+                  Cancel
+                </button>
+              )}
             </div>
           ) : error === "INTERVIEW_LIMIT_REACHED" ? (
             <div className="flex flex-col items-center justify-center p-8 sm:p-12 bg-white border border-outline-variant/30 rounded-xxl shadow-2xl w-full max-w-3xl mx-auto min-h-[400px] text-center">
