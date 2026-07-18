@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect } from 'react';
+import SectionHeading from './SectionHeading';
 
 export default function InteractiveDemoSection() {
   useEffect(() => {
@@ -13,30 +14,13 @@ export default function InteractiveDemoSection() {
       });
     }, 150);
 
-    // Subtle parallax effect on floating cards
-    const handleMouseMove = (e: MouseEvent) => {
-      const amount = 20;
-      const x = (e.clientX / window.innerWidth - 0.5) * amount;
-      const y = (e.clientY / window.innerHeight - 0.5) * amount;
-      
-      const cards = document.querySelectorAll<HTMLDivElement>('.glass-card-parallax');
-      cards.forEach((card, index) => {
-        const factor = (index + 1) * 0.5;
-        const baseRot = card.getAttribute('data-rot') || '0deg';
-        card.style.transform = `translate(${x * factor}px, ${y * factor}px) rotate(${baseRot})`;
-      });
-    };
-
-    window.addEventListener('mousemove', handleMouseMove);
-    
     return () => {
       clearInterval(interval);
-      window.removeEventListener('mousemove', handleMouseMove);
     };
   }, []);
 
   return (
-    <main className="relative min-h-screen py-xl px-margin-mobile md:px-margin-desktop overflow-hidden bg-surface text-on-surface">
+    <main className="relative py-0 px-margin-mobile md:px-margin-desktop overflow-hidden text-on-surface">
       {/* Decorative Background Elements */}
       <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-primary rounded-full floating-blob animate-pulse"></div>
       <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-secondary rounded-full floating-blob animate-pulse [animation-duration:8s]"></div>
@@ -49,18 +33,11 @@ export default function InteractiveDemoSection() {
         </svg>
       </div>
       
-      {/* Section Header */}
-      <div className="max-w-3xl mx-auto text-center mb-xl relative z-10">
-        <span className="inline-flex items-center gap-xs px-sm py-xs rounded-full bg-primary/10 text-primary font-label-md text-label-md mb-md border border-primary/20">
-          🎙️ Experience it yourself
-        </span>
-        <h1 className="font-headline-lg text-headline-lg md:text-headline-lg mb-md leading-tight">
-          A mock interview that actually <span className="text-primary">feels real.</span>
-        </h1>
-        <p className="font-body-lg text-body-lg text-on-surface-variant max-w-2xl mx-auto">
-          No typing. No robotic chatbots. Just a natural voice conversation with an AI interviewer that listens, responds, and adapts in real time.
-        </p>
-      </div>
+      <SectionHeading
+        badge={<span>🎙️ Experience it yourself</span>}
+        title={<span>A mock interview that actually <span className="text-primary">feels real.</span></span>}
+        subtitle="No typing. No robotic chatbots. Just a natural voice conversation with an AI interviewer that listens, responds, and adapts in real time."
+      />
 
       {/* Main Demo Content */}
       <div className="max-w-max-width mx-auto relative z-20">
@@ -229,10 +206,10 @@ export default function InteractiveDemoSection() {
           </div>
           
           {/* Subtle Analytics Card Floating Nearby */}
-          <div className="hidden xl:block absolute -right-12 bottom-1/2 translate-y-1/2 glass-card p-lg rounded-[22px] premium-shadow w-56 border-primary/20 border-2">
+          <div className="hidden xl:block absolute -right-12 bottom-1/2 translate-y-1/2 bg-white p-lg rounded-[22px] premium-shadow w-56 border border-outline-variant/30 z-30">
             <div className="text-center space-y-xs">
-              <div className="text-headline-sm font-headline-sm text-primary">98%</div>
-              <div className="font-label-md text-label-md text-on-surface">Match Accuracy</div>
+              <div className="text-headline-md font-headline-md text-primary font-bold">98%</div>
+              <div className="font-label-md text-label-md text-on-surface font-bold">Match Accuracy</div>
               <div className="text-label-sm text-on-surface-variant">Our AI predicts hiring outcomes with clinical precision.</div>
             </div>
           </div>
@@ -242,17 +219,17 @@ export default function InteractiveDemoSection() {
       
       {/* Bottom Callout Section */}
       <div className="mt-xl max-w-4xl mx-auto relative z-20">
-        <div className="bg-primary-container p-xl md:p-xl rounded-[32px] text-center text-on-primary-container shadow-2xl relative overflow-hidden group">
+        <div className="bg-primary p-xl md:p-xl rounded-[32px] text-center text-white shadow-2xl relative overflow-hidden group">
           {/* Inner Pattern Glow */}
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_120%,rgba(255,255,255,0.2),transparent)] opacity-50"></div>
-          <h2 className="font-headline-md text-headline-md md:text-headline-lg mb-sm relative z-10">
+          <h2 className="font-headline-md text-headline-md md:text-headline-lg mb-sm relative z-10 font-bold">
             The closest thing to a real interview.
           </h2>
-          <p className="font-body-lg text-body-lg text-on-primary-container/80 mb-xl max-w-xl mx-auto relative z-10">
+          <p className="font-body-lg text-body-lg text-white/80 mb-xl max-w-xl mx-auto relative z-10">
             Practice in a realistic environment before it actually matters. Gain confidence, refine your answers, and land your dream job.
           </p>
           <div className="relative z-10">
-            <button className="bg-on-primary-container text-primary-container px-xl py-lg rounded-full font-headline-sm text-headline-sm hover:shadow-xl transition-all hover:-translate-y-1 active:translate-y-0 active:scale-95 flex items-center gap-sm mx-auto">
+            <button className="bg-white text-primary px-xl py-lg rounded-full font-headline-sm text-headline-sm hover:shadow-xl transition-all hover:-translate-y-1 active:translate-y-0 active:scale-95 flex items-center gap-sm mx-auto font-bold">
               Try a Demo Interview
               <span className="material-symbols-outlined">arrow_forward</span>
             </button>

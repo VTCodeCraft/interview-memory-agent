@@ -26,13 +26,13 @@ export default function SocialProofSection() {
   }, []);
 
   return (
-    <section className="relative w-full py-xl overflow-hidden bg-[#F8F8FA]">
+    <section className="relative w-full py-xl overflow-hidden">
       {/* Decorative Elements */}
       <div className="absolute top-0 left-1/4 w-[400px] h-[400px] bg-primary/10 gradient-blur rounded-full opacity-50 -z-10"></div>
       <div className="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] bg-secondary/10 gradient-blur rounded-full opacity-50 -z-10"></div>
       <div className="absolute inset-0 dotted-path -z-20"></div>
       
-      <div className="max-w-[1280px] mx-auto px-margin-desktop flex flex-col items-center">
+      <div className="max-w-7xl mx-auto px-margin-desktop flex flex-col items-center">
         {/* Badge */}
         <div className="mb-md bg-surface-container-lowest border border-surface-variant px-sm py-2 rounded-full flex items-center gap-2 premium-shadow animate-on-scroll opacity-0 translate-y-8 transition-all duration-700">
           <span className="text-xs">✨</span>
@@ -45,31 +45,11 @@ export default function SocialProofSection() {
         </h1>
         
         {/* Logos */}
-        <div className="w-full flex flex-wrap justify-center items-center gap-xl md:gap-24 mb-xl grayscale opacity-50 mask-fade">
+        <div className="w-full max-w-4xl mx-auto mb-xl flex justify-center opacity-75 grayscale hover:grayscale-0 transition-all duration-500">
           <img 
-            className="h-8 object-contain" 
-            alt="Google" 
-            src="https://lh3.googleusercontent.com/aida-public/AB6AXuAwL04QXO5wZC5NLqKzIukD_Is3O1woE5WA4HkGzBrXfrlUb8ulyd58W3Hso61LHw5NhSXkguBed-tCpbjv7ncSGUAw1uv__ZAawkj9Zgp2SaPgUGGf5Ycl0___A0PkwgjIwR3lQLVJaItwxCBf2UXMx2EsMFDzGkRVPvIIBGkm8_MYG8_UvxWg34SgQfhAwBA5O7c8e9DlzKi-UTg6gn6qfTz6bPLTsGrR9hSXD2Y5LPe33O9H2VCbVmeeiGfUef-UyZGQ0-bXnz0"
-          />
-          <img 
-            className="h-8 object-contain" 
-            alt="Amazon" 
-            src="https://lh3.googleusercontent.com/aida-public/AB6AXuAebF31Uf9bcD7-KUCDXfg1vA3YxMdv_iP3UpqeSQJTBwEVumu8mmGJ2cLnukkTyGCqSl6ucNHzV37AtRWBHXcvbMB5Syfcg3J30wwLVetrEgZ9RC1U8U4oTuW6QX76xVJgOe9ZpMzcfTp_aU8s4SBxih54MW9s2OWnZJFpQE9dHCslIiasOxnky8VwLN3TYGm6xD0HRxi-RIu6EeGoiuBopctRpE3zD7ZdIgCxhgmfHuYlTPSlzVWXyPjKfNuxUoGdCziTCKGNnmA"
-          />
-          <img 
-            className="h-8 object-contain" 
-            alt="Microsoft" 
-            src="https://lh3.googleusercontent.com/aida-public/AB6AXuBSbzPjUbQIN5Qb8LKjOfK4GfEHufJ5VQ18k6Oh-zAMMs_U9vwhVUVlp6ai_ztaJ7PJawri-izR4TtmF7HtOD5rOut2wVjfc0blUZ_HrSkWd1bx0K3LjkiDVJ4CYsYddX628_AVVjs_vXkvfLYbYtmmNFMWp9rqowmGLHdaWKy6VWKw6kVOEeiynIF7nyFFzd4RZFD2EcC5EQ74W9j93hzr-L423cw5EpyVinzZHNuW5hm-c6tXw_KRlCj3I3qGRn8I_4fE_kTotzg"
-          />
-          <img 
-            className="h-8 object-contain" 
-            alt="Meta" 
-            src="https://lh3.googleusercontent.com/aida-public/AB6AXuA6VkM4PC-hCiqd0HbW3udEoCizhl0bNWyIEnBYct-CvX3XeQkbFvyua8kPfACHCZ-FxopwnPLg7s2kKMDoVgUAbQa1C5DP_0zzdRucVgWYwF-QZYIqnwUQQav2ESJ__M9KKcYkTmHGVsnuOQdJDhvMEKxEbFovCoaSUdMOXQzClSYzXHzwMJ5LbxDpiKG-MnVb6PuiEMKpTvfdw3-w4fQaUxPM0047mIyM2boz5Z2MWVBW7sIllg8oE81UQcJFPztkmYm8e4Qv6dk"
-          />
-          <img 
-            className="h-8 object-contain" 
-            alt="Stripe" 
-            src="https://lh3.googleusercontent.com/aida-public/AB6AXuBRlQszEWBFYbDiWNSWZvxM2ZZpSP64LOVBdQgL_nMnoQGCnRXy6VGGUXiEOcL7EtKFRC2SNaHusUdgUjSMEkTo6YRY_tt3nKxog8PIBuewIE4kaSH26HG2yaWcqPsU2SCbLMBjwzpn_mbfgjspzml5fwOl7mNZujI7dAJms1m6xHhMfP90X5fivA2Y5cON5i7lVMnWo2byEW5CBMa9a5saf4bb6tmK3i-piczFdWQYP47T4wSXId1aNYaoecbR4H5wb22a_9X-Qe4"
+            className="w-full h-auto object-contain max-h-20" 
+            alt="Trusted companies mockups" 
+            src="/landing-panels.png" 
           />
         </div>
         

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import SectionHeading from './SectionHeading';
 
 interface FaqItem {
   question: string;
@@ -50,19 +51,12 @@ export default function FaqSection() {
   ];
 
   return (
-    <main className="w-full flex flex-col items-center py-xl px-margin-mobile md:px-margin-desktop bg-surface text-on-surface">
-      {/* Header Section */}
-      <header className="w-full max-w-[850px] text-center mb-xl">
-        <span className="inline-block px-md py-xs bg-primary/10 text-primary font-label-md text-label-md rounded-full mb-sm">
-          FAQ
-        </span>
-        <h1 className="font-headline-lg text-headline-lg-mobile md:text-headline-lg text-on-surface tracking-tight mb-md">
-          Frequently asked questions
-        </h1>
-        <p className="font-body-lg text-body-lg text-on-surface-variant max-w-2xl mx-auto">
-          Everything you need to know before starting your first AI interview.
-        </p>
-      </header>
+    <main className="w-full flex flex-col items-center py-0 px-margin-mobile md:px-margin-desktop text-on-surface">
+      <SectionHeading
+        badge="FAQ"
+        title="Frequently asked questions"
+        subtitle="Everything you need to know before starting your first AI interview."
+      />
 
       {/* FAQ Accordion */}
       <section className="w-full max-w-[850px]">

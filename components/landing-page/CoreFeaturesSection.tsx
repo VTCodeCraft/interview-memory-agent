@@ -1,23 +1,18 @@
+import SectionHeading from './SectionHeading';
+
 export default function CoreFeaturesSection() {
   return (
-    <section className="relative py-xl overflow-hidden bg-surface text-on-surface">
+    <section className="relative py-0 overflow-hidden text-on-surface">
       {/* Atmospheric Elements */}
       <div className="absolute -top-[10%] -left-[10%] w-[50%] h-[50%] glow-blob pointer-events-none"></div>
       <div className="absolute top-[40%] -right-[10%] w-[40%] h-[40%] glow-blob pointer-events-none"></div>
       
       <div className="max-w-7xl mx-auto px-margin-desktop relative z-10">
-        {/* Section Header */}
-        <div className="text-center mb-xl">
-          <div className="inline-flex items-center gap-xs px-4 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary font-label-md text-label-md mb-md">
-            <span>✨ Why Clutchly feels different</span>
-          </div>
-          <h2 className="font-headline-lg text-headline-lg text-on-surface mb-sm tracking-tight max-w-2xl mx-auto">
-            Everything you need to ace your interviews.
-          </h2>
-          <p className="font-body-lg text-body-lg text-on-surface-variant max-w-xl mx-auto">
-            From realistic voice conversations to long-term interview memory, Clutchly helps you improve with every practice session.
-          </p>
-        </div>
+        <SectionHeading
+          className="mt-12 md:mt-20"
+          title="Everything you need to ace your interviews."
+          subtitle="From realistic voice conversations to long-term interview memory, Clutchly helps you improve with every practice session."
+        />
 
         {/* Feature 1: Voice (Text Left, Visual Right) */}
         <div className="grid md:grid-cols-2 items-center gap-xl mb-xl">

@@ -10,6 +10,7 @@ import HowItWorksSection from "@/components/landing-page/HowItWorksSection";
 import PricingSection from "@/components/landing-page/PricingSection";
 import FaqSection from "@/components/landing-page/FaqSection";
 import Footer from "@/components/landing-page/Footer";
+import SectionDivider from "@/components/landing-page/SectionDivider";
 
 export default async function Home() {
   const { userId: clerkId } = await auth();
@@ -30,12 +31,18 @@ export default async function Home() {
     <div className="min-h-screen bg-background text-on-surface flex flex-col items-center overflow-x-hidden font-sans relative">
       <Navbar clerkId={clerkId} setupDone={setupDone} />
       <HeroSection clerkId={clerkId} setupDone={setupDone} />
-      <SocialProofSection />
+      {/* <SocialProofSection /> */}
+      <SectionDivider />
       <CoreFeaturesSection />
+      <SectionDivider />
+      <HowItWorksSection clerkId={clerkId} setupDone={setupDone} />
+      <SectionDivider />
       <InteractiveDemoSection />
-      <HowItWorksSection />
+      <SectionDivider />
       <PricingSection clerkId={clerkId} setupDone={setupDone} />
+      <SectionDivider />
       <FaqSection />
+      <SectionDivider />
       <Footer />
     </div>
   );

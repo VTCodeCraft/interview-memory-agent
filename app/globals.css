@@ -26,11 +26,11 @@ html {
   --color-primary-container: #635bff;
   --color-on-primary-fixed-variant: #321ed2;
   --color-on-surface: #1a1c1d;
-  --color-background: #f8f8fa;
+  --color-background: #FAF6FD;
   --color-on-tertiary: #ffffff;
   --color-on-error-container: #93000a;
   --color-tertiary: #5c5a60;
-  --color-surface: #f8f8fa;
+  --color-surface: #FAF6FD;
   --color-inverse-primary: #c3c0ff;
   --color-secondary: #584ac9;
   --color-inverse-surface: #2f3132;
@@ -69,7 +69,7 @@ html {
   --spacing-gutter: 24px;
   --spacing-margin-desktop: 64px;
   --spacing-margin-mobile: 20px;
-  --spacing-max-width: 1280px;
+  --spacing-max-width: 1400px;
 
   --radius-xxl: 22px;
 
@@ -82,7 +82,7 @@ html {
   --container-4xl: 56rem;
   --container-5xl: 64rem;
   --container-6xl: 72rem;
-  --container-7xl: 80rem;
+  --container-7xl: 87.5rem;
 }
 
 body {
@@ -249,9 +249,10 @@ body {
   bottom: 0;
   height: 520px;
   left: 50%;
+  max-width: 1400px;
   position: absolute;
   transform: translateX(-50%);
-  width: 180%;
+  width: 100%;
   z-index: 0;
 }
 

@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import Link from 'next/link';
 import { SignUpButton } from "@clerk/nextjs";
 import { ROUTES } from "@/lib/utils/constants";
+import SectionHeading from './SectionHeading';
 
 interface PricingSectionProps {
   clerkId: string | null;
@@ -11,18 +12,8 @@ interface PricingSectionProps {
 }
 
 export default function PricingSection({ clerkId, setupDone }: PricingSectionProps) {
-  const [openFaq, setOpenFaq] = useState<number | null>(null);
-
-  const handleToggle = (index: number, open: boolean) => {
-    if (open) {
-      setOpenFaq(index);
-    } else if (openFaq === index) {
-      setOpenFaq(null);
-    }
-  };
-
   return (
-    <section id="pricing" className="relative py-xl overflow-hidden bg-surface text-on-surface">
+    <section id="pricing" className="relative py-0 overflow-hidden text-on-surface">
       {/* Background Decorations */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full pointer-events-none z-0">
         <div className="absolute top-[-10%] left-[10%] w-[500px] h-[500px] bg-primary/5 rounded-full blur-[100px]"></div>
@@ -31,19 +22,16 @@ export default function PricingSection({ clerkId, setupDone }: PricingSectionPro
       </div>
       
       <div className="max-w-max-width mx-auto px-margin-mobile md:px-margin-desktop relative z-10">
-        {/* Header Section */}
-        <div className="text-center mb-xl">
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 rounded-full mb-sm">
-            <span className="material-symbols-outlined text-primary text-[18px]">bolt</span>
-            <span className="font-label-md text-primary tracking-wide">Simple Pricing</span>
-          </div>
-          <h1 className="font-headline-lg text-headline-lg-mobile md:text-headline-lg max-w-2xl mx-auto mb-md tracking-tight">
-            Practice smarter. Pay only when you're ready.
-          </h1>
-          <p className="font-body-lg text-body-lg text-on-surface-variant max-w-xl mx-auto">
-            Start for free to explore the basics. Upgrade to Pro for unlimited AI-powered interview prep that learns from you.
-          </p>
-        </div>
+        <SectionHeading
+          badge={
+            <>
+              <span className="material-symbols-outlined text-primary text-[18px]">bolt</span>
+              <span className="font-label-md text-primary tracking-wide">Simple Pricing</span>
+            </>
+          }
+          title="Practice smarter. Pay only when you're ready."
+          subtitle="Start for free to explore the basics. Upgrade to Pro for unlimited AI-powered interview prep that learns from you."
+        />
 
         {/* Pricing Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-md items-end mb-xl">
@@ -255,79 +243,9 @@ export default function PricingSection({ clerkId, setupDone }: PricingSectionPro
           </table>
         </div>
 
-        {/* Trust Strip */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-md mb-xl">
-          <div className="flex items-center gap-sm p-sm rounded-xl bg-surface-container border border-outline-variant/20">
-            <span className="material-symbols-outlined text-primary">lock</span>
-            <span className="font-label-md text-label-md">Secure payments</span>
-          </div>
-          <div className="flex items-center gap-sm p-sm rounded-xl bg-surface-container border border-outline-variant/20">
-            <span className="material-symbols-outlined text-primary">event_busy</span>
-            <span className="font-label-md text-label-md">Cancel anytime</span>
-          </div>
-          <div className="flex items-center gap-sm p-sm rounded-xl bg-surface-container border border-outline-variant/20">
-            <span className="material-symbols-outlined text-primary">verified</span>
-            <span className="font-label-md text-label-md">No hidden charges</span>
-          </div>
-        </div>
 
-        {/* FAQ Card */}
-        <div className="max-w-3xl mx-auto mb-xl">
-          <div className="bg-white p-lg rounded-2xl border border-outline-variant/30 premium-shadow">
-            <h3 className="font-headline-sm text-headline-sm mb-md">Frequently Asked Questions</h3>
-            <div className="space-y-md">
-              <details 
-                className="group cursor-pointer" 
-                open={openFaq === 0}
-                onToggle={(e) => handleToggle(0, e.currentTarget.open)}
-              >
-                <summary className="flex justify-between items-center font-label-md text-label-md list-none py-2">
-                  Can I cancel anytime?
-                  <span className="material-symbols-outlined transition-transform group-open:rotate-180">expand_more</span>
-                </summary>
-                <p className="font-body-md text-body-md text-on-surface-variant pt-2">
-                  Yes, you can cancel your subscription at any time through your account settings. You will continue to have access to your plan's features until the end of your current billing period.
-                </p>
-              </details>
-              
-              <div className="h-[1px] bg-outline-variant/20"></div>
-              
-              <details 
-                className="group cursor-pointer" 
-                open={openFaq === 1}
-                onToggle={(e) => handleToggle(1, e.currentTarget.open)}
-              >
-                <summary className="flex justify-between items-center font-label-md text-label-md list-none py-2">
-                  Do I lose my interview history?
-                  <span className="material-symbols-outlined transition-transform group-open:rotate-180">expand_more</span>
-                </summary>
-                <p className="font-body-md text-body-md text-on-surface-variant pt-2">
-                  No, we store your history securely. If you downgrade to the Free plan, your historical data remains safe, though you may only access the most recent reports based on the free plan limits.
-                </p>
-              </details>
-            </div>
-          </div>
-        </div>
 
-        {/* Bottom Callout */}
-        <div className="relative overflow-hidden p-lg md:p-xl rounded-2xl bg-inverse-surface text-inverse-on-surface border border-outline-variant/10 text-center premium-shadow">
-          {/* Abstract Glow */}
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-primary/20 blur-[100px] pointer-events-none"></div>
-          <div className="relative z-10">
-            <h2 className="font-headline-md text-headline-md mb-md max-w-2xl mx-auto">
-              Invest in the interview that changes your career.
-            </h2>
-            <div className="flex flex-col md:flex-row gap-md justify-center items-center">
-              <button className="px-xl py-4 rounded-xl bg-primary text-on-primary font-label-md text-label-md hover:bg-primary/90 transition-all flex items-center gap-xs">
-                Start Free Today
-                <span className="material-symbols-outlined">rocket_launch</span>
-              </button>
-              <button className="px-xl py-4 rounded-xl border border-outline-variant text-inverse-on-surface font-label-md text-label-md hover:bg-white/5 transition-all">
-                Compare Plans
-              </button>
-            </div>
-          </div>
-        </div>
+
       </div>
     </section>
   );

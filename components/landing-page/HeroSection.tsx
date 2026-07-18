@@ -11,35 +11,14 @@ interface HeroSectionProps {
 }
 
 export default function HeroSection({ clerkId, setupDone }: HeroSectionProps) {
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      const cards = document.querySelectorAll<HTMLDivElement>('.hero-glass-card');
-      const centerX = window.innerWidth / 2;
-      const centerY = window.innerHeight / 2;
-      const mouseX = e.pageX;
-      const mouseY = e.pageY;
-
-      cards.forEach(card => {
-        const moveX = (mouseX - centerX) / 60;
-        const moveY = (mouseY - centerY) / 60;
-        card.style.transform = `translate(${moveX}px, ${moveY}px)`;
-      });
-    };
-
-    window.addEventListener('mousemove', handleMouseMove);
-    return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-    };
-  }, []);
-
   return (
     <section className="relative w-full flex flex-col items-center overflow-hidden">
-      <main className="relative z-10 w-full max-w-7xl pt-[180px] px-margin-desktop flex flex-col items-center text-center">
-        {/* Orbiting Floating Cards Container */}
-        <div className="absolute inset-0 w-full h-full pointer-events-none -z-10 overflow-visible">
+      {/* Orbiting Floating Cards Container (moved out of main to avoid container stretching) */}
+      <div className="absolute inset-0 w-full h-full pointer-events-none z-0 overflow-hidden">
+        <div className="relative w-full max-w-7xl h-full mx-auto px-margin-desktop">
           {/* Profile Card */}
           <div 
-            className="glass-card hero-glass-card absolute top-[20%] left-[-5%] w-[200px] p-4 rounded-xl floating-anim [--rot:-3deg]" 
+            className="glass-card absolute top-[20%] left-[2%] xl:left-[1%] w-[200px] p-4 rounded-xl shadow-lg border border-outline-variant/30 rotate-[-3deg]" 
           >
             <div className="flex items-center gap-3">
               <img 
@@ -56,7 +35,7 @@ export default function HeroSection({ clerkId, setupDone }: HeroSectionProps) {
           
           {/* Streak Card */}
           <div 
-            className="glass-card hero-glass-card absolute top-[40%] right-[-8%] w-[160px] p-4 rounded-xl floating-anim [--rot:2deg]" 
+            className="glass-card absolute top-[40%] right-[2%] xl:right-[1%] w-[160px] p-4 rounded-xl shadow-lg border border-outline-variant/30 rotate-[2deg]" 
           >
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center">
@@ -71,12 +50,12 @@ export default function HeroSection({ clerkId, setupDone }: HeroSectionProps) {
           
           {/* Score Card */}
           <div 
-            className="glass-card hero-glass-card absolute bottom-[25%] left-[-10%] w-[180px] p-5 rounded-2xl floating-anim [--rot:-2deg]" 
+            className="glass-card absolute bottom-[25%] left-[1%] xl:left-0 w-[180px] p-5 rounded-2xl shadow-lg border border-outline-variant/30 rotate-[-2deg]" 
           >
             <div className="relative w-16 h-16 mx-auto mb-2 flex items-center justify-center">
               <svg className="w-full h-full -rotate-90">
                 <circle cx="32" cy="32" fill="transparent" r="28" stroke="#F1F3F8" strokeWidth="6"></circle>
-                <circle cx="32" cy="32" fill="transparent" r="28" stroke="#635BFF" strokeDasharray="176" strokeDashoffset="30" strokeLinecap="round" strokeWidth="6"></circle>
+                <circle cx="32" cy="32" fill="transparent" r="28" stroke="#635BFF" strokeDasharray="176" stroke-dashoffset="30" strokeLinecap="round" strokeWidth="6"></circle>
               </svg>
               <span className="absolute font-bold text-lg">85</span>
             </div>
@@ -85,7 +64,7 @@ export default function HeroSection({ clerkId, setupDone }: HeroSectionProps) {
           
           {/* Badge Card */}
           <div 
-            className="glass-card hero-glass-card absolute bottom-[40%] right-[-5%] w-[140px] p-4 rounded-xl floating-anim [--rot:3deg]" 
+            className="glass-card absolute bottom-[40%] right-[1%] xl:right-0 w-[140px] p-4 rounded-xl shadow-lg border border-outline-variant/30 rotate-[3deg]" 
           >
             <div className="flex flex-col items-center">
               <span className="material-symbols-outlined text-amber-500 !text-[40px] mb-1">workspace_premium</span>
@@ -93,7 +72,9 @@ export default function HeroSection({ clerkId, setupDone }: HeroSectionProps) {
             </div>
           </div>
         </div>
-        
+      </div>
+
+      <main className="relative z-10 w-full max-w-7xl pt-[180px] px-margin-desktop flex flex-col items-center text-center">
         {/* Headline */}
         <h1 className="font-display-lg text-[100px] leading-[1.0] font-[800] text-on-surface max-w-[900px]">
           Clutch your <br />
@@ -152,7 +133,7 @@ export default function HeroSection({ clerkId, setupDone }: HeroSectionProps) {
         </div>
         
         {/* Main Dashboard Card */}
-        <div className="relative w-full max-w-4xl z-30 mb-[-120px]">
+        <div className="relative w-full max-w-4xl z-30 mb-16">
           <div className="glass-card w-full p-10 rounded-[32px] text-left border border-white/40 shadow-2xl overflow-hidden">
             <div className="flex items-start justify-between mb-8">
               <div className="flex items-center gap-6">
@@ -215,10 +196,32 @@ export default function HeroSection({ clerkId, setupDone }: HeroSectionProps) {
             </div>
           </div>
         </div>
+
+        {/* Company Logos */}
+        <div className="mt-8 flex flex-col items-center gap-6 z-10 relative">
+          <span className="text-[11px] font-bold text-[#9CA3AF] tracking-[0.2em] uppercase">
+            PRE-INSTALLED TEMPLATES FOR
+          </span>
+          <div className="flex flex-wrap justify-center items-center gap-x-16 gap-y-6 font-display-md text-headline-md font-bold tracking-tight">
+            <span>
+              <span className="text-[#4285F4]">G</span>
+              <span className="text-[#EA4335]">o</span>
+              <span className="text-[#FBBC05]">o</span>
+              <span className="text-[#4285F4]">g</span>
+              <span className="text-[#34A853]">l</span>
+              <span className="text-[#EA4335]">e</span>
+            </span>
+            <span className="text-[#00A4EF]">Microsoft</span>
+            <span className="text-[#FF9900]">Amazon</span>
+            <span className="text-[#0081FB]">Meta</span>
+            <span className="text-[#76B900]">NVIDIA</span>
+          </div>
+        </div>
+
+
       </main>
       
-      {/* Bottom Decorative Sphere */}
-      <div className="sphere-bg"></div>
+
     </section>
   );
 }
