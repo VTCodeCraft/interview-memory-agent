@@ -60,7 +60,7 @@ export default function CoreFeaturesSection() {
                   </div>
                   
                   {/* Interactive Waveform Indicator */}
-                  <div className="flex items-center justify-center gap-xs pt-md">
+                  <div className="flex items-end justify-center gap-xs pt-md h-12">
                     <div className="waveform-bar w-1 bg-primary rounded-full [animation-delay:0.1s]"></div>
                     <div className="waveform-bar w-1 bg-primary rounded-full [animation-delay:0.2s]"></div>
                     <div className="waveform-bar w-1 bg-primary rounded-full [animation-delay:0.3s]"></div>

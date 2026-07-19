@@ -5,18 +5,8 @@ import SectionHeading from './SectionHeading';
 
 export default function InteractiveDemoSection() {
   useEffect(() => {
-    // Waveform oscillation animation
-    const interval = setInterval(() => {
-      const bars = document.querySelectorAll<HTMLDivElement>('.waveform-bar-bounce');
-      bars.forEach(bar => {
-        const randomHeight = Math.floor(Math.random() * 20) + 8;
-        bar.style.height = `${randomHeight}px`;
-      });
-    }, 150);
-
-    return () => {
-      clearInterval(interval);
-    };
+    // The waveform animation is fully handled by CSS @keyframes wave-bounce in globals.css.
+    // We removed the JavaScript setInterval to prevent layout thrashing and "beating" effects.
   }, []);
 
   return (
