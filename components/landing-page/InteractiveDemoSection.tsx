@@ -10,7 +10,7 @@ export default function InteractiveDemoSection() {
   }, []);
 
   return (
-    <main className="relative py-0 px-margin-mobile md:px-margin-desktop overflow-hidden text-on-surface">
+    <main id="demo" className="relative py-0 px-margin-mobile md:px-margin-desktop overflow-hidden text-on-surface">
       {/* Decorative Background Elements */}
       <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-primary rounded-full floating-blob animate-pulse"></div>
       <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-secondary rounded-full floating-blob animate-pulse [animation-duration:8s]"></div>
@@ -24,6 +24,7 @@ export default function InteractiveDemoSection() {
       </div>
       
       <SectionHeading
+        className="mt-12 md:mt-20"
         badge={<span>🎙️ Experience it yourself</span>}
         title={<span>A mock interview that actually <span className="text-primary">feels real.</span></span>}
         subtitle="No typing. No robotic chatbots. Just a natural voice conversation with an AI interviewer that listens, responds, and adapts in real time."

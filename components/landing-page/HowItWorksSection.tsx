@@ -23,6 +23,7 @@ export default function HowItWorksSection({ clerkId, setupDone }: HowItWorksSect
       
       <div className="container max-w-7xl mx-auto px-margin-mobile md:px-margin-desktop relative z-10">
         <SectionHeading
+          className="mt-12 md:mt-20"
           badge={
             <>
               <span className="material-symbols-outlined text-primary text-[18px]">bolt</span>
@@ -115,7 +116,7 @@ export default function HowItWorksSection({ clerkId, setupDone }: HowItWorksSect
                   <div className="relative w-16 h-16 flex items-center justify-center">
                     <svg className="w-full h-full -rotate-90">
                       <circle cx="32" cy="32" fill="none" r="28" stroke="#ececec" strokeWidth="4"></circle>
-                      <circle cx="32" cy="32" fill="none" r="28" stroke="#635BFF" strokeDasharray="175" stroke-dashoffset="35" strokeWidth="4"></circle>
+                      <circle cx="32" cy="32" fill="none" r="28" stroke="#635BFF" strokeDasharray="175" strokeDashoffset="35" strokeWidth="4"></circle>
                     </svg>
                     <span className="absolute font-headline-sm text-primary">82</span>
                   </div>

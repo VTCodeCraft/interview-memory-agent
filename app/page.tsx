@@ -5,7 +5,6 @@ import Navbar from "@/components/landing-page/Navbar";
 import HeroSection from "@/components/landing-page/HeroSection";
 import SocialProofSection from "@/components/landing-page/SocialProofSection";
 import CoreFeaturesSection from "@/components/landing-page/CoreFeaturesSection";
-import InteractiveDemoSection from "@/components/landing-page/InteractiveDemoSection";
 import HowItWorksSection from "@/components/landing-page/HowItWorksSection";
 import PricingSection from "@/components/landing-page/PricingSection";
 import FaqSection from "@/components/landing-page/FaqSection";
@@ -36,8 +35,6 @@ export default async function Home() {
       <CoreFeaturesSection />
       <SectionDivider />
       <HowItWorksSection clerkId={clerkId} setupDone={setupDone} />
-      <SectionDivider />
-      <InteractiveDemoSection />
       <SectionDivider />
       <PricingSection clerkId={clerkId} setupDone={setupDone} />
       <SectionDivider />

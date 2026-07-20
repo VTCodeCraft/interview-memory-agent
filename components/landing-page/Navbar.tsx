@@ -12,45 +12,51 @@ interface NavbarProps {
 
 export default function Navbar({ clerkId, setupDone }: NavbarProps) {
   return (
-    <nav className="fixed top-0 mt-6 z-50 w-[88%] max-w-7xl h-[86px] flex items-center justify-between px-10 bg-white/80 backdrop-blur-md rounded-[28px] shadow-[0_10px_40px_rgba(0,0,0,0.05)] border border-outline-variant/20">
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 bg-on-surface rounded-xl flex items-center justify-center">
-          <span className="text-white font-bold text-2xl">C</span>
+    <nav className="fixed top-0 mt-3 z-50 w-[88%] max-w-7xl h-[56px] flex items-center justify-between px-6 bg-white/80 backdrop-blur-md rounded-[18px] shadow-[0_10px_40px_rgba(0,0,0,0.05)] border border-outline-variant/20">
+      <div className="flex items-center gap-2">
+        <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+          <span className="material-symbols-outlined text-white !text-[18px]">bolt</span>
         </div>
-        <span className="font-headline-sm text-headline-sm font-semibold text-on-surface">Clutchly</span>
+        <span className="font-bold text-base text-on-surface">Clutchly</span>
       </div>
       
-      <div className="hidden md:flex items-center gap-12">
+      <div className="hidden md:flex items-center gap-8">
         <Link 
           href="#features" 
-          className="font-label-md text-label-md text-on-surface-variant hover:text-primary transition-colors"
+          className="font-label-sm text-label-sm text-on-surface-variant hover:text-primary transition-colors font-semibold"
         >
           Features
         </Link>
         <Link 
           href="#how-it-works" 
-          className="font-label-md text-label-md text-on-surface-variant hover:text-primary transition-colors"
+          className="font-label-sm text-label-sm text-on-surface-variant hover:text-primary transition-colors font-semibold"
         >
-          How it works
+          How it Works
         </Link>
         <Link 
           href="#pricing" 
-          className="font-label-md text-label-md text-on-surface-variant hover:text-primary transition-colors"
+          className="font-label-sm text-label-sm text-on-surface-variant hover:text-primary transition-colors font-semibold"
         >
           Pricing
         </Link>
+        <Link 
+          href="#faq" 
+          className="font-label-sm text-label-sm text-on-surface-variant hover:text-primary transition-colors font-semibold"
+        >
+          FAQ
+        </Link>
       </div>
       
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3">
         {!clerkId ? (
           <>
             <SignInButton mode="modal">
-              <button className="font-label-md text-label-md px-6 py-2 text-on-surface hover:text-primary transition-colors cursor-pointer">
+              <button className="font-label-sm text-label-sm px-4 py-1.5 text-on-surface hover:text-primary transition-colors cursor-pointer font-bold">
                 Sign In
               </button>
             </SignInButton>
             <SignUpButton mode="modal">
-              <button className="font-label-md text-label-md bg-primary text-white px-6 py-3 rounded-full hover:bg-[#4338CA] transition-colors cursor-pointer shadow-sm">
+              <button className="font-label-sm text-label-sm bg-primary text-white px-4 py-2 rounded-full hover:bg-[#4338CA] transition-colors cursor-pointer shadow-sm font-bold">
                 Get Started
               </button>
             </SignUpButton>
@@ -59,7 +65,7 @@ export default function Navbar({ clerkId, setupDone }: NavbarProps) {
           <>
             <Link 
               href={setupDone ? ROUTES.interview : ROUTES.onboarding}
-              className="font-label-md text-label-md bg-primary text-white px-6 py-3 rounded-full hover:bg-[#4338CA] transition-colors cursor-pointer shadow-sm"
+              className="font-label-sm text-label-sm bg-primary text-white px-4 py-2 rounded-full hover:bg-[#4338CA] transition-colors cursor-pointer shadow-sm font-bold"
             >
               Dashboard
             </Link>

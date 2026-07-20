@@ -23,229 +23,151 @@ export default function PricingSection({ clerkId, setupDone }: PricingSectionPro
       
       <div className="max-w-max-width mx-auto px-margin-mobile md:px-margin-desktop relative z-10">
         <SectionHeading
-          badge={
-            <>
-              <span className="material-symbols-outlined text-primary text-[18px]">bolt</span>
-              <span className="font-label-md text-primary tracking-wide">Simple Pricing</span>
-            </>
-          }
-          title="Practice smarter. Pay only when you're ready."
-          subtitle="Start for free to explore the basics. Upgrade to Pro for unlimited AI-powered interview prep that learns from you."
+          className="mt-12 md:mt-20"
+          title="Predictable Pricing for Scalable Teams"
+          subtitle="Start free, upgrade as you grow. No hidden bandwidth fees."
         />
 
         {/* Pricing Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-md items-end mb-xl">
-          {/* Plan 1: Free */}
-          <div className="bg-surface-container-lowest p-xl rounded-2xl border border-outline-variant/30 premium-shadow h-fit transition-transform hover:scale-[1.02] duration-300">
-            <div className="mb-lg">
-              <span className="font-label-md text-label-md text-primary uppercase tracking-wider">Free</span>
-              <div className="flex items-baseline gap-xs mt-xs">
-                <span className="font-headline-md text-headline-md">₹0</span>
-                <span className="font-body-md text-body-md text-on-surface-variant">/month</span>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch max-w-5xl mx-auto mb-16 px-4">
+          {/* Plan 1: Hobby */}
+          <div className="bg-white p-8 rounded-3xl border border-[#E5E7EB] flex flex-col justify-between transition-transform hover:scale-[1.02] duration-300">
+            <div>
+              <h3 className="text-xl font-bold text-[#0B0B0F] mb-2">Hobby</h3>
+              <div className="flex items-baseline gap-1 mb-4">
+                <span className="text-4xl font-extrabold text-[#0B0B0F]">$0</span>
+                <span className="text-sm text-gray-500 font-medium">/month</span>
               </div>
+              <p className="text-sm text-gray-500 mb-8 leading-relaxed">
+                Perfect for personal projects and small prototypes.
+              </p>
+              
+              <ul className="space-y-4 mb-8">
+                <li className="flex items-center gap-3 text-sm text-[#0B0B0F] font-medium">
+                  <span className="material-symbols-outlined text-[#34A853] text-[20px] font-bold">check_circle</span>
+                  5 Projects
+                </li>
+                <li className="flex items-center gap-3 text-sm text-[#0B0B0F] font-medium">
+                  <span className="material-symbols-outlined text-[#34A853] text-[20px] font-bold">check_circle</span>
+                  10GB Bandwidth
+                </li>
+                <li className="flex items-center gap-3 text-sm text-[#0B0B0F] font-medium">
+                  <span className="material-symbols-outlined text-[#34A853] text-[20px] font-bold">check_circle</span>
+                  Basic Monitoring
+                </li>
+                <li className="flex items-center gap-3 text-sm text-gray-400 font-medium">
+                  <span className="material-symbols-outlined text-gray-300 text-[20px] font-bold">cancel</span>
+                  Custom Domains
+                </li>
+              </ul>
             </div>
-            
-            <ul className="space-y-sm mb-lg">
-              <li className="flex items-start gap-sm font-body-md text-body-md">
-                <span className="material-symbols-outlined text-primary text-[20px]">check_circle</span>
-                3 AI Interviews
-              </li>
-              <li className="flex items-start gap-sm font-body-md text-body-md">
-                <span className="material-symbols-outlined text-primary text-[20px]">check_circle</span>
-                Voice Interviews
-              </li>
-              <li className="flex items-start gap-sm font-body-md text-body-md">
-                <span className="material-symbols-outlined text-primary text-[20px]">check_circle</span>
-                Resume Upload
-              </li>
-              <li className="flex items-start gap-sm font-body-md text-body-md">
-                <span className="material-symbols-outlined text-primary text-[20px]">check_circle</span>
-                Job Description Upload
-              </li>
-              <li className="flex items-start gap-sm font-body-md text-body-md">
-                <span className="material-symbols-outlined text-primary text-[20px]">check_circle</span>
-                Basic Performance Report
-              </li>
-              <li className="flex items-start gap-sm font-body-md text-body-md">
-                <span className="material-symbols-outlined text-primary text-[20px]">check_circle</span>
-                Community Support
-              </li>
-            </ul>
             
             {!clerkId ? (
               <SignUpButton mode="modal">
-                <button className="w-full py-4 rounded-xl border border-outline text-on-surface font-label-md text-label-md hover:bg-surface-container-high transition-colors cursor-pointer">
-                  Start Free
+                <button className="w-full py-3 rounded-full border border-[#E5E7EB] text-[#0B0B0F] font-semibold text-sm hover:bg-gray-50 transition-colors cursor-pointer">
+                  Start for Free
                 </button>
               </SignUpButton>
             ) : (
               <Link href={setupDone ? ROUTES.interview : ROUTES.onboarding}>
-                <button className="w-full py-4 rounded-xl border border-outline text-on-surface font-label-md text-label-md hover:bg-surface-container-high transition-colors cursor-pointer">
-                  Start Free
+                <button className="w-full py-3 rounded-full border border-[#E5E7EB] text-[#0B0B0F] font-semibold text-sm hover:bg-gray-50 transition-colors cursor-pointer">
+                  Start for Free
                 </button>
               </Link>
             )}
           </div>
 
           {/* Plan 2: Pro (Featured) */}
-          <div className="relative bg-surface-container-lowest p-xl rounded-2xl border-2 border-primary pro-glow h-fit scale-105 z-20 transition-transform hover:scale-[1.07] duration-300">
-            <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1 bg-primary text-on-primary rounded-full font-label-sm text-label-sm whitespace-nowrap">
+          <div className="relative bg-white p-8 rounded-3xl border-2 border-[#635BFF] flex flex-col justify-between transition-transform hover:scale-[1.02] duration-300 shadow-lg">
+            <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 bg-[#635BFF] text-white rounded-full text-[10px] font-bold tracking-wider uppercase">
               Most Popular
             </div>
             
-            <div className="mb-lg">
-              <span className="font-label-md text-label-md text-primary uppercase tracking-wider">Pro</span>
-              <div className="flex items-baseline gap-xs mt-xs">
-                <span className="font-headline-md text-headline-md">₹999</span>
-                <span className="font-body-md text-body-md text-on-surface-variant">/month</span>
+            <div>
+              <h3 className="text-xl font-bold text-[#0B0B0F] mb-2 mt-2">Pro</h3>
+              <div className="flex items-baseline gap-1 mb-4">
+                <span className="text-4xl font-extrabold text-[#0B0B0F]">$49</span>
+                <span className="text-sm text-gray-500 font-medium">/month</span>
               </div>
+              <p className="text-sm text-gray-500 mb-8 leading-relaxed">
+                Scale your startup with advanced features and team tools.
+              </p>
+              
+              <ul className="space-y-4 mb-8">
+                <li className="flex items-center gap-3 text-sm text-[#0B0B0F] font-medium">
+                  <span className="material-symbols-outlined text-[#635BFF] text-[20px] font-bold">check_circle</span>
+                  Unlimited Projects
+                </li>
+                <li className="flex items-center gap-3 text-sm text-[#0B0B0F] font-medium">
+                  <span className="material-symbols-outlined text-[#635BFF] text-[20px] font-bold">check_circle</span>
+                  500GB Bandwidth
+                </li>
+                <li className="flex items-center gap-3 text-sm text-[#0B0B0F] font-medium">
+                  <span className="material-symbols-outlined text-[#635BFF] text-[20px] font-bold">check_circle</span>
+                  Advanced Monitoring
+                </li>
+                <li className="flex items-center gap-3 text-sm text-[#0B0B0F] font-medium">
+                  <span className="material-symbols-outlined text-[#635BFF] text-[20px] font-bold">check_circle</span>
+                  Team Collaboration
+                </li>
+                <li className="flex items-center gap-3 text-sm text-[#0B0B0F] font-medium">
+                  <span className="material-symbols-outlined text-[#635BFF] text-[20px] font-bold">check_circle</span>
+                  Custom Domains
+                </li>
+              </ul>
             </div>
-            
-            <ul className="space-y-sm mb-lg">
-              <li className="flex items-start gap-sm font-body-md text-body-md">
-                <span className="material-symbols-outlined icon-fill text-primary text-[20px]">check_circle</span>
-                Unlimited AI Interviews
-              </li>
-              <li className="flex items-start gap-sm font-body-md text-body-md">
-                <span className="material-symbols-outlined icon-fill text-primary text-[20px]">check_circle</span>
-                Long-Term AI Memory
-              </li>
-              <li className="flex items-start gap-sm font-body-md text-body-md">
-                <span className="material-symbols-outlined icon-fill text-primary text-[20px]">check_circle</span>
-                Adaptive Questions
-              </li>
-              <li className="flex items-start gap-sm font-body-md text-body-md">
-                <span className="material-symbols-outlined icon-fill text-primary text-[20px]">check_circle</span>
-                Advanced Reports
-              </li>
-              <li className="flex items-start gap-sm font-body-md text-body-md">
-                <span className="material-symbols-outlined icon-fill text-primary text-[20px]">check_circle</span>
-                AI Coaching
-              </li>
-              <li className="flex items-start gap-sm font-body-md text-body-md">
-                <span className="material-symbols-outlined icon-fill text-primary text-[20px]">check_circle</span>
-                Progress Timeline
-              </li>
-              <li className="flex items-start gap-sm font-body-md text-body-md">
-                <span className="material-symbols-outlined icon-fill text-primary text-[20px]">check_circle</span>
-                Readiness Score
-              </li>
-              <li className="flex items-start gap-sm font-body-md text-body-md">
-                <span className="material-symbols-outlined icon-fill text-primary text-[20px]">check_circle</span>
-                Company-Specific Interviews
-              </li>
-              <li className="flex items-start gap-sm font-body-md text-body-md">
-                <span className="material-symbols-outlined icon-fill text-primary text-[20px]">check_circle</span>
-                Priority Support
-              </li>
-            </ul>
             
             {!clerkId ? (
               <SignUpButton mode="modal">
-                <button className="w-full py-5 rounded-xl bg-gradient-to-br from-primary to-secondary text-on-primary font-label-md text-label-md hover:opacity-90 transition-opacity flex items-center justify-center gap-xs cursor-pointer">
-                  Start 7-Day Free Trial
-                  <span className="material-symbols-outlined">arrow_forward</span>
+                <button className="w-full py-3 rounded-full bg-[#635BFF] text-white font-semibold text-sm hover:bg-[#5249F3] transition-colors cursor-pointer">
+                  Get Pro Started
                 </button>
               </SignUpButton>
             ) : (
               <Link href={setupDone ? ROUTES.interview : ROUTES.onboarding}>
-                <button className="w-full py-5 rounded-xl bg-gradient-to-br from-primary to-secondary text-on-primary font-label-md text-label-md hover:opacity-90 transition-opacity flex items-center justify-center gap-xs cursor-pointer">
-                  Start 7-Day Free Trial
-                  <span className="material-symbols-outlined">arrow_forward</span>
+                <button className="w-full py-3 rounded-full bg-[#635BFF] text-white font-semibold text-sm hover:bg-[#5249F3] transition-colors cursor-pointer">
+                  Get Pro Started
                 </button>
               </Link>
             )}
           </div>
 
-          {/* Plan 3: Teams */}
-          <div className="bg-surface-container-lowest p-xl rounded-2xl border border-outline-variant/30 premium-shadow h-fit transition-transform hover:scale-[1.02] duration-300">
-            <div className="mb-lg">
-              <span className="font-label-md text-label-md text-primary uppercase tracking-wider">Teams</span>
-              <div className="flex items-baseline gap-xs mt-xs">
-                <span className="font-headline-md text-headline-md">Custom</span>
+          {/* Plan 3: Enterprise */}
+          <div className="bg-white p-8 rounded-3xl border border-[#E5E7EB] flex flex-col justify-between transition-transform hover:scale-[1.02] duration-300">
+            <div>
+              <h3 className="text-xl font-bold text-[#0B0B0F] mb-2">Enterprise</h3>
+              <div className="flex items-baseline gap-1 mb-4">
+                <span className="text-4xl font-extrabold text-[#0B0B0F]">Custom</span>
               </div>
+              <p className="text-sm text-gray-500 mb-8 leading-relaxed">
+                Tailored solutions for large organizations with specific needs.
+              </p>
+              
+              <ul className="space-y-4 mb-8">
+                <li className="flex items-center gap-3 text-sm text-[#0B0B0F] font-medium">
+                  <span className="material-symbols-outlined text-[#34A853] text-[20px] font-bold">check_circle</span>
+                  Unlimited Everything
+                </li>
+                <li className="flex items-center gap-3 text-sm text-[#0B0B0F] font-medium">
+                  <span className="material-symbols-outlined text-[#34A853] text-[20px] font-bold">check_circle</span>
+                  Dedicated Support
+                </li>
+                <li className="flex items-center gap-3 text-sm text-[#0B0B0F] font-medium">
+                  <span className="material-symbols-outlined text-[#34A853] text-[20px] font-bold">check_circle</span>
+                  99.99% Uptime SLA
+                </li>
+                <li className="flex items-center gap-3 text-sm text-[#0B0B0F] font-medium">
+                  <span className="material-symbols-outlined text-[#34A853] text-[20px] font-bold">check_circle</span>
+                  SSO & Security Compliance
+                </li>
+              </ul>
             </div>
             
-            <ul className="space-y-sm mb-lg">
-              <li className="flex items-start gap-sm font-body-md text-body-md">
-                <span className="material-symbols-outlined text-primary text-[20px]">check_circle</span>
-                Everything in Pro
-              </li>
-              <li className="flex items-start gap-sm font-body-md text-body-md">
-                <span className="material-symbols-outlined text-primary text-[20px]">check_circle</span>
-                Team Dashboard
-              </li>
-              <li className="flex items-start gap-sm font-body-md text-body-md">
-                <span className="material-symbols-outlined text-primary text-[20px]">check_circle</span>
-                Student Analytics
-              </li>
-              <li className="flex items-start gap-sm font-body-md text-body-md">
-                <span className="material-symbols-outlined text-primary text-[20px]">check_circle</span>
-                Bulk Licenses
-              </li>
-              <li className="flex items-start gap-sm font-body-md text-body-md">
-                <span className="material-symbols-outlined text-primary text-[20px]">check_circle</span>
-                Admin Controls
-              </li>
-              <li className="flex items-start gap-sm font-body-md text-body-md">
-                <span className="material-symbols-outlined text-primary text-[20px]">check_circle</span>
-                Shared Reports
-              </li>
-              <li className="flex items-start gap-sm font-body-md text-body-md">
-                <span className="material-symbols-outlined text-primary text-[20px]">check_circle</span>
-                Dedicated Support
-              </li>
-            </ul>
-            
-            <button className="w-full py-4 rounded-xl bg-inverse-surface text-inverse-on-surface font-label-md text-label-md hover:opacity-90 transition-opacity">
+            <button className="w-full py-3 rounded-full border border-[#E5E7EB] text-[#0B0B0F] font-semibold text-sm hover:bg-gray-50 transition-colors">
               Contact Sales
             </button>
           </div>
         </div>
-
-        {/* Feature Comparison Table (Mobile hidden) */}
-        <div className="hidden md:block mb-xl overflow-hidden rounded-2xl border border-outline-variant/30 bg-surface-container-lowest premium-shadow">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-surface-container-low border-b border-outline-variant/30">
-                <th className="p-md font-label-md text-label-md">Features</th>
-                <th className="p-md font-label-md text-label-md">Free</th>
-                <th className="p-md font-label-md text-label-md text-primary">Pro</th>
-                <th className="p-md font-label-md text-label-md">Teams</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-outline-variant/20 font-body-md text-body-md">
-              <tr>
-                <td className="p-md text-on-surface-variant">Interview Limit</td>
-                <td className="p-md">3/month</td>
-                <td className="p-md text-primary font-semibold">Unlimited</td>
-                <td className="p-md">Unlimited</td>
-              </tr>
-              <tr>
-                <td className="p-md text-on-surface-variant">AI Intelligence</td>
-                <td className="p-md">Standard</td>
-                <td className="p-md text-primary font-semibold">Adaptive + Memory</td>
-                <td className="p-md">Adaptive + Memory</td>
-              </tr>
-              <tr>
-                <td className="p-md text-on-surface-variant">Collaboration</td>
-                <td className="p-md">—</td>
-                <td className="p-md text-primary font-semibold">—</td>
-                <td className="p-md">Team Dashboard</td>
-              </tr>
-              <tr>
-                <td className="p-md text-on-surface-variant">Support</td>
-                <td className="p-md">Community</td>
-                <td className="p-md text-primary font-semibold">Priority</td>
-                <td className="p-md">Dedicated Manager</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-
-
-
       </div>
     </section>
   );

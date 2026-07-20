@@ -2,6 +2,33 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import {
+  APP_NAME,
+  ROUTES,
+  CONTACT_FORM_URL,
+  FEEDBACK_FORM_URL,
+  BUG_REPORT_FORM_URL,
+} from "@/lib/utils/constants";
+
+const productLinks = [
+  { label: "Dashboard", href: ROUTES.dashboard },
+  { label: "New Interview", href: ROUTES.interview },
+  { label: "Reports", href: ROUTES.reports },
+  { label: "AI Memory", href: ROUTES.memory },
+  { label: "Settings", href: ROUTES.settings },
+];
+
+const supportLinks = [
+  { label: "FAQ", href: ROUTES.faq },
+  { label: "Contact", href: CONTACT_FORM_URL, external: true },
+  { label: "Feedback", href: FEEDBACK_FORM_URL, external: true },
+  { label: "Report a Bug", href: BUG_REPORT_FORM_URL, external: true },
+];
+
+const legalLinks = [
+  { label: "Privacy Policy", href: "/privacy" },
+  { label: "Terms of Service", href: "/terms" },
+];
 
 export default function Footer() {
   const [hoveredIcon, setHoveredIcon] = useState<number | null>(null);
@@ -28,10 +55,10 @@ export default function Footer() {
                 <div className="w-8 h-8 bg-primary-container rounded-lg flex items-center justify-center">
                   <span className="material-symbols-outlined text-on-primary text-[20px]">auto_awesome</span>
                 </div>
-                <span className="font-headline-sm text-headline-sm font-bold tracking-tight text-on-surface">Clutchly</span>
+                <span className="font-headline-sm text-headline-sm font-bold tracking-tight text-on-surface">{APP_NAME}</span>
               </div>
               <p className="font-body-md text-body-md text-on-surface-variant max-w-sm leading-relaxed">
-                AI-powered interview preparation that learns from every conversation, helping you become more confident with every interview.
+                Clutchly is your AI interview coach that remembers every interview, adapts to your progress, and helps you become interview-ready through personalized voice practice.
               </p>
               
               {/* Social Links */}
@@ -60,60 +87,62 @@ export default function Footer() {
               <div className="flex flex-col gap-md">
                 <h4 className="font-label-md text-label-md text-on-surface uppercase tracking-wider">Product</h4>
                 <ul className="flex flex-col gap-sm">
-                  <li><Link className="font-body-md text-body-md text-on-surface-variant hover:text-primary transition-colors duration-200" href="#">Features</Link></li>
-                  <li><Link className="font-body-md text-body-md text-on-surface-variant hover:text-primary transition-colors duration-200" href="#">Pricing</Link></li>
-                  <li><Link className="font-body-md text-body-md text-on-surface-variant hover:text-primary transition-colors duration-200" href="#">Dashboard</Link></li>
-                  <li><Link className="font-body-md text-body-md text-on-surface-variant hover:text-primary transition-colors duration-200" href="#">Roadmap</Link></li>
+                  {productLinks.map((link) => (
+                    <li key={link.label}>
+                      <Link className="font-body-md text-body-md text-on-surface-variant hover:text-primary transition-colors duration-200" href={link.href}>
+                        {link.label}
+                      </Link>
+                    </li>
+                  ))}
                 </ul>
               </div>
-              {/* COMPANY */}
+              {/* SUPPORT */}
               <div className="flex flex-col gap-md">
-                <h4 className="font-label-md text-label-md text-on-surface uppercase tracking-wider">Company</h4>
+                <h4 className="font-label-md text-label-md text-on-surface uppercase tracking-wider">Support</h4>
                 <ul className="flex flex-col gap-sm">
-                  <li><Link className="font-body-md text-body-md text-on-surface-variant hover:text-primary transition-colors duration-200" href="#">About</Link></li>
-                  <li><Link className="font-body-md text-body-md text-on-surface-variant hover:text-primary transition-colors duration-200" href="#">Blog</Link></li>
-                  <li><Link className="font-body-md text-body-md text-on-surface-variant hover:text-primary transition-colors duration-200" href="#">Contact</Link></li>
-                  <li><Link className="font-body-md text-body-md text-on-surface-variant hover:text-primary transition-colors duration-200" href="#">Careers</Link></li>
+                  {supportLinks.map((link) => (
+                    <li key={link.label}>
+                      {link.external ? (
+                        <a 
+                          className="font-body-md text-body-md text-on-surface-variant hover:text-primary transition-colors duration-200" 
+                          href={link.href}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          {link.label}
+                        </a>
+                      ) : (
+                        <Link className="font-body-md text-body-md text-on-surface-variant hover:text-primary transition-colors duration-200" href={link.href}>
+                          {link.label}
+                        </Link>
+                      )}
+                    </li>
+                  ))}
                 </ul>
               </div>
               {/* LEGAL */}
               <div className="flex flex-col gap-md">
                 <h4 className="font-label-md text-label-md text-on-surface uppercase tracking-wider">Legal</h4>
                 <ul className="flex flex-col gap-sm">
-                  <li><Link className="font-body-md text-body-md text-on-surface-variant hover:text-primary transition-colors duration-200" href="#">Privacy Policy</Link></li>
-                  <li><Link className="font-body-md text-body-md text-on-surface-variant hover:text-primary transition-colors duration-200" href="#">Terms of Service</Link></li>
-                  <li><Link className="font-body-md text-body-md text-on-surface-variant hover:text-primary transition-colors duration-200" href="#">Cookie Policy</Link></li>
+                  {legalLinks.map((link) => (
+                    <li key={link.label}>
+                      <Link className="font-body-md text-body-md text-on-surface-variant hover:text-primary transition-colors duration-200" href={link.href}>
+                        {link.label}
+                      </Link>
+                    </li>
+                  ))}
                 </ul>
               </div>
             </div>
           </div>
-
-          {/* Newsletter Row */}
-          <div className="border-y border-outline-variant/30 py-lg flex flex-col md:flex-row items-start md:items-center justify-between gap-md">
-            <div className="flex flex-col gap-xs">
-              <h3 className="font-headline-sm text-headline-sm text-on-surface font-bold">Stay updated.</h3>
-              <p className="font-body-md text-body-md text-on-surface-variant">Get product updates and interview tips directly in your inbox.</p>
-            </div>
-            <div className="w-full md:w-auto flex flex-col sm:flex-row gap-xs">
-              <input 
-                className="w-full sm:w-72 px-md h-12 rounded-xl border border-outline-variant bg-surface-container-lowest focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all font-body-md text-body-md" 
-                placeholder="Enter your email" 
-                type="email"
-              />
-              <button className="px-md h-12 bg-primary text-on-primary rounded-xl font-label-md text-label-md hover:opacity-90 active:scale-95 transition-all">
-                Subscribe
-              </button>
-            </div>
-          </div>
-
           {/* Bottom Bar */}
-          <div className="pt-lg flex flex-col md:flex-row justify-between items-center gap-sm">
+          <div className="pt-lg border-t border-outline-variant/30 flex flex-col md:flex-row justify-between items-center gap-sm">
             <p className="font-label-sm text-label-sm text-on-surface-variant">
               © 2026 Clutchly. All rights reserved.
             </p>
             <div className="flex items-center gap-xs">
               <p className="font-label-sm text-label-sm text-on-surface-variant">
-                Built with <span className="text-error">❤️</span> for engineers preparing for their next opportunity.
+                Built with <span className="text-error">❤️</span> love by Samarth Chawla, Vishesh Tripathi &amp; Utsav Gupta
               </p>
             </div>
           </div>

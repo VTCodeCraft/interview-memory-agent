@@ -2,7 +2,7 @@ import SectionHeading from './SectionHeading';
 
 export default function CoreFeaturesSection() {
   return (
-    <section className="relative py-0 overflow-hidden text-on-surface">
+    <section id="features" className="relative py-0 overflow-hidden text-on-surface">
       {/* Atmospheric Elements */}
       <div className="absolute -top-[10%] -left-[10%] w-[50%] h-[50%] glow-blob pointer-events-none"></div>
       <div className="absolute top-[40%] -right-[10%] w-[40%] h-[40%] glow-blob pointer-events-none"></div>
@@ -228,24 +228,7 @@ export default function CoreFeaturesSection() {
           </div>
         </div>
 
-        {/* Bottom Highlight Callout */}
-        <div className="mt-xl">
-          <div className="bg-primary-container text-on-primary-container p-xl rounded-[32px] premium-shadow text-center relative overflow-hidden group">
-            <div className="absolute inset-0 bg-primary-fixed-dim/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"></div>
-            <div className="relative z-10 space-y-md">
-              <h3 className="font-headline-md text-headline-md max-w-2xl mx-auto leading-tight">
-                One interview helps you prepare. Every interview after that helps the AI prepare for you.
-              </h3>
-              <button className="h-14 px-xl bg-surface-container-lowest text-on-surface font-headline-sm text-headline-sm rounded-full shadow-lg hover:scale-105 active:scale-95 transition-all flex items-center gap-sm mx-auto group">
-                Start Practicing
-                <span className="material-symbols-outlined group-hover:translate-x-1 transition-transform">arrow_forward</span>
-              </button>
-            </div>
-            {/* Decorative Particle Shapes */}
-            <div className="absolute -top-10 -left-10 w-32 h-32 rounded-full border border-on-primary-container/20 opacity-20"></div>
-            <div className="absolute -bottom-10 -right-10 w-48 h-48 rounded-full border border-on-primary-container/20 opacity-20"></div>
-          </div>
-        </div>
+
       </div>
     </section>
   );
