@@ -1,312 +1,416 @@
-# Interview Memory Agent
+# Interview Memory Agent (Clutchly)
 
-An AI-powered mock interview platform with voice-based conversations, adaptive question generation, long-term semantic memory, and detailed analytics. Built with Next.js 16, Deepgram Voice Agent, Gemini AI, Clerk, Prisma/PostgreSQL, and Cognee Cloud.
+An AI-powered, full-duplex voice mock interview platform with adaptive question generation, long-term semantic graph memory, multi-stage performance evaluation, and granular pipeline cost observability.
+
+Built with **Next.js 16 (App Router)**, **Deepgram Voice Agent API**, **Google Gemini 2.5/1.5**, **Cognee Cloud Semantic Memory**, **Clerk Authentication**, and **Prisma ORM with PostgreSQL**.
 
 ---
 
-## Architecture
+## 📌 Executive Summary & Architecture Overview
+
+Interview Memory Agent (Clutchly) is an interactive voice-first AI interview coach. Unlike simple chatbot interfaces, Clutchly creates realistic, adaptive technical and behavioral interviews. It remembers a user's performance across multiple sessions using long-term semantic graph memory, dynamically tailoring future questions to address historical weaknesses, reinforce strengths, and track longitudinal progress over time.
+
+### Core Architectural Layers
 
 ```
-Frontend (Next.js 16, Tailwind v4, shadcn/ui)
-  ↓
-Next.js API Routes (App Router)
-  ↓
-  ├── Clerk        → Authentication, user management, webhooks
-  ├── Gemini       → Question generation, evaluation, resume/JD parsing, reports
-  ├── Deepgram     → Voice Agent API (unified TTS + STT + conversation management)
-  ├── Prisma/PG    → Structured data (users, interviews, reports, analytics)
-  └── Cognee       → Long-term semantic memory (adaptive personalization)
-```
-
-### Directory Layout
-
-```
-app/                   → Next.js App Router pages & API routes
-  api/                 → Backend API endpoints
-    analytics/         → Analytics data
-    auth/              → Auth (Clerk sync)
-    cognee/            → Cognee health & forget endpoints
-    interview/         → Interview CRUD, voice answer, start/end
-    memory/            → Memory timeline & insights
-    reports/           → Report generation & lookup
-    speech/            → Deepgram token minting
-    user/              → Onboarding, profile, resume, JD
-    webhook/           → Clerk webhooks
-  dashboard/           → Dashboard page
-  onboarding/          → Onboarding wizard
-  page.tsx             → Landing page
-components/            → UI components
-  auth/                → Auth UI
-  common/              → Shared UI (headers, cards, etc.)
-  dashboard/           → Dashboard widgets
-  interview/           → VoiceInterview, QuestionCard, DeepgramStatus
-  memory/              → Memory timeline views
-  reports/             → Report display
-  ui/                  → shadcn/ui primitives
-hooks/                 → Client-side hooks
-  useAnalytics.ts      → Analytics data fetching
-  useAuth.ts           → Clerk auth wrapper
-  useDeepgram.ts       → Legacy Deepgram STT hook
-  useInterview.ts      → Interview state management
-  useMemory.ts         → Memory timeline fetching
-  useSpeech.ts         → Speech token management
-  useTTS.ts            → Legacy TTS hook
-  useVoiceAgent.ts     → Deepgram Voice Agent orchestrator (primary)
-lib/                   → Shared utilities & provider adapters
-  ai/                  → Gemini prompt builders & evaluation prompts
-  auth/                → Clerk webhook sync utility
-  cognee/              → Cognee Cloud HTTP client
-  db/                  → Prisma client singleton
-  deepgram/            → Deepgram SDK client & integrations
-    voice-agent/       → Voice Agent connection, settings, audio pipeline
-    text-to-speech.ts  → Legacy REST TTS
-    speech-to-text.ts  → Legacy REST STT
-    streaming.ts       → Legacy streaming STT
-    websocket.ts       → Legacy WebSocket connection
-  utils/               → Constants, helpers
-  validations/         → Zod schemas
-services/              → Application business logic
-  analytics.service.ts → Analytics computation
-  answer.service.ts    → Answer persistence
-  auth.service.ts      → Auth sync
-  cognee.service.ts    → Cognee API (remember, recall, improve, forget)
-  deepgram.service.ts  → Deepgram token minting
-  interview.service.ts → Interview lifecycle & evaluation
-  memory-builder.service.ts → Semantic memory construction from reports
-  memory.service.ts    → Memory persistence orchestration
-  promptBuilder.service.ts → Interview prompt assembly
-  questionGenerator.service.ts → Gemini question generation
-  report.service.ts    → Report generation
-  resumeParser.service.ts → Gemini-based resume parsing
-  speech.service.ts    → Legacy speech re-exports
-  tts.service.ts       → Legacy TTS service
-  voiceInterview.service.ts → Voice Agent interview progression
-store/                 → Zustand state management
-  useVoiceAgentStore.ts → Voice Agent UI state
-  useInterviewStore.ts → Interview state
-  useMemoryStore.ts   → Memory state
-  useAuthStore.ts     → Auth state
-  useAnalyticsStore.ts → Analytics state
-  useSettingsStore.ts  → Settings state
-types/                 → TypeScript type definitions
-  voiceAgent.ts       → Voice Agent conversation state machine types
-  interview.ts        → Interview types
-  report.ts           → Report & evaluation types (incl. HistoricalProgress)
-  memory.ts           → Memory types
-  analytics.ts        → Analytics types
-  speech.ts           → Speech types
-prisma/                → PostgreSQL schema & migrations
-  schema.prisma       → User, Resume, JD, Interview, Answer, Report, Analytics
+                                  +-------------------------------------------------------+
+                                  |              Client Interface (Next.js 16)            |
+                                  |   Tailwind CSS v4, shadcn/ui, Bricolage Grotesque,    |
+                                  |      Zustand Stores, AudioContext PCM Recorder/Player |
+                                  +---------------------------+---------------------------+
+                                                              |
+                                           +------------------+------------------+
+                                           |                                     |
+                                  (REST API / App Router)             (Full-Duplex WebSockets)
+                                           |                                     |
+                                           v                                     v
++------------------------------------------------------------------+ +-----------------------------------+
+|                     Next.js Backend API Routes                   | |    Deepgram Voice Agent API      |
+|  /api/interview/*, /api/user/*, /api/reports/*, /api/memory/*   | | wss://agent.deepgram.com/v1/... |
++----+-------------------+-------------------+--------------------+ |  STT (Nova-3) + Agent LLM         |
+     |                   |                   |                    | |  + TTS (Aura-2-Thalia)          |
+     v                   v                   v                    v +-----------------------------------+
++----------+     +---------------+     +-----------+     +-------------------+
+|  Clerk   |     | Google Gemini |     |  Cognee   |     | Prisma / Postgres |
+| User Sync|     |  Question Gen |     | Semantic  |     | Structured Data,  |
+| Webhooks |     |  Evaluation   |     | Memory    |     | Pipeline Metrics, |
+| Account  |     |  Parsing      |     |  Graph    |     | Session Costs     |
+| Delete   |     +---------------+     +-----------+     +-------------------+
++----------+
 ```
 
 ---
 
-## Tech Stack
+## 🛠️ Technology Stack
 
-| Layer            | Technology                                                          |
-| ---------------- | ------------------------------------------------------------------- |
-| **Framework**    | Next.js 16 (App Router, React 19, TypeScript)                       |
-| **Auth**         | Clerk (authentication, user management, webhooks)                   |
-| **Database**     | PostgreSQL via Prisma ORM (Neon)                                    |
-| **AI - Gen**     | Google Gemini (question gen, evaluation, resume/JD parsing)         |
-| **Voice**        | Deepgram Voice Agent API (unified TTS + STT + conversation agent)   |
-| **Memory**       | Cognee Cloud (long-term semantic memory graph)                      |
-| **UI**           | Tailwind CSS v4, shadcn/ui, Lucide Icons                            |
-| **State**        | Zustand                                                             |
-| **Validation**   | Zod                                                                 |
-
----
-
-## Deepgram Voice Agent (Replacing Separate TTS/STT)
-
-This project originally used separate Deepgram REST endpoints for text-to-speech (`POST /v1/speak`) and speech-to-text (`POST /v1/listen`), with a custom WebSocket for streaming transcription. Those modules remain in the codebase (`lib/deepgram/text-to-speech.ts`, `lib/deepgram/speech-to-text.ts`, `lib/deepgram/streaming.ts`, `lib/deepgram/websocket.ts`) but are **no longer the primary voice path**.
-
-The interview now uses **Deepgram's Voice Agent API** (`wss://agent.deepgram.com/v1/agent/converse`), which provides a single conversational AI that:
-
-- **Listens** to the candidate via streaming microphone input
-- **Thinks** with a built-in LLM that manages turn-taking
-- **Speaks** generated or injected responses in natural-sounding TTS
-- **Supports function calling** for structured answer-completion detection
-- **Handles barge-in** (candidate interrupts the agent mid-speech)
-
-The Voice Agent is orchestrated by the `useVoiceAgent` hook (`hooks/useVoiceAgent.ts`), which manages a persistent WebSocket connection, audio pipeline (mic recording + PCM playback), and a state machine with 25+ conversation states. The backend remains the source of truth: questions are generated by Gemini on the server and injected verbatim into the agent session. The agent never generates questions — it only conducts the conversation.
-
-Key files:
-- `hooks/useVoiceAgent.ts` — client-side orchestrator
-- `lib/deepgram/voice-agent/connection.ts` — raw WebSocket to Deepgram
-- `lib/deepgram/voice-agent/settings.ts` — agent configuration
-- `lib/deepgram/voice-agent/audio/` — mic recorder & PCM player
-- `services/voiceInterview.service.ts` — server-side answer save & advance
-- `services/deepgram.service.ts` — server-side token minting
-- `types/voiceAgent.ts` — conversation state machine types
+| Component | Technology / Library | Purpose |
+| :--- | :--- | :--- |
+| **Framework** | Next.js 16.2.9 (App Router, React 19, TypeScript 5) | Full-stack Web Application Framework |
+| **Authentication** | `@clerk/nextjs` v7.5.12 | Authentication, user sync via webhooks, tombstone deletion logs |
+| **Database & ORM** | PostgreSQL (Neon serverless) via `@prisma/client` v7.8.0 | Structured relational persistence & pipeline observability |
+| **Voice Engine** | `@deepgram/sdk` v5.5.0 (Voice Agent WebSocket API) | Full-duplex voice streaming, STT (Nova-3), TTS (Aura-2-Thalia), turn-taking |
+| **Generative AI** | `@google/generative-ai` v0.21.0 (Gemini 2.5 / 1.5) | Question generation, answer evaluation, resume/JD parsing, report generation |
+| **Semantic Memory** | Cognee Cloud HTTP API (`https://api.cognee.ai`) | Long-term memory ingestion (`cognify`), vector search (`recall`), graph optimization (`improve`), and memory erasure (`forget`) |
+| **State Management**| Zustand v5.0.2 | Reactive client-side stores (Voice Agent, Interview, Memory, Auth, Analytics, Settings) |
+| **Styling** | Tailwind CSS v4, `@fontsource-variable/material-symbols-outlined` | Modern UI styling, Bricolage Grotesque typography |
+| **Validation & Parsing**| Zod, `pdf-parse` v1.1.1 | Input validation schemas & PDF resume text extraction |
+| **Testing & Tooling** | Vitest v4.1.9, ESLint 9, Prisma Studio | Unit testing, linting, and database inspection |
 
 ---
 
-## Cognee Integration (Long-Term Memory)
+## 📁 Repository Directory Structure
 
-Cognee Cloud provides persistent semantic memory across interview sessions. Implemented in 7 phases:
-
-| Phase | What It Does                                                   |
-| ----- | -------------------------------------------------------------- |
-| 1     | Cognee Cloud connection & health check                         |
-| 2     | Memory Builder — converts interview reports to semantic memory |
-| 3     | Persist semantic memory into Cognee after each interview       |
-| 4     | Retrieve candidate memory before Gemini question generation    |
-| 5     | Adaptive interview personalization using Cognee memory         |
-| 6     | Longitudinal evaluation — compare current vs historical data   |
-| 7     | Memory lifecycle — `improve()` (graph optimization) & `forget()` |
-
-Key files:
-- `lib/cognee/client.ts` — HTTP client for Cognee Cloud API
-- `services/cognee.service.ts` — remember, recall, improve, forget
-- `services/memory-builder.service.ts` — report-to-memory conversion
-- `services/memory.service.ts` — persistence orchestration
-- `services/promptBuilder.service.ts` — memory-injected prompts
-- `lib/ai/evaluationPromptBuilder.ts` — historical context for evaluation
-- `types/report.ts` — HistoricalProgress, HistoricalProgressTrend types
-
-Cognee is an enhancement layer — the core interview flow continues even if Cognee is unavailable.
+```
+interview-memory-agent/
+├── app/                        → Next.js 16 App Router pages & API routes
+│   ├── api/                    → Backend HTTP Endpoints
+│   │   ├── analytics/          → User analytics & aggregate readiness scores
+│   │   ├── auth/               → Authentication user context routes
+│   │   ├── cognee/             → Health checks & memory erasure (`forget`)
+│   │   ├── cron/               → Scheduled background workers (reports, cleanup, cost reconciliation)
+│   │   ├── health/             → System status endpoint
+│   │   ├── interview/          → Interview lifecycle, question generation, voice tokens, answer saving
+│   │   ├── memory/             → Knowledge graph, memory timeline, & insights
+│   │   ├── reports/            → Evaluation report generation & retrieval
+│   │   ├── speech/             → Legacy Deepgram speech endpoints
+│   │   ├── user/               → Onboarding, profile, resume, JD parsing, account management
+│   │   └── webhook/            → Clerk webhook event handler (`user.created`, `user.deleted`)
+│   ├── dashboard/              → Candidate dashboard page
+│   ├── onboarding/             → User setup wizard (Profile, Target Role, Resume, JD)
+│   └── page.tsx                → Clutchly Landing Page (Design system inspired by Linear & Vercel)
+├── components/                 → Modular React Components
+│   ├── auth/                   → User authentication dialogs & status
+│   ├── common/                 → Header, Footer, Navbar, Card layouts
+│   ├── dashboard/              → Stats cards, interview list, readiness charts
+│   ├── interview/              → VoiceInterview component, Question cards, Deepgram status visualizer
+│   ├── landing-page/           → Hero, Feature showcase, FAQ, Testimonials
+│   ├── memory/                 → Memory timeline visualization & Cognee graph widgets
+│   ├── reports/                → Comprehensive interview report view with score radar/bars
+│   └── ui/                     → Base UI primitives (buttons, dialogs, badges, progress indicators)
+├── hooks/                      → Custom React Hooks
+│   ├── useAnalytics.ts         → Fetching & syncing user analytics
+│   ├── useAuth.ts              → Wrapper around Clerk authentication & user profile
+│   ├── useDeepgram.ts          → Legacy Deepgram STT listener
+│   ├── useInterview.ts         → Core interview session orchestration
+│   ├── useMemory.ts            → Memory timeline & Cognee insight hooks
+│   ├── useSpeech.ts            → Audio token fetching
+│   ├── useTTS.ts               → Legacy REST Text-To-Speech hook
+│   └── useVoiceAgent.ts        → Primary Deepgram Voice Agent WebSocket client & audio pipeline controller
+├── lib/                        → Core Utilities & External Integrations
+│   ├── ai/                     → Gemini API configuration, prompts, evaluation builders, pricing metrics
+│   ├── auth/                   → Clerk sync utilities
+│   ├── cognee/                 → Cognee Cloud API HTTP client, Graph validator, logger
+│   ├── db/                     → Prisma Client singleton initialization
+│   ├── deepgram/               → Deepgram Voice Agent WebSocket, settings, PCM audio recorder & player
+│   ├── errors/                 → Custom error types & boundaries
+│   ├── interview/              → Helper utilities for interview flow
+│   ├── rate-limit/             → Rate-limiting logic for API routes
+│   └── validations/            → Zod schemas for user input & API payloads
+├── services/                   → Business Logic & Service Layer
+│   ├── analytics.service.ts    → Computing user stats, streaks, & readiness scores
+│   ├── answer.service.ts       → Interview answer transcript persistence
+│   ├── auth.service.ts        → User creation & Clerk synchronization logic
+│   ├── cognee.service.ts      → Cognee Cloud remember, recall, improve, and forget orchestration
+│   ├── deepgram.service.ts    → Deepgram temporary access token minting
+│   ├── interview.service.ts   → Interview session creation, question advance, & status transitions
+│   ├── memory-builder.service.ts → Transcripts & report conversion to Cognee semantic memory graph format
+│   ├── memory.service.ts       → Coordinating memory retrieval & persistence pipeline
+│   ├── pipelineUsage.service.ts→ Observability service tracking token counts, latency, USD costs per stage
+│   ├── promptBuilder.service.ts→ Ingesting candidate memory into Gemini question generation prompts
+│   ├── questionGenerator.service.ts → Gemini question generation with difficulty scaling
+│   ├── report.service.ts       → Gemini evaluation report generation
+│   ├── resumeParser.service.ts → Extracting skills, experience, and background from uploaded PDFs
+│   ├── user.service.ts         → Profile updates, resume/JD saving, account deletion
+│   └── voiceInterview.service.ts→ Server-side Voice Agent state transitions & answer saving
+├── store/                      → Zustand Client State Stores
+│   ├── useAnalyticsStore.ts    → Analytics UI state
+│   ├── useAuthStore.ts        → Authenticated user state
+│   ├── useInterviewStore.ts   → Active interview session state
+│   ├── useMemoryStore.ts      → Cached Cognee memory timeline
+│   ├── useSettingsStore.ts   → User preferences & voice agent settings
+│   └── useVoiceAgentStore.ts  → Voice Agent WebSocket state machine (25+ states, connection, audio levels)
+├── types/                      → TypeScript Interfaces & Type Declarations
+│   ├── analytics.ts            → Analytics & score data types
+│   ├── interview.ts            → Interview, Question, Answer types
+│   ├── memory.ts               → Cognee node, edge, and timeline types
+│   ├── report.ts               → Evaluation report & historical progress types
+│   └── voiceAgent.ts           → Deepgram Voice Agent state machine & event types
+├── prisma/                     → Database Schema & Migrations
+│   └── schema.prisma           → Database models (User, Interview, Report, PipelineUsage, DeepgramSession, etc.)
+└── DESIGN.MD                   → Brand design language & style guidelines for Clutchly UI
+```
 
 ---
 
-## Prisma / PostgreSQL Schema
+## 🎙️ Deepgram Voice Agent Architecture (Full-Duplex Speech System)
 
-| Model                | Purpose                                   |
-| -------------------- | ----------------------------------------- |
-| `User`               | Core user (linked to Clerk via `clerkId`) |
-| `UserProfile`        | Onboarding data, preferences, target role |
-| `Resume`             | Uploaded resume, parsed text, metadata    |
-| `JobDescription`     | Target company JD, parsed skills          |
-| `Interview`          | Interview sessions (status, mode, Qs)     |
-| `Answer`             | Interview answers (JSON transcript)       |
-| `Report`             | Evaluation scores, strengths, weaknesses  |
-| `InterviewAnalytics` | Aggregated stats per user                 |
+The primary voice interface of Clutchly uses **Deepgram's Voice Agent API** (`wss://agent.deepgram.com/v1/agent/converse`). This replaces legacy fragmented STT/TTS calls with a single WebSocket session managing real-time speech input, LLM-based turn-taking, barge-in detection, and natural TTS playback.
 
----
+### Key Voice Agent Components
 
-## API Routes
+1. **WebSocket Connection ([lib/deepgram/voice-agent/connection.ts](file:///c:/Users/trvis/OneDrive/Desktop/WORK/Projects/interview-memory-agent/lib/deepgram/voice-agent/connection.ts))**:
+   - Opens WebSocket connection to `wss://agent.deepgram.com/v1/agent/converse`.
+   - Sends initial configuration settings payload upon connection.
+   - Listens for server events: `Welcome`, `SettingsApplied`, `UserStartedSpeaking`, `AgentThinking`, `AgentStartedSpeaking`, `AgentAudioDone`, `FunctionCallRequest`, `Error`.
 
-| Endpoint                         | Method | Purpose                                     |
-| -------------------------------- | ------ | ------------------------------------------- |
-| `/api/auth/me`                   | GET    | Current user & profile                      |
-| `/api/user/onboarding`           | POST   | Complete onboarding                         |
-| `/api/user/profile`              | GET/PATCH | Profile management                      |
-| `/api/user/resume`               | POST   | Upload & parse resume                       |
-| `/api/user/job-description`      | POST   | Upload & parse JD                           |
-| `/api/interview/start`           | POST   | Create interview, generate questions        |
-| `/api/interview/answer`          | POST   | Save text-mode answer                       |
-| `/api/interview/voice-answer`    | POST   | Save voice answer & advance to next Q       |
-| `/api/interview/voice-token`     | POST   | Mint Deepgram access token                  |
-| `/api/interview/end`             | POST   | Complete interview, trigger evaluation      |
-| `/api/interview/history`         | GET    | Past interviews list                        |
-| `/api/reports/generate`          | POST   | Generate report for completed interview     |
-| `/api/reports/:id`               | GET    | Specific report                             |
-| `/api/analytics`                 | GET    | User analytics dashboard data               |
-| `/api/memory/timeline`           | GET    | Memory timeline across interviews           |
-| `/api/memory/insights`           | GET    | Cognee-derived insights                     |
-| `/api/cognee/health`             | GET    | Cognee connection smoke test                |
-| `/api/cognee/forget`             | DELETE | Delete user's Cognee memories               |
-| `/api/webhook/clerk`             | POST   | Clerk user lifecycle events                 |
-| `/api/speech/token`              | GET    | Legacy: Deepgram STT token                  |
-| `/api/speech/transcribe`         | POST   | Legacy: audio file transcription            |
-| `/api/speech/speak`              | POST   | Legacy: TTS audio stream                    |
+2. **Agent Settings ([lib/deepgram/voice-agent/settings.ts](file:///c:/Users/trvis/OneDrive/Desktop/WORK/Projects/interview-memory-agent/lib/deepgram/voice-agent/settings.ts))**:
+   - STT Model: `nova-3` (English) with smart formatting.
+   - Agent Model: `anthropic/claude-3-5-haiku` (orchestrates conversational flow and prompt guidance).
+   - TTS Model: `aura-2-thalia-en` (high-fidelity natural speech synthesis).
+   - Function Calling Registration: `complete_answer` tool allows the agent to signal when a user has completed answering a question.
+
+3. **Audio Pipeline ([lib/deepgram/voice-agent/audio/](file:///c:/Users/trvis/OneDrive/Desktop/WORK/Projects/interview-memory-agent/lib/deepgram/voice-agent/audio/))**:
+   - **PCM Recorder**: Captures microphone input via Web Audio API (`AudioContext`, `ScriptProcessorNode`), downsamples to **16kHz 16-bit Mono Linear PCM**, and streams binary frames over the WebSocket.
+   - **PCM Player**: Receives binary TTS audio chunks from Deepgram, buffers them in a queue, and plays them smoothly via `AudioContext` at **24kHz 16-bit Mono Linear PCM**. Supports immediate flush upon candidate barge-in (interruption).
+
+4. **Client Orchestrator ([hooks/useVoiceAgent.ts](file:///c:/Users/trvis/OneDrive/Desktop/WORK/Projects/interview-memory-agent/hooks/useVoiceAgent.ts))**:
+   - Manages a 25+ state conversation state machine (`IDLE`, `CONNECTING`, `LISTENING`, `THINKING`, `SPEAKING`, `FUNCTION_CALLING`, `ANSWER_COMPLETED`, etc.).
+   - Communicates with Next.js backend API `/api/interview/voice/answer` to save recorded candidate transcripts and fetch the next question to inject into the agent.
+
+5. **Token Minting & Session Reconciliation**:
+   - Server-side temporary access token generation via `/api/interview/voice/token` ([services/deepgram.service.ts](file:///c:/Users/trvis/OneDrive/Desktop/WORK/Projects/interview-memory-agent/services/deepgram.service.ts)).
+   - Session tracking in database (`DeepgramSession` table) with nightly cron reconciliation ([app/api/cron/reconcile-deepgram-costs](file:///c:/Users/trvis/OneDrive/Desktop/WORK/Projects/interview-memory-agent/app/api/cron/reconcile-deepgram-costs/route.ts)) against Deepgram Usage API.
 
 ---
 
-## Setup
+## 🧠 Cognee Cloud Long-Term Semantic Memory Engine
 
-### Prerequisites
+Clutchly integrates **Cognee Cloud** (`https://api.cognee.ai`) to store structured semantic memories across candidate sessions. This powers personalized interview adaptation and longitudinal tracking over time across 7 distinct phases:
 
-- Node.js 20+
-- PostgreSQL instance (or Neon serverless)
-- Deepgram API key with Voice Agent access
-- Google Gemini API key
-- Clerk Publishable & Secret keys
-- Cognee Cloud API key & tenant
+| Phase | Functional Stage | Technical Implementation | Key File(s) |
+| :--- | :--- | :--- | :--- |
+| **Phase 1** | Connection & Health Check | HTTP client initialization, authorization token management, health checks | [lib/cognee/client.ts](file:///c:/Users/trvis/OneDrive/Desktop/WORK/Projects/interview-memory-agent/lib/cognee/client.ts) |
+| **Phase 2** | Memory Builder | Converts evaluation reports into semantic nodes (strengths, weaknesses, missed topics, recommendations) and graph edges | [services/memory-builder.service.ts](file:///c:/Users/trvis/OneDrive/Desktop/WORK/Projects/interview-memory-agent/services/memory-builder.service.ts) |
+| **Phase 3** | Ingestion (`remember`) | Ingests text memories via `POST /api/v2/datasets` and executes `cognify` graph processing | [services/cognee.service.ts](file:///c:/Users/trvis/OneDrive/Desktop/WORK/Projects/interview-memory-agent/services/cognee.service.ts) |
+| **Phase 4** | Retrieval (`recall`) | Queries candidate graph via `POST /api/v2/search` for relevant historical context before generating questions | [services/cognee.service.ts](file:///c:/Users/trvis/OneDrive/Desktop/WORK/Projects/interview-memory-agent/services/cognee.service.ts) |
+| **Phase 5** | Adaptive Question Generation | Injects recalled candidate memory context into Gemini prompts to probe past weaknesses & target missing skills | [services/promptBuilder.service.ts](file:///c:/Users/trvis/OneDrive/Desktop/WORK/Projects/interview-memory-agent/services/promptBuilder.service.ts) |
+| **Phase 6** | Longitudinal Evaluation | Compares current answers against historical benchmarks for trend analysis (improving, degrading, consistent) | [lib/ai/evaluationPromptBuilder.ts](file:///c:/Users/trvis/OneDrive/Desktop/WORK/Projects/interview-memory-agent/lib/ai/evaluationPromptBuilder.ts) |
+| **Phase 7** | Memory Lifecycle | Graph optimization (`improve`) to prune duplicate concepts, and dataset deletion (`forget`) via `/api/cognee/forget` | [services/cognee.service.ts](file:///c:/Users/trvis/OneDrive/Desktop/WORK/Projects/interview-memory-agent/services/cognee.service.ts) |
 
-### Environment Variables
+---
 
-Create `.env.local`:
+## 📊 Pipeline Observability & Cost Metric System
+
+Every interview execution is tracked end-to-end by the **Pipeline Observability Engine** ([services/pipelineUsage.service.ts](file:///c:/Users/trvis/OneDrive/Desktop/WORK/Projects/interview-memory-agent/services/pipelineUsage.service.ts)). This tracks exact latency, token counts, error status, and calculated financial cost in USD across all external AI services:
+
+```
++---------------------------------------------------------------------------------------------------+
+|                                  InterviewPipelineUsage Metrics                                   |
++---------------------------------------------------------------------------------------------------+
+| Stage 1: Question Generation  → Gemini Model, Input/Output Tokens, Gemini Cost (USD), Duration Ms |
+| Stage 2: Deepgram Voice Session → Deepgram Audio Seconds, WebSocket Requests, Reconciled Cost USD |
+| Stage 3: Report Evaluation    → Gemini Model, Evaluation Input/Output Tokens, Report Cost (USD)   |
+| Stage 4: Cognee Graph Ingest   → Nodes & Edges Created, Ingestion Duration Ms, Cognee Cost (USD)  |
+| Stage 5: Cognee Retrieval      → Nodes Retrieved, Search Latency Ms, Cognee Cost (USD)            |
++---------------------------------------------------------------------------------------------------+
+| Total Cost (USD) = Gemini Question Cost + Deepgram Audio Cost + Gemini Report Cost + Cognee Cost |
++---------------------------------------------------------------------------------------------------+
+```
+
+---
+
+## 🗄️ Database Schema & Prisma Models
+
+The database is built on **PostgreSQL** using **Prisma ORM** ([prisma/schema.prisma](file:///c:/Users/trvis/OneDrive/Desktop/WORK/Projects/interview-memory-agent/prisma/schema.prisma)):
+
+### Core Data Models
+
+- **`User`**: Linked to Clerk authentication via `clerkId`. Owns profiles, resumes, job descriptions, interviews, and analytics.
+- **`UserProfile`**: Stores experience level, target role, target companies, preferred interview mode (`VOICE`, `TEXT`, `HYBRID`), and difficulty (`EASY`, `MEDIUM`, `HARD`).
+- **`Resume`**: Metadata and extracted raw text from PDF resume uploads.
+- **`JobDescription`**: Company, title, raw text, and array of parsed required skills.
+- **`Interview`**: Represents an interview session (`PENDING`, `GENERATING`, `READY`, `ONGOING`, `COMPLETED`, `CANCELLED`, `FAILED`). Stores JSON questions and links to answers, reports, and pipeline usage metrics.
+- **`Answer`**: Stores complete interview transcript (user audio answers, time taken, question associations).
+- **`Report`**: Stores evaluation metrics (overall, technical, communication, confidence, behavioral, problem-solving scores 0-100), strengths, weaknesses, missing topics, and recommendations.
+- **`InterviewAnalytics`**: Aggregated user stats (total interviews completed, average score, streak count, readiness score).
+- **`AccountDeletionLog`**: Immutable tombstone log preserving usage data when a user deletes their account to prevent freemium usage limit reset exploits.
+- **`ReportGenerationJob`**: Background job queue model for resilient evaluation report processing and retry handling.
+- **`InterviewPipelineUsage`**: Comprehensive observability model tracking token consumption, durations, USD cost metrics, and failure reasons per pipeline step.
+- **`DeepgramSession`**: Individual Deepgram Voice Agent WebSocket connection request IDs, connection attempt numbers, and reconciled costs from Deepgram API.
+
+---
+
+## 🌐 API Route Reference
+
+### 🔐 Auth & User Management
+
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `GET` | `/api/auth/me` | Fetch currently authenticated user and profile information |
+| `POST` | `/api/user/onboarding` | Submit onboarding wizard data (target role, experience, preferences) |
+| `GET/PATCH` | `/api/user/profile` | Retrieve or update user preferences and profile parameters |
+| `POST` | `/api/user/resume` | Upload and parse candidate PDF resume using Gemini AI |
+| `POST` | `/api/user/job-description` | Submit target company job description and parse skills |
+| `GET` | `/api/user/usage` | Retrieve user interview quotas and usage count |
+| `POST` | `/api/user/delete-account` | Execute user account hard deletion and write tombstone log |
+| `POST` | `/api/webhook/clerk` | Clerk webhook event handler (`user.created`, `user.deleted`) |
+
+### 🎙️ Interview Lifecycle & Voice
+
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `POST` | `/api/interview/start` | Initialize interview session, trigger memory recall, and request question gen |
+| `POST` | `/api/interview/generate` | Generate adaptive interview questions using Gemini |
+| `GET` | `/api/interview/active` | Check for existing ongoing interview session |
+| `GET` | `/api/interview/[id]` | Fetch detailed interview session state and questions |
+| `POST` | `/api/interview/voice/token` | Mint temporary Deepgram access token for Voice Agent WebSocket |
+| `POST` | `/api/interview/voice/answer` | Save voice response chunk and advance to next question |
+| `POST` | `/api/interview/answer` | Save text-mode interview answer |
+| `POST` | `/api/interview/end` | Complete interview session and enqueue evaluation report job |
+| `POST` | `/api/interview/cancel` | Cancel an ongoing interview |
+| `GET` | `/api/interview/history` | List historical completed interviews for user |
+
+### 📈 Reports, Memory & Analytics
+
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `POST` | `/api/reports/generate` | Generate Gemini evaluation report for completed interview |
+| `GET` | `/api/reports/[id]` | Fetch full report data including historical comparison trends |
+| `GET` | `/api/analytics` | Fetch candidate readiness scores, score history, and skill radars |
+| `GET` | `/api/memory/timeline` | Retrieve chronological timeline of candidate performance |
+| `GET` | `/api/memory/insights` | Retrieve Cognee-derived intelligence and recurring weakness patterns |
+| `GET` | `/api/memory/graph` | Retrieve visual node/edge memory graph representation |
+| `GET` | `/api/cognee/health` | Smoke test Cognee Cloud connectivity |
+| `DELETE`| `/api/cognee/forget` | Clear user semantic memory graph dataset in Cognee |
+
+### ⏰ Cron Jobs & Observability
+
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `POST` | `/api/cron/process-reports` | Background worker processing pending report jobs |
+| `POST` | `/api/cron/cleanup-interviews` | Prunes abandoned/stale pending interview records |
+| `POST` | `/api/cron/reconcile-deepgram-costs` | Nightly cron querying Deepgram API to reconcile Voice Agent costs |
+
+---
+
+## ⚡ Client State Management (Zustand Stores)
+
+State management is decoupled into distinct client-side Zustand stores ([store/](file:///c:/Users/trvis/OneDrive/Desktop/WORK/Projects/interview-memory-agent/store)):
+
+1. **`useVoiceAgentStore`**: Manages Deepgram Voice Agent WebSocket connection status, 25+ conversation state machine, current question index, agent speaking state, audio volume levels, and error logs.
+2. **`useInterviewStore`**: Tracks active interview metadata, current question, submitted answers array, time remaining, and modal UI states.
+3. **`useMemoryStore`**: Manages cached memory timeline items, Cognee graph nodes/edges, and search filters.
+4. **`useAuthStore`**: Stores user authentication context, Clerk session data, and user profile state.
+5. **`useAnalyticsStore`**: Caches dashboard analytics metrics, score history, and readiness calculations.
+6. **`useSettingsStore`**: Stores user client preferences (microphone device ID, audio feedback toggles, voice selection).
+
+---
+
+## 🔄 End-to-End Interview Execution Flow
+
+```
+1. User Authentication & Onboarding
+   ↳ User logs in via Clerk → Uploads Resume & Target Job Description.
+   ↳ Gemini parses resume skills & job description targets into structured JSON.
+
+2. Interview Setup & Memory Ingestion
+   ↳ User selects role, interview type (Technical/Behavioral), and difficulty (Easy/Medium/Hard).
+   ↳ Backend calls `cognee.service.ts` → `recallCandidateMemory()`.
+   ↳ Cognee searches historical dataset for past weak areas, recurring mistakes, and missing topics.
+
+3. Question Generation (Gemini 2.5/1.5)
+   ↳ `promptBuilder.service.ts` merges:
+     • Job Description & Candidate Resume
+     • Recalled Cognee Memory (weaknesses to target, strengths to test further)
+   ↳ Gemini returns structured array of customized interview questions.
+
+4. Real-Time Voice Interview Execution
+   ↳ App mints Deepgram token (`POST /api/interview/voice/token`).
+   ↳ `useVoiceAgent.ts` connects WebSocket to `wss://agent.deepgram.com/v1/agent/converse`.
+   ↳ Web Audio API records 16kHz PCM audio → Streams to Deepgram.
+   ↳ Agent reads question via TTS (`aura-2-thalia`) → Candidate responds via microphone.
+   ↳ Agent executes turn-taking and invokes `complete_answer` tool call when candidate finishes.
+   ↳ Response is saved via `/api/interview/voice/answer` and next question is injected.
+
+5. Evaluation & Report Generation
+   ↳ Interview completed (`POST /api/interview/end`).
+   ↳ Gemini evaluates answers against questions, resume, and historical evaluations.
+   ↳ Generates scores (Overall, Technical, Communication, Confidence, Behavioral, Problem-Solving).
+   ↳ Calculates historical progress trends (improving/degrading).
+
+6. Memory Graph Update & Cost Finalization
+   ↳ `memory-builder.service.ts` converts evaluation findings into semantic nodes/edges.
+   ↳ `cognee.service.ts` runs `remember()` & `cognify()` to update Cognee Cloud graph.
+   ↳ Cognee graph optimization (`improve()`) deduplicates concepts.
+   ↳ `pipelineUsage.service.ts` seals total token usage, durations, and calculated costs in USD.
+```
+
+---
+
+## ⚙️ Environment Variables & Setup Guide
+
+### Environment Configuration (`.env.local`)
 
 ```env
-# Clerk
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=
-CLERK_SECRET_KEY=
-CLERK_WEBHOOK_SECRET=
+# Clerk Authentication
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_...
+CLERK_SECRET_KEY=sk_test_...
+CLERK_WEBHOOK_SECRET=whsec_...
 
-# Database
-DATABASE_URL=postgresql://...
+# PostgreSQL Database (Neon serverless or local Postgres)
+DATABASE_URL="postgresql://user:password@ep-host.region.aws.neon.tech/neondb?sslmode=require"
 
-# Deepgram
-DEEPGRAM_API_KEY=
+# Deepgram Speech & Voice Agent API
+DEEPGRAM_API_KEY=your_deepgram_api_key
 
-# Gemini
-GEMINI_API_KEY=
+# Google Gemini API
+GEMINI_API_KEY=your_gemini_api_key
 
-# Cognee Cloud
+# Cognee Cloud Long-Term Memory
 COGNEE_BASE_URL=https://api.cognee.ai
-COGNEE_API_KEY=
-COGNEE_TENANT_ID=
-COGNEE_USER_ID=
+COGNEE_API_KEY=your_cognee_api_key
+COGNEE_TENANT_ID=your_cognee_tenant_id
+COGNEE_USER_ID=your_cognee_user_id
+
+# System Cron Secret Key
+CRON_SECRET=your_cron_job_secret_key
 ```
 
-### Install & Run
+### Installation & Local Development
 
-```bash
-npm install
-npx prisma generate
-npx prisma db push
-npm run dev
-```
+1. **Install Dependencies**:
+   ```bash
+   npm install
+   ```
 
-### Validation
+2. **Generate Database Client & Push Schema**:
+   ```bash
+   npx prisma generate
+   npx prisma db push
+   ```
 
-```bash
-npm run typecheck
-npm run lint
-npm run build
-```
+3. **Seed Initial Database Content** *(Optional)*:
+   ```bash
+   npm run db:seed
+   ```
 
-### Seed Data
+4. **Launch Development Server**:
+   ```bash
+   npm run dev
+   ```
 
-```bash
-npm run db:seed
-```
+5. **Type Checking & Linting**:
+   ```bash
+   npm run typecheck
+   npm run lint
+   npm run build
+   ```
 
 ---
 
-## Complete Interview Flow
+## 💡 LLM Developer Guidelines & Context
 
-```
-User Login (Clerk)
-  ↓
-Onboarding → Resume Upload → JD Upload
-  ↓
-Resume & JD Parsing (Gemini)
-  ↓
-Retrieve Cognee Memory (recallCandidateMemory)
-  ↓
-Prompt Builder (resume + JD + memory → context)
-  ↓
-Gemini Question Generation
-  ↓
-Interview Session (Deepgram Voice Agent)
-  ├── Agent speaks question (TTS via Voice Agent)
-  ├── Candidate speaks answer (STT via Voice Agent)
-  ├── Complete_answer detected (function call or silence fallback)
-  └── Next question injected (repeat until done)
-  ↓
-Gemini Evaluation (with historical comparison if available)
-  ↓
-Report Generation + Analytics Update
-  ↓
-Cognee Memory Update (remember + improve)
-  ↓
-Next interview uses accumulated memory
-```
+If you are an **LLM assisting with code generation, feature development, or debugging in this repository**, keep the following technical rules in mind:
+
+1. **App Router Conventions**: Next.js 16 is used with Server Actions and API route handlers (`app/api/`). Always maintain clear separation between `"server-only"` modules (services, database calls) and Client Components.
+2. **Deepgram Voice Agent API**: Do NOT replace the WebSocket Voice Agent (`wss://agent.deepgram.com/v1/agent/converse`) with legacy STT/TTS REST calls unless specifically instructed. Audio handling relies on Web Audio API `AudioContext` with **16kHz PCM recorder** and **24kHz PCM player**.
+3. **Cognee Cloud Data-Plane Interface**: All Cognee operations MUST route through [services/cognee.service.ts](file:///c:/Users/trvis/OneDrive/Desktop/WORK/Projects/interview-memory-agent/services/cognee.service.ts). Do not call `lib/cognee/client.ts` directly from API handlers or UI components. Cognee failures must be handled gracefully so core interview operations are never blocked.
+4. **Pipeline Observability Enforcement**: When adding new AI stages or external integrations, update [services/pipelineUsage.service.ts](file:///c:/Users/trvis/OneDrive/Desktop/WORK/Projects/interview-memory-agent/services/pipelineUsage.service.ts) and [lib/ai/pricing.ts](file:///c:/Users/trvis/OneDrive/Desktop/WORK/Projects/interview-memory-agent/lib/ai/pricing.ts) to track execution status, attempt counts, latency, and USD cost metrics.
+5. **State Management**: UI updates during voice interviews belong in [store/useVoiceAgentStore.ts](file:///c:/Users/trvis/OneDrive/Desktop/WORK/Projects/interview-memory-agent/store/useVoiceAgentStore.ts) or [store/useInterviewStore.ts](file:///c:/Users/trvis/OneDrive/Desktop/WORK/Projects/interview-memory-agent/store/useInterviewStore.ts). Avoid duplicating state across local React hooks and Zustand stores.
+6. **Prisma & Schema Changes**: Any schema changes in [prisma/schema.prisma](file:///c:/Users/trvis/OneDrive/Desktop/WORK/Projects/interview-memory-agent/prisma/schema.prisma) must preserve existing models (`User`, `Interview`, `Report`, `InterviewPipelineUsage`, `DeepgramSession`, `AccountDeletionLog`). Always run `npx prisma generate` after altering schemas.
 
 ---
 
-## AI Agent Acknowledgment
+## 📄 License & Acknowledgments
 
-This project was developed with assistance from AI coding agents, including **ChatGPT** and **GitHub Copilot**, which contributed to architecture design, code generation, debugging, and documentation. The entire Cognee integration (Phases 1–7) and voice agent pipeline were collaboratively built with these tools.
+Developed as an advanced AI interview coach. Special acknowledgment to **Deepgram**, **Google Gemini**, **Cognee Cloud**, **Clerk**, and **Vercel** for providing the infrastructure powering Clutchly.
