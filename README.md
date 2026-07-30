@@ -283,7 +283,7 @@ The database is built on **PostgreSQL** using **Prisma ORM** ([prisma/schema.pri
 
 ---
 
-## ⚡ Client State Management (Zustand Stores)
+##  Client State Management (Zustand Stores)
 
 State management is decoupled into distinct client-side Zustand stores ([store/](file:///c:/Users/trvis/OneDrive/Desktop/WORK/Projects/interview-memory-agent/store)):
 
