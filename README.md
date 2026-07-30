@@ -6,7 +6,7 @@ Built with **Next.js 16 (App Router)**, **Deepgram Voice Agent API**, **Google G
 
 ---
 
-## 📌 Executive Summary & Architecture Overview
+##  Executive Summary & Architecture Overview
 
 Interview Memory Agent (Clutchly) is an interactive voice-first AI interview coach. Unlike simple chatbot interfaces, Clutchly creates realistic, adaptive technical and behavioral interviews. It remembers a user's performance across multiple sessions using long-term semantic graph memory, dynamically tailoring future questions to address historical weaknesses, reinforce strengths, and track longitudinal progress over time.
 
@@ -41,7 +41,7 @@ Interview Memory Agent (Clutchly) is an interactive voice-first AI interview coa
 
 ---
 
-## 🛠️ Technology Stack
+##  Technology Stack
 
 | Component | Technology / Library | Purpose |
 | :--- | :--- | :--- |
@@ -142,7 +142,7 @@ interview-memory-agent/
 
 ---
 
-## 🎙️ Deepgram Voice Agent Architecture (Full-Duplex Speech System)
+##  Deepgram Voice Agent Architecture (Full-Duplex Speech System)
 
 The primary voice interface of Clutchly uses **Deepgram's Voice Agent API** (`wss://agent.deepgram.com/v1/agent/converse`). This replaces legacy fragmented STT/TTS calls with a single WebSocket session managing real-time speech input, LLM-based turn-taking, barge-in detection, and natural TTS playback.
 
