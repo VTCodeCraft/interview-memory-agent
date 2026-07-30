@@ -31,14 +31,14 @@ export default function Header() {
           >
             How it Works
           </Link>
-          <Link 
-            href="/#pricing" 
+          {/* <Link
+            href="/#pricing"
             className="font-label-sm text-label-sm text-on-surface-variant hover:text-primary transition-colors font-semibold"
           >
             Pricing
-          </Link>
-          <Link 
-            href="/#faq" 
+          </Link> */}
+          <Link
+            href="/#faq"
             className="font-label-sm text-label-sm text-on-surface-variant hover:text-primary transition-colors font-semibold"
           >
             FAQ

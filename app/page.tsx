@@ -6,7 +6,7 @@ import HeroSection from "@/components/landing-page/HeroSection";
 import SocialProofSection from "@/components/landing-page/SocialProofSection";
 import CoreFeaturesSection from "@/components/landing-page/CoreFeaturesSection";
 import HowItWorksSection from "@/components/landing-page/HowItWorksSection";
-import PricingSection from "@/components/landing-page/PricingSection";
+// import PricingSection from "@/components/landing-page/PricingSection";
 import FaqSection from "@/components/landing-page/FaqSection";
 import Footer from "@/components/landing-page/Footer";
 import SectionDivider from "@/components/landing-page/SectionDivider";
@@ -36,8 +36,8 @@ export default async function Home() {
       <SectionDivider />
       <HowItWorksSection clerkId={clerkId} setupDone={setupDone} />
       <SectionDivider />
-      <PricingSection clerkId={clerkId} setupDone={setupDone} />
-      <SectionDivider />
+      {/* <PricingSection clerkId={clerkId} setupDone={setupDone} />
+      <SectionDivider /> */}
       <FaqSection />
       <SectionDivider />
       <Footer />

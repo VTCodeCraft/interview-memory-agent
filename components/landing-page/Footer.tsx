@@ -142,7 +142,7 @@ export default function Footer() {
             </p>
             <div className="flex items-center gap-xs">
               <p className="font-label-sm text-label-sm text-on-surface-variant">
-                Built with <span className="text-error">❤️</span> love by Samarth Chawla, Vishesh Tripathi &amp; Utsav Gupta
+                Built with <span className="text-error">❤️</span> love by Vishesh Tripathi
               </p>
             </div>
           </div>
