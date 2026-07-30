@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import {
   APP_NAME,
   ROUTES,
@@ -52,9 +53,7 @@ export default function Footer() {
             {/* Left: Branding & Bio */}
             <div className="lg:col-span-5 flex flex-col gap-sm">
               <div className="flex items-center gap-xs">
-                <div className="w-8 h-8 bg-primary-container rounded-lg flex items-center justify-center">
-                  <span className="material-symbols-outlined text-on-primary text-[20px]">auto_awesome</span>
-                </div>
+                <Image src="/logo.png" alt={APP_NAME} width={32} height={32} className="w-8 h-8 object-contain" />
                 <span className="font-headline-sm text-headline-sm font-bold tracking-tight text-on-surface">{APP_NAME}</span>
               </div>
               <p className="font-body-md text-body-md text-on-surface-variant max-w-sm leading-relaxed">

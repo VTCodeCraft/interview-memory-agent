@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { useClerk, useUser } from "@clerk/nextjs";
 import { APP_NAME, ROUTES } from "@/lib/utils/constants";
@@ -114,6 +115,7 @@ export default function Sidebar({
       {/* Mobile Header (Visible only on < lg screens) */}
       <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-white border-b border-outline-variant/30 flex items-center justify-between px-4 z-[40]">
         <Link href={ROUTES.home} className="flex items-center gap-2">
+          <Image src="/logo.png" alt={APP_NAME} width={28} height={28} className="w-7 h-7 object-contain" />
           <span className="font-display font-extrabold text-primary text-xl">{APP_NAME}</span>
         </Link>
         <button
@@ -140,8 +142,9 @@ export default function Sidebar({
         } lg:translate-x-0`}
       >
       <div className="mb-10 px-sm">
-        <Link href={ROUTES.home}>
-          <h1 className="font-display text-xl md:text-2xl font-extrabold text-primary hover:opacity-85 transition-opacity">
+        <Link href={ROUTES.home} className="flex items-center gap-2 hover:opacity-85 transition-opacity">
+          <Image src="/logo.png" alt={APP_NAME} width={32} height={32} className="w-8 h-8 object-contain" />
+          <h1 className="font-display text-xl md:text-2xl font-extrabold text-primary">
             {APP_NAME}
           </h1>
         </Link>

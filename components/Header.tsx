@@ -2,6 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { SignInButton, SignUpButton, UserButton, Show } from "@clerk/nextjs";
 import { ROUTES } from "@/lib/utils/constants";
 
@@ -11,9 +12,7 @@ export default function Header() {
       <nav className="w-[88%] max-w-7xl h-[56px] flex items-center justify-between px-6 bg-white/80 backdrop-blur-md rounded-[18px] shadow-[0_10px_40px_rgba(0,0,0,0.05)] border border-outline-variant/20">
         <div className="flex items-center gap-2">
           <Link href="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-              <span className="material-symbols-outlined text-white !text-[18px]">bolt</span>
-            </div>
+            <Image src="/logo.png" alt="Clutchly" width={32} height={32} className="w-8 h-8 object-contain" priority />
             <span className="font-bold text-base text-on-surface">Clutchly</span>
           </Link>
         </div>
