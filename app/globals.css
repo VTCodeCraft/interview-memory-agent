@@ -1,5 +1,295 @@
 @import "tailwindcss";
 
+/*
+ * Clutchly design system tokens (new pages only).
+ *
+ * Defaults below are the recommended direction, "Precision". The design
+ * preview (/design-preview) re-themes a subtree by overriding these variables
+ * to compare the other explored directions; utilities reference variables, so
+ * the same components render in every direction.
+ *
+ * Migration: names deliberately do not overlap with the legacy Material-style
+ * tokens further down this file (primary, surface, on-surface, ...), so
+ * existing pages render exactly as before. Redesigned pages opt in via
+ * `ds-page` and these utilities. Once every page has migrated, delete the
+ * legacy block, the Bricolage body font and Material Symbols.
+ *
+ * `static`: emit every token as a CSS variable even when no utility uses it.
+ */
+@theme static {
+  /* ── Typography ───────────────────────────────────────────────────────── */
+  /* Mona Sans (app/fonts.ts): variable weight and width. Display text uses a
+     slightly expanded width; UI and data use the normal width with tabular
+     figures for scores and timers. */
+  --font-brand: var(--font-mona-sans), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: var(--font-mona-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-data: var(--font-geist-mono), ui-monospace, "SFMono-Regular", monospace;
+
+  --text-display: clamp(2.6rem, 1.55rem + 4.4vw, 4.6rem);
+  --text-display--line-height: 1.02;
+  --text-display--letter-spacing: -0.042em;
+  --text-display--font-weight: 620;
+
+  --text-headline: clamp(2rem, 1.45rem + 2.3vw, 3.1rem);
+  --text-headline--line-height: 1.06;
+  --text-headline--letter-spacing: -0.035em;
+  --text-headline--font-weight: 620;
+
+  --text-title: clamp(1.5rem, 1.3rem + 0.8vw, 1.875rem);
+  --text-title--line-height: 1.15;
+  --text-title--letter-spacing: -0.025em;
+  --text-title--font-weight: 620;
+
+  --text-heading: 1.1875rem;
+  --text-heading--line-height: 1.3;
+  --text-heading--letter-spacing: -0.015em;
+  --text-heading--font-weight: 600;
+
+  --text-subheading: 0.96875rem;
+  --text-subheading--line-height: 1.4;
+  --text-subheading--letter-spacing: -0.008em;
+  --text-subheading--font-weight: 600;
+
+  --text-lead: clamp(1.0625rem, 0.98rem + 0.35vw, 1.25rem);
+  --text-lead--line-height: 1.55;
+  --text-lead--letter-spacing: -0.008em;
+
+  --text-body: 0.9375rem;
+  --text-body--line-height: 1.6;
+
+  --text-small: 0.8125rem;
+  --text-small--line-height: 1.5;
+
+  --text-label: 0.75rem;
+  --text-label--line-height: 1.35;
+  --text-label--letter-spacing: 0.005em;
+  --text-label--font-weight: 560;
+
+  --text-metric: clamp(2.5rem, 2.1rem + 1.6vw, 3.5rem);
+  --text-metric--line-height: 1;
+  --text-metric--letter-spacing: -0.04em;
+  --text-metric--font-weight: 600;
+
+  --text-metric-sm: 1.5rem;
+  --text-metric-sm--line-height: 1.1;
+  --text-metric-sm--letter-spacing: -0.025em;
+  --text-metric-sm--font-weight: 600;
+
+  /* ── Neutrals ─────────────────────────────────────────────────────────── */
+  --color-canvas: #f8f8f6;       /* page background */
+  --color-panel: #ffffff;        /* cards, inputs, menus */
+  --color-sunken: #f1f1ee;       /* wells, table headers, hover rows */
+  --color-line-subtle: #ecece8;  /* dividers inside panels */
+  --color-line: #e3e3de;         /* card and panel borders */
+  --color-line-strong: #cfcfc9;  /* emphasised dividers, secondary buttons */
+  --color-line-control: #8a8b86; /* form-control borders (3.4:1 on white) */
+  --color-fg: #0c0d10;           /* primary text (19.4:1 on white) */
+  --color-fg-muted: #4e5057;     /* secondary text (7.6:1 on canvas) */
+  --color-fg-subtle: #686a71;    /* metadata, placeholders (5.1:1 on canvas) */
+  --color-fg-disabled: #a3a4a8;  /* disabled text (exempt) */
+  --color-inverse: #111216;      /* tooltips, toasts, dark panels */
+  --color-fg-inverse: #f4f4f2;
+
+  /* ── Accent: Ultramarine ──────────────────────────────────────────────── */
+  /* Intelligence and focus. Links, active navigation, selection, data and
+     every "remembered" moment. Close to the existing logo's hue, so the
+     current mark stays coherent. */
+  --color-brand: #3541e2;        /* 7.0:1 with white */
+  --color-brand-hover: #2a35c4;
+  --color-brand-active: #222ca3;
+  --color-brand-soft: #f0f1fe;
+  --color-brand-tint: #e3e6fc;
+  --color-brand-ink: #252fb0;
+  --color-on-brand: #ffffff;
+
+  /* Primary action: ink. Buttons stay calm; the accent is reserved for
+     meaning. */
+  --color-action: #0c0d10;
+  --color-action-hover: #26282e;
+  --color-action-active: #3a3c42;
+  --color-on-action: #ffffff;
+
+  /* Memory = the accent, so the product's core idea and the brand colour are
+     the same thing. */
+  --color-memory: #3541e2;
+  --color-memory-soft: #f0f1fe;
+  --color-memory-line: #c9cefa;
+
+  /* ── Status ───────────────────────────────────────────────────────────── */
+  --color-success: #17793a;
+  --color-success-soft: #e9f6ed;
+  --color-success-line: #bfe3cb;
+  --color-warning: #a94b05;
+  --color-warning-soft: #fff3e6;
+  --color-warning-line: #f6cfa4;
+  --color-danger: #c0291d;
+  --color-danger-hover: #a12218;
+  --color-danger-soft: #fdecea;
+  --color-danger-line: #f5c6c0;
+  --color-info: #2a55b8;
+  --color-info-soft: #edf2fc;
+  --color-info-line: #c6d5f3;
+  --color-focus: #3541e2;
+
+  /* ── Data visualisation ───────────────────────────────────────────────── */
+  /* Single-series charts use the accent with a dashed neutral baseline.
+     Categorical order for multi-series; always label series directly. */
+  --color-chart-1: #3541e2;
+  --color-chart-2: #0e8a7a;
+  --color-chart-3: #c9721a;
+  --color-chart-4: #b4446c;
+  --color-chart-baseline: #a6a7a2;
+  --color-chart-grid: #ecece8;
+
+  /* ── Shape ────────────────────────────────────────────────────────────── */
+  --radius-control: 0.625rem;  /* inputs, selects */
+  --radius-button: 0.625rem;   /* buttons */
+  --radius-card: 0.875rem;     /* cards, panels */
+  --radius-overlay: 0.875rem;  /* menus, dialogs */
+  --radius-badge: 0.375rem;
+  --radius-bezel: 1.375rem;    /* outer frame around product previews */
+
+  /* ── Elevation: diffused and tinted to the ink, never pure black ─────── */
+  --shadow-control: 0 1px 1px rgb(12 13 16 / 0.05), 0 1px 3px rgb(12 13 16 / 0.04);
+  --shadow-card: 0 1px 2px rgb(12 13 16 / 0.04), 0 10px 28px -14px rgb(12 13 16 / 0.12);
+  --shadow-raised: 0 2px 6px rgb(12 13 16 / 0.05), 0 28px 56px -28px rgb(12 13 16 / 0.28);
+  --shadow-overlay: 0 4px 12px rgb(12 13 16 / 0.06), 0 32px 64px -24px rgb(12 13 16 / 0.32);
+
+  /* ── Layout ───────────────────────────────────────────────────────────── */
+  --container-page: 76rem;     /* 1216px content column under the top nav */
+  --container-reading: 40rem;  /* long-form text and single-column forms */
+  --spacing-page: clamp(1.25rem, 4vw, 2.5rem);
+  --spacing-section: clamp(4.5rem, 3rem + 6vw, 8.5rem);
+  --spacing-nav: 4rem;
+
+  /* ── Motion ───────────────────────────────────────────────────────────── */
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-enter: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-exit: cubic-bezier(0.4, 0, 1, 1);
+  --duration-fast: 120ms;
+  --duration-base: 180ms;
+  --duration-slow: 320ms;
+  --animate-fade-in: ds-fade-in 360ms cubic-bezier(0.16, 1, 0.3, 1) both;
+
+  /* ── Layers ───────────────────────────────────────────────────────────── */
+  --z-nav: 40;
+  --z-dropdown: 50;
+  --z-overlay: 60;
+  --z-toast: 70;
+
+  @keyframes ds-fade-in {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+}
+
+/*
+ * Direction-level surface treatments, also overridable per subtree:
+ *   --canvas-image        background image layered over the canvas colour
+ *   --surface-backdrop    backdrop-filter for panels (glass in Spatial)
+ *   --surface-highlight   inner highlight on panels
+ *   --display-variation   font-variation-settings for display text (width)
+ *   --emphasis-style / --emphasis-color   <em> inside headlines
+ *   --bezel-padding / --bezel-fill / --bezel-ring / --bezel-shadow
+ *                         outer frame around product previews (ds-bezel)
+ * Values that reference other tokens are resolved where they are declared,
+ * so a direction that changes --color-brand must also restate
+ * --emphasis-color (see app/design-preview/_components/directions.ts).
+ */
+:root {
+  --canvas-image: none;
+  --surface-backdrop: none;
+  --surface-highlight: inset 0 1px 0 rgb(255 255 255 / 0.6);
+  --display-variation: "wdth" 108;
+  --emphasis-style: normal;
+  --emphasis-color: var(--color-brand);
+  --bezel-padding: 0.375rem;
+  --bezel-fill: rgb(12 13 16 / 0.035);
+  --bezel-ring: rgb(12 13 16 / 0.07);
+}
+
+/* Visible keyboard focus for interactive elements (2px accent ring, offset). */
+@utility focus-ring {
+  &:focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
+  }
+}
+
+/* Root of a page built with the new system. */
+@utility ds-page {
+  background-color: var(--color-canvas);
+  background-image: var(--canvas-image);
+  background-attachment: fixed;
+  color: var(--color-fg);
+  font-family: var(--font-brand);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* Display typography: the direction's display family and width axis. */
+@utility ds-display {
+  font-family: var(--font-display);
+  font-variation-settings: var(--display-variation);
+  & em {
+    font-style: var(--emphasis-style);
+    color: var(--emphasis-color);
+  }
+}
+
+/* Panel surface: colour, hairline, elevation and (where a direction uses
+   it) a backdrop blur. */
+@utility ds-surface {
+  background-color: var(--color-panel);
+  border: 1px solid var(--color-line);
+  box-shadow: var(--surface-highlight), var(--shadow-card);
+  backdrop-filter: var(--surface-backdrop);
+  -webkit-backdrop-filter: var(--surface-backdrop);
+}
+
+/* Outer frame ("bezel") around product previews and feature canvases, with
+   a concentric inner panel (ds-bezel-core). */
+@utility ds-bezel {
+  padding: var(--bezel-padding);
+  border-radius: var(--radius-bezel);
+  background-color: var(--bezel-fill);
+  box-shadow: 0 0 0 1px var(--bezel-ring), var(--bezel-shadow, var(--shadow-raised));
+}
+
+@utility ds-bezel-core {
+  border-radius: max(0px, calc(var(--radius-bezel) - var(--bezel-padding)));
+}
+
+/* Rows and segments nested inside a control-radius container. */
+@utility rounded-item {
+  border-radius: max(0px, calc(var(--radius-control) - 0.25rem));
+}
+
+/* Horizontally scrollable rows (tab lists, section navs) without a visible bar. */
+@utility scrollbar-hidden {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Centred content column used by every page under the top navigation. */
+@utility ds-container {
+  margin-inline: auto;
+  width: 100%;
+  max-width: var(--container-page);
+  padding-inline: var(--spacing-page);
+}
+
+/* ════════════════ End of design-system tokens. Legacy tokens below. ════════════════ */
+
 html {
   scroll-behavior: smooth;
 }

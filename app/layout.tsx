@@ -10,6 +10,7 @@ import { Geist, Geist_Mono, Bricolage_Grotesque } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 
 import { UserSync } from "@/components/auth/UserSync";
+import { brandSans } from "./fonts";
 import { POST_AUTH_REDIRECT, ROUTES } from "@/lib/utils/constants";
 import { Toaster } from "react-hot-toast";
 
@@ -74,7 +75,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${bricolageGrotesque.variable} ${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${bricolageGrotesque.variable} ${geistSans.variable} ${geistMono.variable} ${brandSans.variable} h-full antialiased`}
       suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col" suppressHydrationWarning>
