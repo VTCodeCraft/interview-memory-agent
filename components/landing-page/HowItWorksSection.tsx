@@ -22,7 +22,7 @@ const STEPS = [
 
 export default function HowItWorksSection(auth: AuthState) {
   return (
-    <section id="how-it-works" aria-labelledby="how-title" className="ds-container scroll-mt-20 pt-(--spacing-section)">
+    <section id="how-it-works" aria-labelledby="how-title" className="ds-container mt-(--spacing-section) scroll-mt-22">
       <SectionHeading
         id="how-title"
         title="How Clutchly works."

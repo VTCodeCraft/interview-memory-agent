@@ -36,7 +36,7 @@ const TYPES = [
 
 export default function CoreFeaturesSection() {
   return (
-    <section id="features" aria-labelledby="features-title" className="ds-container scroll-mt-20 pt-(--spacing-section)">
+    <section id="features" aria-labelledby="features-title" className="ds-container mt-(--spacing-section) scroll-mt-22">
       <SectionHeading
         id="features-title"
         title="Practice that builds on itself."

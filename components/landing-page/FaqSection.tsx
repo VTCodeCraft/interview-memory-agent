@@ -82,7 +82,7 @@ export default function FaqSection({ limit, period }: { limit: number; period: U
   const faqs = buildFaqs(limit, period);
 
   return (
-    <section id="faq" aria-labelledby="faq-title" className="ds-container scroll-mt-20 pt-(--spacing-section)">
+    <section id="faq" aria-labelledby="faq-title" className="ds-container mt-(--spacing-section) scroll-mt-22">
       <div className="grid gap-10 lg:grid-cols-12 lg:gap-12">
         <div className="lg:col-span-4">
           <SectionHeading id="faq-title" title="Questions, answered." className="lg:block" />

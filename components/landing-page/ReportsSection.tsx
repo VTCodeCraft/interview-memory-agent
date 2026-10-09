@@ -54,7 +54,7 @@ function ListBlock({ title, items, icon: Icon, tone }: { title: string; items: s
 
 export default function ReportsSection() {
   return (
-    <section id="reports" aria-labelledby="reports-title" className="ds-container scroll-mt-20 pt-(--spacing-section)">
+    <section id="reports" aria-labelledby="reports-title" className="ds-container mt-(--spacing-section) scroll-mt-22">
       <SectionHeading
         id="reports-title"
         title={

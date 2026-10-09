@@ -16,7 +16,7 @@ export default function PricingSection({
   const plans = getPlans(limit, period);
 
   return (
-    <section id="pricing" aria-labelledby="pricing-title" className="ds-container scroll-mt-20 pt-(--spacing-section)">
+    <section id="pricing" aria-labelledby="pricing-title" className="ds-container mt-(--spacing-section) scroll-mt-22">
       <SectionHeading
         id="pricing-title"
         title="Simple pricing. Start free."
