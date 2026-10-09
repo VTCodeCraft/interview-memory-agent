@@ -48,8 +48,14 @@ export default function PricingSection({
             <p className="mt-1 text-small text-fg-muted">{plan.tagline}</p>
 
             <p className="mt-6 flex items-baseline gap-1">
-              <span className="ds-display text-metric text-fg">{plan.price}</span>
-              <span className="text-body text-fg-muted">{plan.period}</span>
+              {plan.price ? (
+                <>
+                  <span className="ds-display text-metric text-fg">{plan.price}</span>
+                  <span className="text-body text-fg-muted">{plan.period}</span>
+                </>
+              ) : (
+                <span className="ds-display text-title text-fg-muted">To be announced</span>
+              )}
             </p>
 
             <ul className="mt-6 flex flex-1 flex-col gap-3 border-t border-line-subtle pt-6">
@@ -74,7 +80,9 @@ export default function PricingSection({
         ))}
       </ul>
 
-      <p className="mt-5 text-small text-fg-subtle">Paid plans are not available yet. Prices and features may change before launch.</p>
+      <p className="mt-5 text-small text-fg-subtle">
+        Pro and Premium are planned and not available yet. There are no paid plans today.
+      </p>
     </section>
   );
 }
