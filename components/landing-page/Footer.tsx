@@ -76,7 +76,9 @@ export default function Footer() {
       </div>
       <div className="flex flex-col gap-2 border-t border-line-subtle py-6 text-label font-normal text-fg-subtle sm:flex-row sm:items-center sm:justify-between">
         <p>&copy; 2026 Clutchly. All rights reserved.</p>
-        <p>Built by Vishesh Tripathi</p>
+        <p>
+          Built by <span role="img" aria-label="love">💖</span> Vishesh and Samarth
+        </p>
       </div>
     </footer>
   );
