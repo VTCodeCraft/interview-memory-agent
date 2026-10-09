@@ -1,58 +1,80 @@
 import { Check } from "lucide-react";
 
-import AuthCta, { type AuthState } from "./AuthCta";
+import { buttonVariants } from "@/components/ui/button";
 import type { UsageWindow } from "@/lib/config/limits";
+import { cn } from "@/lib/utils";
+import AuthCta, { type AuthState } from "./AuthCta";
+import { getPlans } from "./pricing-plans";
 import SectionHeading from "./SectionHeading";
 
-// Mirrors the product today: one free plan; the limit comes from
-// lib/config/limits.ts via app/page.tsx.
-const INCLUDED = [
-  "Voice interviews: technical, behavioral and system design",
-  "Questions based on your resume, role, company and level",
-  "Interview memory that shapes each new interview",
-  "A scored report after every interview",
-  "Progress tracking on your Memory page",
-];
-
+/** Three-tier pricing. Plan content lives in pricing-plans.ts (paid tiers are demo content). */
 export default function PricingSection({
   limit,
   period,
   ...auth
 }: AuthState & { limit: number; period: UsageWindow }) {
+  const plans = getPlans(limit, period);
+
   return (
     <section id="pricing" aria-labelledby="pricing-title" className="ds-container scroll-mt-20 pt-(--spacing-section)">
       <SectionHeading
         id="pricing-title"
-        title="Simple, free to start."
-        intro="Clutchly currently has one plan. No payment details are needed to sign up."
+        title="Simple pricing. Start free."
+        intro="Practice for free today. Paid plans with more interviews are on the way."
       />
 
-      <div className="ds-surface mt-10 grid overflow-hidden rounded-card sm:mt-14 md:grid-cols-12">
-        <div className="flex flex-col justify-between gap-8 border-b border-line-subtle p-6 sm:p-8 md:col-span-5 md:border-r md:border-b-0">
-          <div>
-            <p className="text-small font-semibold text-fg">Free</p>
-            <p className="mt-3 flex items-baseline gap-2">
-              <span className="ds-display text-metric text-fg">{limit}</span>
-              <span className="text-body text-fg-muted">interviews per {period}</span>
+      <ul className="mt-10 grid gap-4 sm:mt-14 sm:gap-5 lg:grid-cols-3">
+        {plans.map((plan) => (
+          <li
+            key={plan.name}
+            className={cn(
+              "flex flex-col rounded-card border bg-panel p-6 sm:p-8",
+              plan.featured ? "border-fg shadow-raised" : "border-line shadow-card",
+            )}
+          >
+            <div className="flex items-center justify-between gap-3">
+              <h3 className="text-heading text-fg">{plan.name}</h3>
+              <span
+                className={cn(
+                  "inline-flex h-6 items-center rounded-badge border px-2 text-label",
+                  plan.available
+                    ? "border-success-line bg-success-soft text-success"
+                    : "border-line bg-sunken text-fg-muted",
+                )}
+              >
+                {plan.available ? "Available now" : "Coming soon"}
+              </span>
+            </div>
+            <p className="mt-1 text-small text-fg-muted">{plan.tagline}</p>
+
+            <p className="mt-6 flex items-baseline gap-1">
+              <span className="ds-display text-metric text-fg">{plan.price}</span>
+              <span className="text-body text-fg-muted">{plan.period}</span>
             </p>
-            <p className="mt-3 text-small text-fg-muted">
-              Cancelled interviews count toward the limit. One interview can be in progress at a time.
-            </p>
-          </div>
-          <AuthCta {...auth} size="md" signedOutLabel="Create a free account" className="self-start" />
-        </div>
-        <div className="p-6 sm:p-8 md:col-span-7">
-          <p className="text-label font-semibold text-fg-subtle">Included</p>
-          <ul className="mt-4 flex flex-col gap-3">
-            {INCLUDED.map((item) => (
-              <li key={item} className="flex gap-3 text-body text-fg">
-                <Check aria-hidden strokeWidth={2} className="mt-1 size-4 shrink-0 text-brand" />
-                {item}
-              </li>
-            ))}
-          </ul>
-        </div>
-      </div>
+
+            <ul className="mt-6 flex flex-1 flex-col gap-3 border-t border-line-subtle pt-6">
+              {plan.features.map((feature) => (
+                <li key={feature} className="flex gap-3 text-body text-fg">
+                  <Check aria-hidden strokeWidth={2} className="mt-1 size-4 shrink-0 text-brand" />
+                  {feature}
+                </li>
+              ))}
+            </ul>
+
+            <div className="mt-8">
+              {plan.available ? (
+                <AuthCta {...auth} size="md" signedOutLabel="Start for free" className="w-full" />
+              ) : (
+                <button type="button" disabled className={cn(buttonVariants({ variant: "secondary" }), "w-full")}>
+                  Coming soon
+                </button>
+              )}
+            </div>
+          </li>
+        ))}
+      </ul>
+
+      <p className="mt-5 text-small text-fg-subtle">Paid plans are not available yet. Prices and features may change before launch.</p>
     </section>
   );
 }
