@@ -10,6 +10,7 @@ import { Geist, Geist_Mono, Bricolage_Grotesque } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 
 import { UserSync } from "@/components/auth/UserSync";
+import { POST_AUTH_REDIRECT, ROUTES } from "@/lib/utils/constants";
 import { Toaster } from "react-hot-toast";
 
 import "@fontsource-variable/material-symbols-outlined";
@@ -77,7 +78,14 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col" suppressHydrationWarning>
-        <ClerkProvider>
+        {/* Fallbacks apply when Clerk has no redirect_url (e.g. protected-route
+            sign-ins carry their own return URL). The (app) layout then routes
+            users who have not finished onboarding to /onboarding. */}
+        <ClerkProvider
+          afterSignOutUrl={ROUTES.home}
+          signInFallbackRedirectUrl={POST_AUTH_REDIRECT}
+          signUpFallbackRedirectUrl={POST_AUTH_REDIRECT}
+        >
           <UserSync />
           <Toaster position="bottom-right" />
           {children}

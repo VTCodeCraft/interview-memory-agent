@@ -198,7 +198,7 @@ export default function HowItWorksSection({ clerkId, setupDone }: HowItWorksSect
                 </Link>
               )}
               {clerkId && setupDone && (
-                <Link href="/dashboard/interview">
+                <Link href="/interviews/new">
                   <button className="bg-primary text-white px-xl py-4 rounded-full font-label-md text-label-md flex items-center gap-2 hover:opacity-90 active:scale-95 transition-all duration-200 premium-shadow cursor-pointer">
                     Start Your First Interview
                     <span className="material-symbols-outlined">arrow_forward</span>

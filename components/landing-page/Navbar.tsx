@@ -63,7 +63,7 @@ export default function Navbar({ clerkId, setupDone }: NavbarProps) {
         ) : (
           <>
             <Link 
-              href={setupDone ? ROUTES.interview : ROUTES.onboarding}
+              href={setupDone ? ROUTES.interviews : ROUTES.onboarding}
               className="font-label-sm text-label-sm bg-primary text-white px-4 py-2 rounded-full hover:bg-[#4338CA] transition-colors cursor-pointer shadow-sm font-bold"
             >
               Dashboard

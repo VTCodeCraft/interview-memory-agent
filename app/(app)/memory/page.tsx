@@ -170,7 +170,7 @@ export default function MemoryPage() {
               </div>
 
               <button
-                onClick={() => router.push(ROUTES.interview)}
+                onClick={() => router.push(ROUTES.newInterview)}
                 className="bg-[#240A8A] text-white font-bold text-sm px-10 py-3.5 rounded-full hover:scale-105 transition-transform shadow-lg shadow-primary/20 cursor-pointer"
               >
                 Start First Interview

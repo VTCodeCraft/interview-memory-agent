@@ -3,10 +3,28 @@ import { NextFetchEvent, NextRequest, NextResponse } from "next/server";
 
 import { checkRateLimit, rateLimitHeaders, RATE_LIMIT_BODY } from "@/lib/rate-limit/rate-limiter";
 import { findRuleIndex, RATE_LIMIT_CONFIG } from "@/lib/rate-limit/config";
+import { APP_PATH_HEADER } from "@/lib/routing/redirect";
+
+// Signed-in product pages (app/(app)/*). Onboarding completion is enforced by
+// app/(app)/layout.tsx; this proxy only guarantees a Clerk session.
+const isAppPageRoute = createRouteMatcher([
+  "/interviews(.*)",
+  "/reports(.*)",
+  "/memory(.*)",
+  "/analytics(.*)",
+  "/profile(.*)",
+]);
 
 const isProtectedRoute = createRouteMatcher([
   // App pages (require auth)
-  "/onboarding",
+  "/onboarding(.*)",
+  "/interviews(.*)",
+  "/reports(.*)",
+  "/memory(.*)",
+  "/analytics(.*)",
+  "/profile(.*)",
+  // Legacy URLs — redirected to the routes above by next.config.ts, which runs
+  // before this proxy. Kept protected so unknown /dashboard/* paths never leak.
   "/dashboard(.*)",
   // API routes (require auth — except webhooks)
   "/api/auth/me",
@@ -28,6 +46,15 @@ const isPublicRoute = createRouteMatcher([
 const clerk = clerkMiddleware(async (auth, req) => {
   if (isProtectedRoute(req) && !isPublicRoute(req)) {
     await auth.protect();
+  }
+
+  // Forward the requested path so the (app) layout can send incomplete users to
+  // /onboarding?next=<path>. Always overwritten here, so clients cannot inject
+  // it, and the layout validates it again before use.
+  if (isAppPageRoute(req)) {
+    const requestHeaders = new Headers(req.headers);
+    requestHeaders.set(APP_PATH_HEADER, `${req.nextUrl.pathname}${req.nextUrl.search}`);
+    return NextResponse.next({ request: { headers: requestHeaders } });
   }
 });
 

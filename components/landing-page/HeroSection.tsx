@@ -53,7 +53,7 @@ export default function HeroSection({ clerkId, setupDone }: HeroSectionProps) {
             </Link>
           )}
           {clerkId && setupDone && (
-            <Link href={ROUTES.interview}>
+            <Link href={ROUTES.newInterview}>
               <button className="bg-on-surface text-white h-[52px] px-8 rounded-full font-label-md text-label-md flex items-center gap-3 hover:scale-105 active:scale-95 transition-all shadow-xl group cursor-pointer">
                 Start Practicing
                 <div className="w-7 h-7 bg-white/20 rounded-full flex items-center justify-center group-hover:bg-white/30 transition-colors">

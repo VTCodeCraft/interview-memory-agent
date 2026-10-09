@@ -181,3 +181,76 @@ export async function getReport(reportId: string): Promise<Report | null> {
   if (!report) return null;
   return prismaReportToReport(report, report.interview.userId);
 }
+
+export interface ReportInterviewSummary {
+  interviewId: string;
+  role: string;
+  company: string | null;
+  status: InterviewStatus;
+  createdAt: string;
+}
+
+/**
+ * What /reports/[id] should show for one of the user's interviews. Reports are
+ * generated asynchronously (POST /api/interview/end queues a job that
+ * /api/cron/process-reports runs), so "no report yet" has several meanings.
+ */
+export type InterviewReportView =
+  | { state: "ready"; report: Report }
+  | { state: "processing"; interview: ReportInterviewSummary }
+  | { state: "failed"; interview: ReportInterviewSummary }
+  | { state: "in_progress"; interview: ReportInterviewSummary }
+  | { state: "unavailable"; interview: ReportInterviewSummary };
+
+const ACTIVE_STATUSES: InterviewStatus[] = [
+  InterviewStatus.PENDING,
+  InterviewStatus.GENERATING,
+  InterviewStatus.READY,
+  InterviewStatus.ONGOING,
+];
+
+/** Report state for an interview owned by `userId`; null if not found / not owned. */
+export async function getInterviewReportView(
+  userId: string,
+  interviewId: string,
+): Promise<InterviewReportView | null> {
+  const interview = await prisma.interview.findFirst({
+    where: { id: interviewId, userId },
+    select: {
+      id: true,
+      status: true,
+      role: true,
+      company: true,
+      customCompanyName: true,
+      createdAt: true,
+      report: { include: { interview: { select: INTERVIEW_SELECT } } },
+      reportGenerationJob: { select: { status: true } },
+    },
+  });
+
+  if (!interview) return null;
+
+  if (interview.report) {
+    return { state: "ready", report: prismaReportToReport(interview.report, userId) };
+  }
+
+  const summary: ReportInterviewSummary = {
+    interviewId: interview.id,
+    role: interview.role,
+    company: interview.customCompanyName || interview.company || null,
+    status: interview.status,
+    createdAt: interview.createdAt.toISOString(),
+  };
+
+  const jobStatus = interview.reportGenerationJob?.status;
+  if (jobStatus === "PENDING" || jobStatus === "PROCESSING") {
+    return { state: "processing", interview: summary };
+  }
+  if (jobStatus === "FAILED") {
+    return { state: "failed", interview: summary };
+  }
+  if (ACTIVE_STATUSES.includes(interview.status)) {
+    return { state: "in_progress", interview: summary };
+  }
+  return { state: "unavailable", interview: summary };
+}

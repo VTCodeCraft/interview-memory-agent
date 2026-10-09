@@ -12,11 +12,11 @@ import {
 } from "@/lib/utils/constants";
 
 const productLinks = [
-  { label: "Dashboard", href: ROUTES.dashboard },
-  { label: "New Interview", href: ROUTES.interview },
+  { label: "Dashboard", href: ROUTES.interviews },
+  { label: "New Interview", href: ROUTES.newInterview },
   { label: "Reports", href: ROUTES.reports },
   { label: "AI Memory", href: ROUTES.memory },
-  { label: "Settings", href: ROUTES.settings },
+  { label: "Settings", href: ROUTES.profile },
 ];
 
 const supportLinks = [
@@ -27,8 +27,8 @@ const supportLinks = [
 ];
 
 const legalLinks = [
-  { label: "Privacy Policy", href: "/privacy" },
-  { label: "Terms of Service", href: "/terms" },
+  { label: "Privacy Policy", href: ROUTES.privacy },
+  { label: "Terms of Service", href: ROUTES.terms },
 ];
 
 interface FooterProps {

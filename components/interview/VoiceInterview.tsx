@@ -9,7 +9,7 @@ import { useVoiceAgentStore } from "@/store/useVoiceAgentStore";
 import { useInterviewStore } from "@/store/useInterviewStore";
 import type { ConversationState } from "@/types/voiceAgent";
 import type { Interview } from "@/types";
-import { API, ROUTES } from "@/lib/utils/constants";
+import { API, ROUTES, routeTo } from "@/lib/utils/constants";
 
 interface VoiceInterviewProps {
   interview: Interview;
@@ -129,16 +129,16 @@ export default function VoiceInterview({
   // Guard so the natural-completion redirect fires only once.
   const navigatedRef = useRef(false);
 
-  // Navigate to the reports page and let it generate the report (with a loading
-  // state) in the background. Clears the in-progress interview first so /interview
-  // shows the setup screen on return.
+  // Navigate to this interview's report page, which shows the processing state
+  // until the background job (POST /api/interview/end → process-reports) has
+  // produced the report. Clears the in-progress interview from the store first.
   const goToReport = useCallback(() => {
     if (navigatedRef.current) return;
     navigatedRef.current = true;
     stop();
     useInterviewStore.getState().reset();
-    router.push(ROUTES.reports);
-  }, [router, stop]);
+    router.push(routeTo.report(interview.id));
+  }, [router, stop, interview.id]);
 
   const meta = STATE_META[state] ?? STATE_META.IDLE;
   const isSpeaking =
@@ -199,7 +199,7 @@ export default function VoiceInterview({
           useVoiceAgentStore.setState({ error: "Session taken over by another device." });
           stop();
           useInterviewStore.getState().setInterview(null as any);
-          router.push(ROUTES.dashboard);
+          router.push(ROUTES.interviews);
         }
       } catch (err) {
         // ignore network error, keep polling
@@ -225,7 +225,7 @@ export default function VoiceInterview({
         useVoiceAgentStore.setState({ error: "Session taken over by another tab." });
         stop();
         useInterviewStore.getState().setInterview(null as any);
-        router.push(ROUTES.dashboard);
+        router.push(ROUTES.interviews);
       }
     };
     
@@ -283,7 +283,7 @@ export default function VoiceInterview({
   // If evicted by another tab/device, we just exit without touching the DB.
   const handleEnd = () => {
     if (isEvicted) {
-      router.push(ROUTES.dashboard);
+      router.push(ROUTES.interviews);
       return;
     }
     setEndStep("confirm");
@@ -540,7 +540,7 @@ export default function VoiceInterview({
           </span>
           {state === "REPORT_READY" && (
             <button
-              onClick={() => router.push(ROUTES.reports)}
+              onClick={() => router.push(routeTo.report(interview.id))}
               className="mt-1 px-6 py-2 bg-primary text-white rounded-xl text-xs font-bold shadow-md hover:bg-[#4338CA] transition-all active:scale-95 cursor-pointer"
             >
               View Report

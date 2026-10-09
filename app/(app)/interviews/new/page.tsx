@@ -31,14 +31,18 @@ const setupSchema = z.object({
 });
 import { useInterview } from "@/hooks/useInterview";
 import { useSettingsStore } from "@/store/useSettingsStore";
-import { ROUTES } from "@/lib/utils/constants";
+import { ROUTES, routeTo } from "@/lib/utils/constants";
 import Sidebar from "@/components/common/Sidebar";
-import VoiceInterview from "@/components/interview/VoiceInterview";
 import { toast } from "react-hot-toast";
 
-export default function InterviewPage() {
+/**
+ * /interviews/new — interview setup. Creating + generating an interview uses
+ * the existing start/generate APIs; the live session itself runs on
+ * /interviews/[id]/live (after the /interviews/check readiness step).
+ */
+export default function NewInterviewPage() {
   const router = useRouter();
-  const { current, loading, error, start, cancel, conflict, resume, clearConflict, isRecovering, isCheckingActive, recoverActiveInterview } = useInterview();
+  const { loading, error, start, cancel, conflict, clearConflict } = useInterview();
   const { targetRole, setTargetRole } = useSettingsStore();
 
   // Setup form states
@@ -55,12 +59,10 @@ export default function InterviewPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   /** Stores the last submitted payload so we can retry after cancelling an existing interview. */
   const lastPayloadRef = useRef<any>(null);
-  /**
-   * Ensures recoverActiveInterview() is called exactly once on mount.
-   * A ref guard is used instead of an empty dep array so ESLint is happy
-   * and StrictMode double-mount doesn’t fire it twice.
-   */
-  const hasRecoveredRef = useRef(false);
+  /** Ensures the active-interview check runs once on mount (StrictMode-safe). */
+  const hasCheckedActiveRef = useRef(false);
+  /** True while checking for an unfinished interview to resume. */
+  const [isCheckingActive, setIsCheckingActive] = useState(true);
 
   // Data Fetching states
   const [profileData, setProfileData] = useState<any>(null);
@@ -141,35 +143,34 @@ export default function InterviewPage() {
     }
   }, [error, refreshUsage]);
 
-  // When an interview ends and we return to the setup screen, refresh the usage
-  // card so it reflects the just-consumed session instantly (no reload needed).
-  const hadInterviewRef = useRef(false);
-  useEffect(() => {
-    if (current) {
-      hadInterviewRef.current = true;
-    } else if (hadInterviewRef.current) {
-      hadInterviewRef.current = false;
-      refreshUsage();
-    }
-  }, [current, refreshUsage]);
-
   // ── On-load session recovery ─────────────────────────────────────────
-  // Fires once when the interview page mounts (refresh, browser reopen, new tab).
-  // If the user has an unfinished active interview, resume() will hydrate the
-  // store and VoiceInterview will mount + reconnect Deepgram automatically.
+  // An unfinished interview (refresh, browser reopen, new tab) is resumed on its
+  // own route; the live page reloads it via GET /api/interview/[id].
   useEffect(() => {
-    if (hasRecoveredRef.current) return;
-    hasRecoveredRef.current = true;
-    recoverActiveInterview();
-  }, [recoverActiveInterview]);
+    if (hasCheckedActiveRef.current) return;
+    hasCheckedActiveRef.current = true;
+    (async () => {
+      try {
+        const res = await fetch("/api/interview/active", { cache: "no-store" });
+        const json = await res.json();
+        if (json.success && json.data?.interviewId) {
+          router.replace(routeTo.liveInterview(json.data.interviewId));
+          return;
+        }
+      } catch {
+        // Network error — fall through to the setup form.
+      }
+      setIsCheckingActive(false);
+    })();
+  }, [router]);
 
-  // Auto-resume when the conflicting interview is still GENERATING.
-  // The resume() polling loop will wait for READY, then mount VoiceInterview.
+  // The conflicting interview is still GENERATING — the live page polls until
+  // it is READY, so hand off straight away.
   useEffect(() => {
     if (conflict?.status === "GENERATING") {
-      resume(conflict.interviewId);
+      router.push(routeTo.liveInterview(conflict.interviewId));
     }
-  }, [conflict, resume]);
+  }, [conflict, router]);
 
   const handleStart = async () => {
     if (isSubmitting) return;
@@ -200,11 +201,27 @@ export default function InterviewPage() {
     // Store so we can retry the same payload after cancelling an existing interview.
     lastPayloadRef.current = payload;
 
-    try {
-      await start(payload);
-    } finally {
-      setIsSubmitting(false);
+    const interviewId = await start(payload);
+    if (interviewId) {
+      // Questions are ready — run the readiness check before going live.
+      router.push(routeTo.interviewCheck(interviewId));
+      return; // keep the button in its "Starting..." state while navigating
     }
+    setIsSubmitting(false);
+  };
+
+  /** Cancel the existing (conflicting) interview, then start the new one. */
+  const cancelConflictAndStart = async (existingInterviewId: string) => {
+    setConflictCancelConfirming(false);
+    clearConflict();
+    await cancel(existingInterviewId); // aborts polling + marks DB CANCELLED
+    setIsSubmitting(true);
+    const interviewId = await start(lastPayloadRef.current); // fresh interview
+    if (interviewId) {
+      router.push(routeTo.interviewCheck(interviewId));
+      return;
+    }
+    setIsSubmitting(false);
   };
 
   // ── Conflict modal: shown when POST /start returns 409 ACTIVE_INTERVIEW_EXISTS ──
@@ -239,12 +256,7 @@ export default function InterviewPage() {
                       Go Back
                     </button>
                     <button
-                      onClick={async () => {
-                        setConflictCancelConfirming(false);
-                        clearConflict();
-                        await cancel(); // aborts polling + marks DB CANCELLED
-                        await start(lastPayloadRef.current); // fresh interview
-                      }}
+                      onClick={() => cancelConflictAndStart(conflict.interviewId)}
                       className="px-5 py-2.5 rounded-xl bg-error-red text-white text-sm font-bold hover:bg-error-red/90 transition-colors active:scale-95 shadow-md shadow-error-red/20 cursor-pointer"
                     >
                       Yes, Cancel It
@@ -252,7 +264,7 @@ export default function InterviewPage() {
                   </div>
                 </>
               ) : conflict.status === "GENERATING" ? (
-                /* Case A: GENERATING — resume() is already polling, show spinner */
+                /* Case A: GENERATING — handing off to the live page, which polls */
                 <>
                   <h2 className="text-xl font-bold text-on-surface">Interview Already Running</h2>
                   <p className="text-sm text-on-surface-variant mt-2">
@@ -266,8 +278,9 @@ export default function InterviewPage() {
                   </div>
                   <button
                     onClick={async () => {
+                      const existingId = conflict.interviewId;
                       clearConflict();
-                      await cancel();
+                      await cancel(existingId);
                     }}
                     className="mt-5 w-full px-5 py-2.5 rounded-xl border border-error-red text-error-red text-sm font-semibold hover:bg-error-red hover:text-white transition-colors active:scale-95 cursor-pointer"
                   >
@@ -283,14 +296,15 @@ export default function InterviewPage() {
                   </p>
                   <div className="flex flex-col gap-3 mt-6">
                     <button
-                      onClick={() => resume(conflict.interviewId)}
+                      onClick={() => router.push(routeTo.liveInterview(conflict.interviewId))}
                       className="w-full px-5 py-3 rounded-xl bg-primary text-white text-sm font-bold hover:bg-primary/90 transition-colors active:scale-95 shadow-md cursor-pointer flex items-center justify-center gap-2"
                     >
                       <span className="material-symbols-outlined text-[18px]">play_arrow</span>
                       Continue Existing
                     </button>
+                    {/* Opening the live page claims the session (POST /takeover). */}
                     <button
-                      onClick={() => resume(conflict.interviewId)}
+                      onClick={() => router.push(routeTo.liveInterview(conflict.interviewId))}
                       className="w-full px-5 py-3 rounded-xl bg-surface-container-highest text-on-surface text-sm font-bold hover:bg-outline-variant/30 transition-colors active:scale-95 shadow-sm cursor-pointer flex items-center justify-center gap-2"
                     >
                       <span className="material-symbols-outlined text-[18px]">phonelink_erase</span>
@@ -356,9 +370,7 @@ export default function InterviewPage() {
         )
       : null;
 
-  // State 1: Setup Screen
-  if (!current) {
-    return (
+  return (
       <div className="min-h-screen bg-background text-on-surface font-body-md flex">
         <Sidebar />
 
@@ -375,28 +387,16 @@ export default function InterviewPage() {
             <p className="text-base text-on-surface-variant">Configure your session and let the AI tailor questions based on your history and goals.</p>
           </header>
 
-          {isRecovering || isCheckingActive ? (
+          {isCheckingActive ? (
             /* Recovery: on-load silent resume — shown instead of form during check */
             <div className="flex flex-col items-center justify-center p-8 sm:p-12 bg-white border border-outline-variant/30 rounded-xxl shadow-2xl ai-glow w-full max-w-3xl mx-auto min-h-[400px] text-center">
               <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-6 animate-pulse">
                 <span className="material-symbols-outlined text-primary text-3xl animate-spin">progress_activity</span>
               </div>
-              <h3 className="text-lg sm:text-xl font-bold mb-2">
-                {isRecovering ? "Resuming your interview…" : "Loading setup…"}
-              </h3>
+              <h3 className="text-lg sm:text-xl font-bold mb-2">Loading setup…</h3>
               <p className="w-full text-sm sm:text-base text-on-surface-variant">
-                {isRecovering 
-                  ? "Restoring your session and reconnecting. This will only take a moment." 
-                  : "Checking your session status and preparing the interview setup."}
+                Checking your session status and preparing the interview setup.
               </p>
-              {isRecovering && (
-                <button
-                  onClick={async () => { await cancel(); }}
-                  className="px-6 py-2 rounded-xl border border-error-red text-error-red hover:bg-error-red hover:text-white font-bold transition-colors shadow-sm active:scale-95 text-xs uppercase tracking-wider cursor-pointer mt-6"
-                >
-                  Cancel
-                </button>
-              )}
             </div>
           ) : error === "INTERVIEW_LIMIT_REACHED" ? (
             <div className="flex flex-col items-center justify-center p-8 sm:p-12 bg-white border border-outline-variant/30 rounded-xxl shadow-2xl w-full max-w-3xl mx-auto min-h-[400px] text-center">
@@ -407,7 +407,7 @@ export default function InterviewPage() {
               <p className="text-on-surface-variant font-medium mb-2">You have used all {usageInfo?.maxUses ?? 3} interviews available this {usageInfo?.windowLabel ?? "month"}.</p>
               <p className="text-on-surface-variant font-medium">Please come back next {usageInfo?.windowLabel ?? "month"}.</p>
               <button
-                onClick={() => router.push(ROUTES.dashboard)}
+                onClick={() => router.push(ROUTES.interviews)}
                 className="mt-8 px-8 py-3 bg-primary text-white font-bold rounded-xl shadow-lg transition-all active:scale-95 cursor-pointer"
               >
                 Return to Dashboard
@@ -600,7 +600,7 @@ export default function InterviewPage() {
                   </div>
                   <div className="flex gap-4 w-full md:w-auto">
                     <button
-                      onClick={() => router.push(ROUTES.dashboard)}
+                      onClick={() => router.push(ROUTES.interviews)}
                       className="flex-1 md:flex-initial px-6 py-3 bg-white/10 hover:bg-white/20 text-white font-semibold rounded-xl transition-all active:scale-95 cursor-pointer text-xs"
                     >
                       Back
@@ -759,9 +759,5 @@ export default function InterviewPage() {
           {conflictModal}
         </main>
       </div>
-    );
-  }
-
-  // State 2: Active Voice Interview (Deepgram Voice Agent V2)
-  return <VoiceInterview interview={current} onExit={cancel} />;
+  );
 }

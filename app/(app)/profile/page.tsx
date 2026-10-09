@@ -47,7 +47,8 @@ function ToggleSwitch({ checked, onChange }: { checked: boolean; onChange: (v: b
   );
 }
 
-export default function SettingsPage() {
+/** /profile — profile, interview preferences, AI memory controls and account deletion. */
+export default function ProfilePage() {
   const { user } = useUser();
   const { openUserProfile, signOut } = useClerk();
   const {

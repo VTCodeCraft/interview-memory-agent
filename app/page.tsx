@@ -1,5 +1,4 @@
-import { auth } from "@clerk/nextjs/server";
-import { prisma } from "@/lib/db/prisma";
+import { getAppUser } from "@/lib/auth/app-user";
 
 import Navbar from "@/components/landing-page/Navbar";
 import HeroSection from "@/components/landing-page/HeroSection";
@@ -12,19 +11,10 @@ import Footer from "@/components/landing-page/Footer";
 import SectionDivider from "@/components/landing-page/SectionDivider";
 
 export default async function Home() {
-  const { userId: clerkId } = await auth();
-
-  let setupDone = false;
-  if (clerkId) {
-    const profile = await prisma.userProfile.findFirst({
-      where: {
-        user: {
-          clerkId: clerkId,
-        },
-      },
-    });
-    setupDone = !!profile;
-  }
+  // Same onboarding-completion rule the (app) layout enforces.
+  const appUser = await getAppUser();
+  const clerkId = appUser?.clerkId ?? null;
+  const setupDone = appUser?.user?.onboardingComplete ?? false;
 
   return (
     <div className="min-h-screen bg-background text-on-surface flex flex-col items-center overflow-x-hidden font-sans relative">

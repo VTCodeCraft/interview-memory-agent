@@ -69,7 +69,7 @@ export default function PricingSection({ clerkId, setupDone }: PricingSectionPro
                 </button>
               </SignUpButton>
             ) : (
-              <Link href={setupDone ? ROUTES.interview : ROUTES.onboarding}>
+              <Link href={setupDone ? ROUTES.newInterview : ROUTES.onboarding}>
                 <button className="w-full py-3 rounded-full border border-[#E5E7EB] text-[#0B0B0F] font-semibold text-sm hover:bg-gray-50 transition-colors cursor-pointer">
                   Start for Free
                 </button>
@@ -124,7 +124,7 @@ export default function PricingSection({ clerkId, setupDone }: PricingSectionPro
                 </button>
               </SignUpButton>
             ) : (
-              <Link href={setupDone ? ROUTES.interview : ROUTES.onboarding}>
+              <Link href={setupDone ? ROUTES.newInterview : ROUTES.onboarding}>
                 <button className="w-full py-3 rounded-full bg-[#635BFF] text-white font-semibold text-sm hover:bg-[#5249F3] transition-colors cursor-pointer">
                   Get Pro Started
                 </button>

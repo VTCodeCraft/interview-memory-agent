@@ -3,8 +3,9 @@
 import React from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { SignInButton, SignUpButton, UserButton, Show } from "@clerk/nextjs";
-import { ROUTES } from "@/lib/utils/constants";
+import { SignInButton, SignUpButton, Show } from "@clerk/nextjs";
+import { POST_AUTH_REDIRECT, ROUTES } from "@/lib/utils/constants";
+import AccountMenu from "@/components/common/AccountMenu";
 
 export default function Header() {
   return (
@@ -46,12 +47,20 @@ export default function Header() {
         
         <div className="flex items-center gap-3">
           <Show when="signed-out">
-            <SignInButton mode="modal">
+            <SignInButton
+              mode="modal"
+              forceRedirectUrl={POST_AUTH_REDIRECT}
+              signUpForceRedirectUrl={POST_AUTH_REDIRECT}
+            >
               <button className="font-label-sm text-label-sm px-4 py-1.5 text-on-surface hover:text-primary transition-colors cursor-pointer font-bold">
                 Sign In
               </button>
             </SignInButton>
-            <SignUpButton mode="modal">
+            <SignUpButton
+              mode="modal"
+              forceRedirectUrl={POST_AUTH_REDIRECT}
+              signInForceRedirectUrl={POST_AUTH_REDIRECT}
+            >
               <button className="font-label-sm text-label-sm bg-primary text-white px-4 py-2 rounded-full hover:bg-[#4338CA] transition-colors cursor-pointer shadow-sm font-bold">
                 Get Started
               </button>
@@ -59,12 +68,12 @@ export default function Header() {
           </Show>
           <Show when="signed-in">
             <Link 
-              href={ROUTES.interview}
+              href={ROUTES.interviews}
               className="font-label-sm text-label-sm bg-primary text-white px-4 py-2 rounded-full hover:bg-[#4338CA] transition-colors cursor-pointer shadow-sm font-bold"
             >
               Dashboard
             </Link>
-            <UserButton />
+            <AccountMenu />
           </Show>
         </div>
       </nav>

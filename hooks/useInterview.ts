@@ -68,8 +68,11 @@ export function useInterview() {
    *  2. Abort any in-flight start/generate request.
    *  3. Clear local state.
    *  4. Best-effort POST to mark the DB row as CANCELLED.
+   *
+   * Pass `targetInterviewId` to cancel an interview that is not loaded in this
+   * tab (e.g. the existing interview shown in the 409 conflict modal).
    */
-  const cancel = useCallback(async () => {
+  const cancel = useCallback(async (targetInterviewId?: string) => {
     // ── Abort polling loop instantly (Point 4) ───────────────────────────
     resumeAbortRef.current?.abort();
     resumeAbortRef.current = null;
@@ -79,7 +82,9 @@ export function useInterview() {
     abortControllerRef.current?.abort();
 
     const interviewId =
-      useInterviewStore.getState().current?.id ?? pendingInterviewIdRef.current;
+      targetInterviewId ??
+      useInterviewStore.getState().current?.id ??
+      pendingInterviewIdRef.current;
     pendingInterviewIdRef.current = null;
     setLoading(false);
     setConflict(null);
@@ -98,7 +103,8 @@ export function useInterview() {
     }
   }, [reset]);
 
-  const start = useCallback(async (payload?: any) => {
+  /** Create + generate an interview. Resolves to the new interview id on success, else null. */
+  const start = useCallback(async (payload?: any): Promise<string | null> => {
     setLoading(true);
     setError(null);
     const controller = new AbortController();
@@ -115,7 +121,7 @@ export function useInterview() {
       // ── 409: active interview exists — show conflict modal, not an error ─
       if (!json.success && json.code === "ACTIVE_INTERVIEW_EXISTS") {
         setConflict({ interviewId: json.interviewId, status: json.status });
-        return;
+        return null;
       }
 
       if (!json.success && !json.ok) {
@@ -154,13 +160,16 @@ export function useInterview() {
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         } as any);
+        return genJson.data.interviewId as string;
       } else {
         pendingInterviewIdRef.current = json.data?.id ?? null;
         setInterview(json.data as Interview);
+        return (json.data?.interviewId ?? json.data?.id ?? null) as string | null;
       }
     } catch (e) {
-      if (e instanceof DOMException && e.name === "AbortError") return; // user cancelled
+      if (e instanceof DOMException && e.name === "AbortError") return null; // user cancelled
       setError(e instanceof Error ? e.message : "Failed to start");
+      return null;
     } finally {
       if (abortControllerRef.current === controller) {
         abortControllerRef.current = null;

@@ -5,11 +5,12 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
 import Sidebar from "@/components/common/Sidebar";
-import { ROUTES } from "@/lib/utils/constants";
+import { ROUTES, routeTo } from "@/lib/utils/constants";
 import { FaGithub, FaLinkedin } from "react-icons/fa";
 import { useSettingsStore } from "@/store/useSettingsStore";
 
-export default function DashboardPage() {
+/** /interviews — "My Dashboard": product overview, interview history and start/resume action. */
+export default function InterviewsHubPage() {
   const router = useRouter();
   const { weeklyGoal, setWeeklyGoal } = useSettingsStore();
   const { user, isLoaded: isUserLoaded } = useUser();
@@ -22,7 +23,7 @@ export default function DashboardPage() {
   const [analyticsData, setAnalyticsData] = useState<any>(null);
   const [memoryData, setMemoryData] = useState<any>(null);
   const [historyData, setHistoryData] = useState<any[]>([]);
-  const [hasActiveInterview, setHasActiveInterview] = useState(false);
+  const [activeInterviewId, setActiveInterviewId] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchData() {
@@ -57,7 +58,7 @@ export default function DashboardPage() {
         setAnalyticsData(analyticsRes?.ok ? analyticsRes.data : null);
         setHistoryData(historyRes?.ok ? historyRes.data : []);
         setMemoryData(memoryRes?.ok ? memoryRes.data : null);
-        setHasActiveInterview(!!activeRes?.data?.interviewId);
+        setActiveInterviewId(activeRes?.data?.interviewId ?? null);
       } catch (err) {
         console.error(err);
         setError("Failed to load dashboard data.");
@@ -70,6 +71,12 @@ export default function DashboardPage() {
       fetchData();
     }
   }, [isUserLoaded, user]);
+
+  // An unfinished interview resumes on its live route; otherwise start setup.
+  const hasActiveInterview = activeInterviewId !== null;
+  const startOrResumeHref = activeInterviewId
+    ? routeTo.liveInterview(activeInterviewId)
+    : ROUTES.newInterview;
 
   if (!isUserLoaded || loading) {
     return (
@@ -191,7 +198,7 @@ export default function DashboardPage() {
             {/* Quick Actions */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-md">
               <button
-                onClick={() => router.push(ROUTES.interview)}
+                onClick={() => router.push(startOrResumeHref)}
                 className="flex items-center gap-4 p-5 rounded-[20px] bg-[#240A8A] text-white transition-all hover:opacity-90 active:scale-95 group text-left cursor-pointer"
               >
                 <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center">
@@ -214,7 +221,7 @@ export default function DashboardPage() {
               </button>
 
               <button
-                onClick={() => router.push('/dashboard/settings')}
+                onClick={() => router.push(ROUTES.profile)}
                 className="flex items-center gap-4 p-5 rounded-[20px] bg-[#F5F5FA] border border-transparent hover:border-outline-variant/30 transition-all active:scale-95 group text-left cursor-pointer"
               >
                 <div className="w-10 h-10 rounded-xl bg-[#E8E8F8] flex items-center justify-center">
@@ -281,7 +288,7 @@ export default function DashboardPage() {
                       <p className="text-on-surface-variant text-[10px] uppercase tracking-wider font-semibold">Personalized Profile</p>
                     </div>
                   </div>
-                  <button onClick={() => router.push('/dashboard/memory')} className="text-xs font-bold text-primary hover:bg-primary/5 px-3 py-1.5 rounded-full transition-colors flex items-center gap-1 cursor-pointer">
+                  <button onClick={() => router.push(ROUTES.memory)} className="text-xs font-bold text-primary hover:bg-primary/5 px-3 py-1.5 rounded-full transition-colors flex items-center gap-1 cursor-pointer">
                     View All <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
                   </button>
                 </div>
@@ -341,7 +348,7 @@ export default function DashboardPage() {
                       )}
                     </div>
                   </div>
-                  <button onClick={() => router.push('/dashboard/reports')} className="text-xs font-bold text-[#240A8A] hover:bg-[#240A8A]/5 px-3 py-1.5 rounded-full transition-colors flex items-center gap-1 cursor-pointer">
+                  <button onClick={() => router.push(ROUTES.reports)} className="text-xs font-bold text-[#240A8A] hover:bg-[#240A8A]/5 px-3 py-1.5 rounded-full transition-colors flex items-center gap-1 cursor-pointer">
                     Full Report <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
                   </button>
                 </div>
@@ -389,7 +396,11 @@ export default function DashboardPage() {
                     <tbody className="divide-y divide-outline-variant/10">
                       {historyData.slice(0, 5).map((report: any) => (
                         <tr key={report.id} className="hover:bg-surface-container-low transition-colors">
-                          <td className="px-6 py-4 font-semibold text-on-surface">Interview</td>
+                          <td className="px-6 py-4 font-semibold text-on-surface">
+                            <Link href={routeTo.report(report.interviewId)} className="hover:text-primary hover:underline">
+                              Interview
+                            </Link>
+                          </td>
                           <td className="px-6 py-4 text-on-surface-variant text-xs">{new Date(report.createdAt).toLocaleDateString()}</td>
                           <td className="px-6 py-4 text-center">
                             {report.evaluation?.overallScore ? (
@@ -407,7 +418,7 @@ export default function DashboardPage() {
               ) : (
                 <div className="p-12 text-center flex flex-col items-center">
                   <p className="text-sm text-on-surface-variant mb-4 font-medium">No interview history yet</p>
-                  <button onClick={() => router.push(ROUTES.interview)} className="bg-[#240A8A] text-white font-bold text-xs px-6 py-2.5 rounded-full hover:opacity-90 transition-opacity">
+                  <button onClick={() => router.push(startOrResumeHref)} className="bg-[#240A8A] text-white font-bold text-xs px-6 py-2.5 rounded-full hover:opacity-90 transition-opacity">
                     {hasActiveInterview ? "Resume Interview" : "Start First Interview"}
                   </button>
                 </div>
@@ -424,7 +435,7 @@ export default function DashboardPage() {
                 <p className="text-sm text-on-surface-variant mb-8 w-full max-w-[400px] leading-relaxed mx-auto">
                   You haven't completed any interviews. Start your first practice session to generate your personalized AI profile and performance metrics!
                 </p>
-                <button onClick={() => router.push(ROUTES.interview)} className="bg-[#240A8A] text-white font-bold text-sm px-8 py-3 rounded-full hover:scale-105 transition-transform shadow-lg shadow-primary/20 cursor-pointer">
+                <button onClick={() => router.push(startOrResumeHref)} className="bg-[#240A8A] text-white font-bold text-sm px-8 py-3 rounded-full hover:scale-105 transition-transform shadow-lg shadow-primary/20 cursor-pointer">
                   {hasActiveInterview ? "Resume Interview" : "Start First Interview"}
                 </button>
               </div>
@@ -499,7 +510,7 @@ export default function DashboardPage() {
 
       {/* FAB for Quick Start */}
       <button
-        onClick={() => router.push(ROUTES.interview)}
+        onClick={() => router.push(startOrResumeHref)}
         className="fixed bottom-8 right-8 w-14 h-14 rounded-2xl bg-[#240A8A] text-white shadow-xl shadow-primary/20 flex items-center justify-center hover:scale-105 transition-transform active:scale-95 z-50 cursor-pointer"
         title={hasActiveInterview ? "Resume Interview" : "Start New Interview"}
       >

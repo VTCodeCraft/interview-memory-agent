@@ -22,14 +22,32 @@ export const BUG_REPORT_FORM_URL =
 export const ROUTES = {
   home: "/",
   faq: "/#faq",
+  privacy: "/privacy",
+  terms: "/terms",
   onboarding: "/onboarding",
-  dashboard: "/dashboard",
-  interview: "/dashboard/interview",
-  reports: "/dashboard/reports",
-  memory: "/dashboard/memory",
-  flow: "/dashboard/flow",
-  settings: "/dashboard/settings",
+  // "My Dashboard" — the signed-in product overview.
+  interviews: "/interviews",
+  newInterview: "/interviews/new",
+  interviewCheck: "/interviews/check",
+  reports: "/reports",
+  memory: "/memory",
+  analytics: "/analytics",
+  profile: "/profile",
 } as const;
+
+/** Builders for routes that carry an identifier. `id` is always an Interview id. */
+export const routeTo = {
+  liveInterview: (interviewId: string) =>
+    `/interviews/${encodeURIComponent(interviewId)}/live`,
+  interviewCheck: (interviewId: string) =>
+    `${ROUTES.interviewCheck}?interview=${encodeURIComponent(interviewId)}`,
+  report: (interviewId: string) => `/reports/${encodeURIComponent(interviewId)}`,
+  onboarding: (next?: string | null) =>
+    next ? `${ROUTES.onboarding}?next=${encodeURIComponent(next)}` : ROUTES.onboarding,
+};
+
+/** Where Clerk sends users after sign-in / sign-up started from the public site. */
+export const POST_AUTH_REDIRECT = ROUTES.interviews;
 
 export const API = {
   auth: "/api/auth/me",
