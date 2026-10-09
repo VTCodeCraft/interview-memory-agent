@@ -42,6 +42,19 @@ export async function POST(request: NextRequest) {
 
     const { interviewId } = parsed.data;
 
+    // Ownership: only the interview's owner may end it, read its cached report
+    // or queue its report job. Unknown and foreign ids get the same 404.
+    const ownedInterview = await prisma.interview.findFirst({
+      where: { id: interviewId, userId: user.id },
+      select: { id: true },
+    });
+    if (!ownedInterview) {
+      return NextResponse.json(
+        { success: false, error: "Interview not found" },
+        { status: 404 },
+      );
+    }
+
     // De-duplicate + make idempotent: check if report already exists
     try {
       const existing = await prisma.report.findUnique({

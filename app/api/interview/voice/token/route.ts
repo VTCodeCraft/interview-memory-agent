@@ -24,14 +24,25 @@ export async function GET(request: NextRequest) {
     const interviewId = searchParams.get("interviewId");
     const clientId = searchParams.get("clientId");
 
-    if (interviewId && clientId) {
-      const interview = await prisma.interview.findUnique({
-        where: { id: interviewId },
-        select: { questions: true },
+    if (interviewId) {
+      // Ownership: tokens are only minted against the caller's own interview,
+      // so pipeline usage can't be recorded on someone else's interview.
+      const dbUser = await prisma.user.findUnique({
+        where: { clerkId: user.id },
+        select: { id: true },
       });
-      if (interview) {
-        const parsed = typeof interview.questions === 'object' && interview.questions !== null 
-          ? interview.questions as any 
+      const interview = dbUser
+        ? await prisma.interview.findFirst({
+            where: { id: interviewId, userId: dbUser.id },
+            select: { questions: true },
+          })
+        : null;
+      if (!interview) {
+        return failure("Interview not found", 404);
+      }
+      if (clientId) {
+        const parsed = typeof interview.questions === 'object' && interview.questions !== null
+          ? interview.questions as any
           : {};
         if (parsed.activeClientId && parsed.activeClientId !== clientId) {
           return failure("Session taken over by another device", 403);
