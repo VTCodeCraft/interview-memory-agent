@@ -50,17 +50,10 @@ export default function TermsPage() {
           </section>
 
           <section>
-            <h2 className="text-2xl font-bold text-on-surface mb-3">4. Subscriptions & Billing</h2>
-            <p className="text-on-surface-variant leading-relaxed mb-4">
-              Certain features may require a paid subscription. By subscribing, you agree to:
-            </p>
-            <ul className="list-disc list-inside space-y-2 text-on-surface-variant leading-relaxed mb-4">
-              <li>Pay all fees associated with your plan (prices subject to change with notice)</li>
-              <li>Automatic renewal unless cancelled at least 24 hours before period ends</li>
-              <li>No refunds for partial periods, except as required by law</li>
-            </ul>
+            <h2 className="text-2xl font-bold text-on-surface mb-3">4. Fees and Usage Limits</h2>
             <p className="text-on-surface-variant leading-relaxed">
-              Manage or cancel subscriptions in Settings. We use Stripe for payment processing.
+              Clutchly is currently free to use, subject to the usage limits shown in the app. There are no paid
+              subscriptions and we do not take payments.
             </p>
           </section>
 

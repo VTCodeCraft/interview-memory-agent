@@ -71,9 +71,12 @@ export default function PrivacyPage() {
             <h2 className="text-2xl font-bold text-on-surface mb-3">5. Third-Party Services</h2>
             <ul className="list-disc list-inside space-y-2 text-on-surface-variant leading-relaxed">
               <li><strong>Clerk:</strong> Authentication and user management</li>
-              <li><strong>Google Gemini:</strong> AI interview generation and evaluation</li>
-              <li><strong>Deepgram:</strong> Voice transcription and synthesis (optional)</li>
+              <li><strong>Google Gemini:</strong> Generates interview questions from your profile, resume text, job description and interview memory, and evaluates your answers to produce reports</li>
+              <li><strong>Deepgram:</strong> Real-time voice interviews (speech-to-text and text-to-speech)</li>
+              <li><strong>OpenAI (through Deepgram&apos;s voice agent):</strong> Processes the conversation text during voice interviews to run the interview flow</li>
+              <li><strong>Cognee:</strong> Stores summaries of your interview reports (scores, strengths, weaknesses, missing topics and recommendations) as interview memory used to prepare future interviews</li>
               <li><strong>Vercel:</strong> Hosting and analytics</li>
+              <li><strong>Slack (if enabled):</strong> Receives an internal notification with your name and email address when you delete your account</li>
             </ul>
             <p className="text-on-surface-variant leading-relaxed mt-4">
               These processors only access data necessary to provide their specific services and are bound by data processing agreements.

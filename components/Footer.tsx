@@ -1,14 +1,12 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import {
   APP_NAME,
   ROUTES,
   CONTACT_FORM_URL,
-  FEEDBACK_FORM_URL,
-  BUG_REPORT_FORM_URL,
 } from "@/lib/utils/constants";
 
 const productLinks = [
@@ -22,8 +20,6 @@ const productLinks = [
 const supportLinks = [
   { label: "FAQ", href: ROUTES.faq },
   { label: "Contact", href: CONTACT_FORM_URL, external: true },
-  { label: "Feedback", href: FEEDBACK_FORM_URL, external: true },
-  { label: "Report a Bug", href: BUG_REPORT_FORM_URL, external: true },
 ];
 
 const legalLinks = [
@@ -36,15 +32,6 @@ interface FooterProps {
 }
 
 export default function Footer({ variant = "default" }: FooterProps) {
-  const [hoveredIcon, setHoveredIcon] = useState<number | null>(null);
-
-  const socialLinks = [
-    { id: 1, icon: 'brand_awareness', href: '#' },
-    { id: 2, icon: 'link', href: '#' },
-    { id: 3, icon: 'terminal', href: '#' },
-    { id: 4, icon: 'forum', href: '#' },
-  ];
-
   if (variant === "minimal") {
     return (
       <footer className="w-full bg-surface border-t border-outline-variant/30 py-8">
@@ -86,25 +73,7 @@ export default function Footer({ variant = "default" }: FooterProps) {
               <p className="font-body-md text-body-md text-on-surface-variant max-w-sm leading-relaxed">
                 Clutchly is your AI interview coach that remembers every interview, adapts to your progress, and helps you become interview-ready through personalized voice practice.
               </p>
-              
-              {/* Social Links */}
-              <div className="flex gap-sm mt-md">
-                {socialLinks.map((link) => (
-                  <a
-                    key={link.id}
-                    className="w-10 h-10 border border-outline-variant rounded-full flex items-center justify-center text-on-surface-variant hover:text-primary hover:border-primary transition-all"
-                    href={link.href}
-                    onMouseEnter={() => setHoveredIcon(link.id)}
-                    onMouseLeave={() => setHoveredIcon(null)}
-                  >
-                    <span 
-                      className={`material-symbols-outlined text-[18px] transition-all duration-300 ${hoveredIcon === link.id ? 'icon-fill' : ''}`}
-                    >
-                      {link.icon}
-                    </span>
-                  </a>
-                ))}
-              </div>
+
             </div>
 
             {/* Right: Nav Columns */}
