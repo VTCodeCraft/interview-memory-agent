@@ -226,17 +226,6 @@ export function ReportPanel() {
         </div>
       </div>
 
-      <ul className="mt-4 grid grid-cols-3 gap-2.5 @xl:gap-3 @min-[68rem]:hidden">
-        {REPORT.tiles.map((tile) => (
-          <li key={tile.label} className="rounded-control border border-line p-3 @min-[68rem]:p-2.5">
-            <p className="text-[0.6875rem] font-semibold text-fg">{tile.label}</p>
-            <p className="mt-1.5 flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
-              <span className="text-[1.375rem] leading-none font-semibold tracking-[-0.02em] text-fg @min-[68rem]:text-[1.1875rem]">{tile.value}%</span>
-              <span className="text-label font-semibold text-success @min-[68rem]:text-[0.6875rem]">{tile.grade}</span>
-            </p>
-          </li>
-        ))}
-      </ul>
     </Panel>
   );
 }

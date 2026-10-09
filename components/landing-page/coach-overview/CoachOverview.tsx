@@ -99,7 +99,7 @@ export default function CoachOverview() {
             </div>
           </div>
 
-          {/* 4. Instant AI report */}
+          {/* 4. Interview report */}
           <section aria-label={STEPS.report} className="flex flex-col gap-4 @2xl:col-span-3 @2xl:row-start-4 @min-[68rem]:col-span-1 @min-[68rem]:col-start-7 @min-[68rem]:row-start-1">
             <StepPill n={4}>{STEPS.report}</StepPill>
             <ReportPanel />
