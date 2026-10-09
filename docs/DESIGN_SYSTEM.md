@@ -1,6 +1,6 @@
 # Clutchly design system (proposal v2)
 
-Status: **proposal, awaiting approval.** Nothing outside `/design-preview` uses it yet.
+Status: **Precision approved.** Adopted so far by the landing page (`/`, `app/page.tsx` and `components/landing-page/*`). Every other page still uses the legacy tokens.
 
 Interactive preview: `/design-preview` (development, or production with `ENABLE_DESIGN_PREVIEW=true`). Add `?d=precision`, `?d=editorial` or `?d=spatial` to open a direction directly.
 
@@ -163,7 +163,7 @@ One caveat: a variable that references another (for example `--emphasis-color: v
 ## 10. Migration plan (after approval)
 
 1. Approve a direction in `/design-preview`. If it is not Precision, move that direction's overrides from `directions.ts` into the `@theme static` block.
-2. Redesign one page at a time, starting with the landing page. Wrap the page in `ds-page` and use only the new utilities and `components/ui`. Set `preload: true` in `app/fonts.ts` when the landing page adopts Mona Sans.
+2. Redesign one page at a time, starting with the landing page. Wrap the page in `ds-page` and use only the new utilities and `components/ui`. Set `preload: true` in `app/fonts.ts` once most pages use Mona Sans (it is declared in the root layout, so preloading earlier would make every page download it).
 3. Product pages adopt the top-nav shell (Interviews, Reports, Memory, Analytics, plus the avatar menu with My Dashboard, Profile & Settings and Sign out).
 4. After the last page migrates, delete the legacy `@theme` block, legacy utilities and the Bricolage / Material Symbols loading, then retire `DESIGN.MD`.
 

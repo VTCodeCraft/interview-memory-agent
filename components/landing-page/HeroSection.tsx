@@ -1,118 +1,53 @@
-'use client';
+import AuthCta, { type AuthState } from "./AuthCta";
+import type { UsageWindow } from "@/lib/config/limits";
+import { buttonVariants } from "@/components/ui/button";
+import CoachOverview from "./coach-overview/CoachOverview";
 
-import { useEffect } from 'react';
-import Link from 'next/link';
-import { SignUpButton } from "@clerk/nextjs";
-import { ROUTES } from "@/lib/utils/constants";
-
-interface HeroSectionProps {
-  clerkId: string | null;
-  setupDone: boolean;
-}
-
-export default function HeroSection({ clerkId, setupDone }: HeroSectionProps) {
+export default function HeroSection({
+  limit,
+  period,
+  ...auth
+}: AuthState & { limit: number; period: UsageWindow }) {
   return (
-    <section className="relative w-full flex flex-col items-center overflow-hidden">
-
-      <main className="relative z-10 w-full max-w-7xl pt-[130px] px-margin-desktop flex flex-col items-center text-center">
-        {/* Headline */}
-        <h1 className="font-display-lg text-[48px] md:text-[64px] leading-[1.1] font-[800] text-on-surface max-w-[800px] tracking-tight">
-          Clutch your <br />
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#635BFF] to-[#8B7FFF] hero-underline">
-            interviews
-            <div className="sparkle -top-5 -right-8 opacity-60"></div>
-            <div className="sparkle -bottom-2 -left-5 scale-75 opacity-30"></div>
-          </span>
-        </h1>
-        
-        {/* Subheading */}
-        <p className="font-body-lg text-[18px] md:text-[20px] text-on-surface-variant max-w-[600px] leading-relaxed mt-8">
-          Practice with AI mock interviews, get instant feedback, and land your dream role with confidence.
-        </p>
-        
-        {/* CTAs */}
-        <div className="flex items-center gap-4 mt-8 mb-12">
-          {!clerkId && (
-            <SignUpButton mode="modal">
-              <button className="bg-on-surface text-white h-[52px] px-8 rounded-full font-label-md text-label-md flex items-center gap-3 hover:scale-105 active:scale-95 transition-all shadow-xl group cursor-pointer">
-                Start Practicing Now
-                <div className="w-7 h-7 bg-white/20 rounded-full flex items-center justify-center group-hover:bg-white/30 transition-colors">
-                  <span className="material-symbols-outlined !text-[18px]">arrow_forward</span>
-                </div>
-              </button>
-            </SignUpButton>
-          )}
-          {clerkId && !setupDone && (
-            <Link href={ROUTES.onboarding}>
-              <button className="bg-on-surface text-white h-[52px] px-8 rounded-full font-label-md text-label-md flex items-center gap-3 hover:scale-105 active:scale-95 transition-all shadow-xl group cursor-pointer">
-                Continue Setup
-                <div className="w-7 h-7 bg-white/20 rounded-full flex items-center justify-center group-hover:bg-white/30 transition-colors">
-                  <span className="material-symbols-outlined !text-[18px]">arrow_forward</span>
-                </div>
-              </button>
-            </Link>
-          )}
-          {clerkId && setupDone && (
-            <Link href={ROUTES.newInterview}>
-              <button className="bg-on-surface text-white h-[52px] px-8 rounded-full font-label-md text-label-md flex items-center gap-3 hover:scale-105 active:scale-95 transition-all shadow-xl group cursor-pointer">
-                Start Practicing
-                <div className="w-7 h-7 bg-white/20 rounded-full flex items-center justify-center group-hover:bg-white/30 transition-colors">
-                  <span className="material-symbols-outlined !text-[18px]">arrow_forward</span>
-                </div>
-              </button>
-            </Link>
-          )}
-          <Link href="#how-it-works">
-            <button className="bg-white border border-outline-variant h-[52px] px-8 rounded-full font-label-md text-label-md flex items-center gap-3 hover:bg-surface-container-low transition-all cursor-pointer">
-              See How It Works
-              <div className="w-7 h-7 rounded-full border border-outline-variant flex items-center justify-center">
-                <span className="material-symbols-outlined !text-[16px]">play_arrow</span>
-              </div>
-            </button>
-          </Link>
-        </div>
-        
-        {/* Main Dashboard Card */}
-        <div className="relative w-full max-w-4xl z-30 mb-12 px-4 md:px-0">
-          {/* Desktop Image */}
-          <img 
-            className="hidden md:block w-full h-auto rounded-[24px] shadow-2xl border border-outline-variant/20"
-            src="/Demo.png"
-            alt="Clutchly AI Interview Coach & Analytics Demo"
-          />
-          {/* Mobile Image */}
-          <img 
-            className="block md:hidden w-full h-auto rounded-[16px] shadow-xl border border-outline-variant/20"
-            src="/Demo%20mobile.png"
-            alt="Clutchly AI Interview Coach & Analytics Demo Mobile"
-          />
+    <section aria-labelledby="hero-title" className="pt-14 sm:pt-20 lg:pt-24">
+      <div className="ds-container">
+        <div className="grid gap-8 lg:grid-cols-12 lg:items-end lg:gap-12">
+          <div className="lg:col-span-8">
+            <p className="inline-flex items-center gap-2 text-small font-medium text-fg-muted">
+              <span aria-hidden className="size-1.5 rounded-full bg-brand" />
+              AI voice interview coach with memory
+            </p>
+            <h1 id="hero-title" className="ds-display mt-5 max-w-[15ch] text-balance text-display text-fg sm:mt-6">
+              Your next interview starts where the last one <em>ended.</em>
+            </h1>
+          </div>
+          <p className="max-w-[34rem] text-lead text-fg-muted lg:col-span-4 lg:pb-3">
+            Clutchly runs realistic voice mock interviews, remembers your strengths and gaps from each one, and uses
+            that history to shape the next session.
+          </p>
         </div>
 
-        {/* Company Logos */}
-        <div className="mt-8 flex flex-col items-center gap-6 z-10 relative">
-          <span className="text-[11px] font-bold text-[#9CA3AF] tracking-[0.2em] uppercase">
-            PRE-INSTALLED TEMPLATES FOR
-          </span>
-          <div className="flex flex-wrap justify-center items-center gap-x-16 gap-y-6 font-display-md text-headline-md font-bold tracking-tight">
-            <span>
-              <span className="text-[#4285F4]">G</span>
-              <span className="text-[#EA4335]">o</span>
-              <span className="text-[#FBBC05]">o</span>
-              <span className="text-[#4285F4]">g</span>
-              <span className="text-[#34A853]">l</span>
-              <span className="text-[#EA4335]">e</span>
-            </span>
-            <span className="text-[#00A4EF]">Microsoft</span>
-            <span className="text-[#FF9900]">Amazon</span>
-            <span className="text-[#0081FB]">Meta</span>
-            <span className="text-[#76B900]">NVIDIA</span>
+        <div className="mt-8 flex flex-col gap-4 sm:mt-10 sm:flex-row sm:items-center sm:gap-6">
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <AuthCta {...auth} />
+            <a href="#how-it-works" className={buttonVariants({ variant: "secondary", size: "lg" })}>
+              See how it works
+            </a>
+          </div>
+          <p className="text-small text-fg-subtle">
+            Free plan with {limit} interviews a {period}. Runs in your browser.
+          </p>
+        </div>
+      </div>
+
+      <figure className="ds-container mt-12 sm:mt-16 lg:mt-20">
+        <div className="ds-bezel">
+          <div className="ds-surface ds-bezel-core overflow-hidden">
+            <CoachOverview />
           </div>
         </div>
-
-
-      </main>
-      
-
+        <figcaption className="mt-4 text-small text-fg-subtle">Illustration with sample data.</figcaption>
+      </figure>
     </section>
   );
 }

@@ -5,9 +5,10 @@ import { Mona_Sans } from "next/font/google";
  * app/globals.css). Mona Sans is variable in weight and width: display text
  * uses a slightly expanded width, UI and data the normal width.
  *
- * `preload: false` while only the design preview uses it, so existing pages
- * don't download a font they never render. Switch to `true` when the first
- * production page (the landing page) adopts the new system.
+ * `preload: false`: the font is declared in the root layout, so preloading it
+ * would make every page download it, while only the landing page and
+ * /design-preview use it so far. Switch to `true` once most pages have moved
+ * to the new design system.
  */
 export const brandSans = Mona_Sans({
   subsets: ["latin"],

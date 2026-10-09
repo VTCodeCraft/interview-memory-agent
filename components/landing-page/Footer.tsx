@@ -1,152 +1,83 @@
-'use client';
+import Link from "next/link";
 
-import React, { useState } from 'react';
-import Link from 'next/link';
-import Image from 'next/image';
-import {
-  APP_NAME,
-  ROUTES,
-  CONTACT_FORM_URL,
-  FEEDBACK_FORM_URL,
-  BUG_REPORT_FORM_URL,
-} from "@/lib/utils/constants";
+import { CONTACT_FORM_URL, ROUTES } from "@/lib/utils/constants";
+import Logo from "./Logo";
 
-const productLinks = [
-  { label: "Dashboard", href: ROUTES.interviews },
-  { label: "New Interview", href: ROUTES.newInterview },
-  { label: "Reports", href: ROUTES.reports },
-  { label: "AI Memory", href: ROUTES.memory },
-  { label: "Settings", href: ROUTES.profile },
+type FooterLink = { label: string; href: string; external?: boolean };
+
+// Product links lead to signed-in pages; signed-out visitors are sent to
+// sign-in by the proxy, as before.
+const COLUMNS: { title: string; links: FooterLink[] }[] = [
+  {
+    title: "Product",
+    links: [
+      { label: "Dashboard", href: ROUTES.interviews },
+      { label: "New interview", href: ROUTES.newInterview },
+      { label: "Reports", href: ROUTES.reports },
+      { label: "Memory", href: ROUTES.memory },
+      { label: "Profile & Settings", href: ROUTES.profile },
+    ],
+  },
+  {
+    title: "Support",
+    links: [
+      { label: "FAQ", href: "#faq" },
+      { label: "Contact", href: CONTACT_FORM_URL, external: true },
+    ],
+  },
+  {
+    title: "Legal",
+    links: [
+      { label: "Privacy Policy", href: ROUTES.privacy },
+      { label: "Terms of Service", href: ROUTES.terms },
+    ],
+  },
 ];
 
-const supportLinks = [
-  { label: "FAQ", href: ROUTES.faq },
-  { label: "Contact", href: CONTACT_FORM_URL, external: true },
-  { label: "Feedback", href: FEEDBACK_FORM_URL, external: true },
-  { label: "Report a Bug", href: BUG_REPORT_FORM_URL, external: true },
-];
-
-const legalLinks = [
-  { label: "Privacy Policy", href: "/privacy" },
-  { label: "Terms of Service", href: "/terms" },
-];
+const linkClass = "inline-flex min-h-6 items-center rounded-control text-small text-fg-muted transition-[color] duration-(--duration-fast) ease-standard hover:text-fg focus-ring";
 
 export default function Footer() {
-  const [hoveredIcon, setHoveredIcon] = useState<number | null>(null);
-
-  const socialLinks = [
-    { id: 1, icon: 'brand_awareness', href: '#' },
-    { id: 2, icon: 'link', href: '#' },
-    { id: 3, icon: 'terminal', href: '#' },
-    { id: 4, icon: 'forum', href: '#' },
-  ];
-
   return (
-    <>
-      {/* Top Divider Line */}
-      <div className="w-full border-t border-outline-variant/30"></div>
-      
-      <footer className="w-full bg-surface py-xl">
-        <div className="max-w-[1200px] mx-auto px-margin-mobile md:px-gutter">
-          {/* Main Content: Two Column Layout */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-xl lg:gap-gutter mb-xl">
-            {/* Left: Branding & Bio */}
-            <div className="lg:col-span-5 flex flex-col gap-sm">
-              <div className="flex items-center gap-xs">
-                <Image src="/logo.png" alt={APP_NAME} width={32} height={32} className="w-8 h-8 object-contain" />
-                <span className="font-headline-sm text-headline-sm font-bold tracking-tight text-on-surface">{APP_NAME}</span>
-              </div>
-              <p className="font-body-md text-body-md text-on-surface-variant max-w-sm leading-relaxed">
-                Clutchly is your AI interview coach that remembers every interview, adapts to your progress, and helps you become interview-ready through personalized voice practice.
-              </p>
-              
-              {/* Social Links */}
-              <div className="flex gap-sm mt-md">
-                {socialLinks.map((link) => (
-                  <a
-                    key={link.id}
-                    className="w-10 h-10 border border-outline-variant rounded-full flex items-center justify-center text-on-surface-variant hover:text-primary hover:border-primary transition-all"
-                    href={link.href}
-                    onMouseEnter={() => setHoveredIcon(link.id)}
-                    onMouseLeave={() => setHoveredIcon(null)}
-                  >
-                    <span 
-                      className={`material-symbols-outlined text-[18px] transition-all duration-300 ${hoveredIcon === link.id ? 'icon-fill' : ''}`}
-                    >
-                      {link.icon}
-                    </span>
-                  </a>
-                ))}
-              </div>
-            </div>
-
-            {/* Right: Nav Columns */}
-            <div className="lg:col-span-7 grid grid-cols-2 md:grid-cols-3 gap-gutter lg:gap-md">
-              {/* PRODUCT */}
-              <div className="flex flex-col gap-md">
-                <h4 className="font-label-md text-label-md text-on-surface uppercase tracking-wider">Product</h4>
-                <ul className="flex flex-col gap-sm">
-                  {productLinks.map((link) => (
-                    <li key={link.label}>
-                      <Link className="font-body-md text-body-md text-on-surface-variant hover:text-primary transition-colors duration-200" href={link.href}>
-                        {link.label}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-              {/* SUPPORT */}
-              <div className="flex flex-col gap-md">
-                <h4 className="font-label-md text-label-md text-on-surface uppercase tracking-wider">Support</h4>
-                <ul className="flex flex-col gap-sm">
-                  {supportLinks.map((link) => (
-                    <li key={link.label}>
-                      {link.external ? (
-                        <a 
-                          className="font-body-md text-body-md text-on-surface-variant hover:text-primary transition-colors duration-200" 
-                          href={link.href}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          {link.label}
-                        </a>
-                      ) : (
-                        <Link className="font-body-md text-body-md text-on-surface-variant hover:text-primary transition-colors duration-200" href={link.href}>
-                          {link.label}
-                        </Link>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-              {/* LEGAL */}
-              <div className="flex flex-col gap-md">
-                <h4 className="font-label-md text-label-md text-on-surface uppercase tracking-wider">Legal</h4>
-                <ul className="flex flex-col gap-sm">
-                  {legalLinks.map((link) => (
-                    <li key={link.label}>
-                      <Link className="font-body-md text-body-md text-on-surface-variant hover:text-primary transition-colors duration-200" href={link.href}>
-                        {link.label}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-          </div>
-          {/* Bottom Bar */}
-          <div className="pt-lg border-t border-outline-variant/30 flex flex-col md:flex-row justify-between items-center gap-sm">
-            <p className="font-label-sm text-label-sm text-on-surface-variant">
-              © 2026 Clutchly. All rights reserved.
-            </p>
-            <div className="flex items-center gap-xs">
-              <p className="font-label-sm text-label-sm text-on-surface-variant">
-                Built with <span className="text-error">❤️</span> love by Vishesh Tripathi
-              </p>
-            </div>
-          </div>
+    <footer className="ds-container pt-(--spacing-section)">
+      <div className="grid gap-10 border-t border-line pt-12 pb-12 md:grid-cols-12">
+        <div className="md:col-span-5">
+          <Logo />
+          <p className="mt-4 max-w-[34ch] text-small text-fg-muted">
+            AI voice interview practice that remembers your previous sessions and builds on them.
+          </p>
         </div>
-      </footer>
-    </>
+        <div className="grid grid-cols-2 gap-8 sm:grid-cols-3 md:col-span-7">
+          {COLUMNS.map((column) => (
+            <nav key={column.title} aria-label={column.title}>
+              <p className="text-label font-semibold text-fg">{column.title}</p>
+              <ul className="mt-4 flex flex-col gap-2.5">
+                {column.links.map((link) => (
+                  <li key={link.label}>
+                    {link.external ? (
+                      <a href={link.href} target="_blank" rel="noopener noreferrer" className={linkClass}>
+                        {link.label}
+                        <span className="sr-only"> (opens in a new tab)</span>
+                      </a>
+                    ) : link.href.startsWith("#") ? (
+                      <a href={link.href} className={linkClass}>
+                        {link.label}
+                      </a>
+                    ) : (
+                      <Link href={link.href} className={linkClass}>
+                        {link.label}
+                      </Link>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </nav>
+          ))}
+        </div>
+      </div>
+      <div className="flex flex-col gap-2 border-t border-line-subtle py-6 text-label font-normal text-fg-subtle sm:flex-row sm:items-center sm:justify-between">
+        <p>&copy; 2026 Clutchly. All rights reserved.</p>
+        <p>Built by Vishesh Tripathi</p>
+      </div>
+    </footer>
   );
 }
