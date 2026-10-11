@@ -1,18 +1,28 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 
-import { DeepgramStatus } from "@/components/interview/DeepgramStatus";
+import Logo from "@/components/landing-page/Logo";
 import { requireOnboardedUser } from "@/lib/auth/app-user";
-import { ROUTES, routeTo } from "@/lib/utils/constants";
+import { ROUTES } from "@/lib/utils/constants";
 import {
   getOwnedInterview,
   isActiveInterviewStatus,
 } from "@/services/interviewAccess.service";
+import { VoiceCheck } from "./_components/VoiceCheck";
+
+export const metadata: Metadata = {
+  title: "Voice check | Clutchly",
+};
 
 /**
- * /interviews/check — pre-interview readiness check (Deepgram token, microphone
- * permission, WebSocket). Reached from /interviews/new with `?interview=<id>`
- * once questions are generated; also usable standalone. The Continue link is
- * only offered for an active interview owned by the signed-in user.
+ * /interviews/check: pre-interview readiness check (voice token, microphone
+ * permission, voice WebSocket). Reached from /interviews/new with
+ * `?interview=<id>` once questions are generated; also usable standalone.
+ * Continue is only offered for an active interview owned by the signed-in
+ * user, and only enabled once the check passes.
+ *
+ * Like the live interview, this is a focused screen: AppShell hides the
+ * product navigation here, so the page brings its own minimal header.
  */
 export default async function InterviewCheckPage({
   searchParams,
@@ -29,40 +39,31 @@ export default async function InterviewCheckPage({
   }
 
   return (
-    <main className="min-h-screen bg-background flex flex-col items-center justify-center gap-6 p-6">
-      <div className="text-center max-w-[28rem] w-full">
-        <h1 className="text-2xl font-extrabold text-on-surface mb-2 tracking-tight">
-          Voice Connection Check
-        </h1>
-        <p className="text-sm text-on-surface-variant">
-          Verify the Deepgram voice pipeline connects successfully. Click Connect,
-          allow microphone access, and watch for the green status indicator.
-        </p>
-      </div>
-      <DeepgramStatus />
-      <div className="flex flex-wrap items-center justify-center gap-3 max-w-[28rem] w-full">
-        {continueId ? (
+    <div className="ds-page flex min-h-dvh flex-1 flex-col">
+      <header className="border-b border-line-subtle">
+        <div className="ds-container flex h-nav items-center justify-between gap-6">
+          <Logo />
           <Link
-            href={routeTo.liveInterview(continueId)}
-            className="flex-1 h-10 inline-flex items-center justify-center bg-primary text-white rounded-xl text-xs font-bold hover:bg-[#4338CA] transition-all active:scale-95"
+            href={ROUTES.interviews}
+            className="inline-flex min-h-9 items-center rounded-control px-3 text-small font-medium text-fg-muted transition-[color,background-color] duration-(--duration-fast) ease-standard hover:bg-sunken hover:text-fg focus-ring"
           >
-            Continue to Interview
+            Exit
           </Link>
-        ) : (
-          <Link
-            href={ROUTES.newInterview}
-            className="flex-1 h-10 inline-flex items-center justify-center bg-primary text-white rounded-xl text-xs font-bold hover:bg-[#4338CA] transition-all active:scale-95"
-          >
-            Set Up an Interview
-          </Link>
-        )}
-        <Link
-          href={ROUTES.interviews}
-          className="flex-1 h-10 inline-flex items-center justify-center border border-outline-variant text-on-surface-variant rounded-xl text-xs font-bold hover:bg-surface-container transition-all active:scale-95"
-        >
-          Back to Interviews
-        </Link>
-      </div>
-    </main>
+        </div>
+      </header>
+
+      <main className="ds-container flex-1 pt-8 pb-16 sm:pt-12 lg:pt-16">
+        <div className="mx-auto max-w-[40rem]">
+          <p className="text-small font-medium text-fg-muted">{continueId ? "Before your interview" : "Voice check"}</p>
+          <h1 className="ds-display mt-2 text-title text-balance text-fg">Check your microphone and connection</h1>
+          <p className="mt-2 text-body text-fg-muted">
+            Your interview is spoken, so make sure your browser can use your microphone and reach the voice service.
+          </p>
+          <div className="mt-8">
+            <VoiceCheck continueId={continueId} />
+          </div>
+        </div>
+      </main>
+    </div>
   );
 }
