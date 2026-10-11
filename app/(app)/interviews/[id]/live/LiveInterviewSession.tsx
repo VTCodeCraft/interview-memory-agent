@@ -3,7 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { CircleAlert, LoaderCircle } from "lucide-react";
 
+import { buttonVariants } from "@/components/ui/button";
 import { useInterview } from "@/hooks/useInterview";
 import VoiceInterview from "@/components/interview/VoiceInterview";
 import { ROUTES, routeTo } from "@/lib/utils/constants";
@@ -12,7 +14,7 @@ import { ROUTES, routeTo } from "@/lib/utils/constants";
  * Loads an interview by id through the existing resume path — POST
  * /api/interview/[id]/takeover (claims the session for this tab) then
  * GET /api/interview/[id] (owner-checked; polls while GENERATING) — and mounts
- * the unchanged Deepgram VoiceInterview once the questions are hydrated.
+ * the Deepgram VoiceInterview once the questions are hydrated.
  */
 export default function LiveInterviewSession({ interviewId }: { interviewId: string }) {
   const router = useRouter();
@@ -26,53 +28,62 @@ export default function LiveInterviewSession({ interviewId }: { interviewId: str
     void resume(interviewId).finally(() => setLoaded(true));
   }, [interviewId, resume]);
 
-  // "End → No, just end it": cancel this interview and return to the hub.
+  // "End → End without report": cancel this interview and return to the hub.
   const handleExit = async () => {
     await cancel(interviewId);
     router.replace(ROUTES.interviews);
   };
 
-  if (loaded && !error && current?.id === interviewId) {
+  // Every way out of the room (report hand-off, End without report, takeover)
+  // clears the interview from the store before navigating, so once the room
+  // has been shown, falling back here means "leaving", not "opening".
+  const ready = loaded && !error && current?.id === interviewId;
+  const [roomShown, setRoomShown] = useState(false);
+  if (ready && !roomShown) setRoomShown(true);
+
+  if (ready) {
     return <VoiceInterview interview={current} onExit={handleExit} />;
   }
 
   return (
-    <main className="min-h-screen bg-background flex items-center justify-center p-4 sm:p-6">
-      <div className="flex flex-col items-center justify-center p-8 sm:p-12 bg-white border border-outline-variant/30 rounded-xxl shadow-2xl ai-glow w-full max-w-3xl mx-auto min-h-[400px] text-center">
-        {error ? (
-          <>
-            <div className="w-16 h-16 rounded-full bg-error-red/10 flex items-center justify-center mb-6">
-              <span className="material-symbols-outlined text-error-red text-3xl">error</span>
+    <div className="ds-page flex min-h-dvh flex-1 flex-col">
+      <header className="shrink-0 border-b border-line-subtle bg-canvas">
+        <div className="ds-container flex h-14 items-center sm:h-nav">
+          <span className="ds-display text-[1.0625rem] font-semibold tracking-[-0.03em] text-fg">Clutchly</span>
+        </div>
+      </header>
+      <main className="ds-container flex flex-1 items-center justify-center py-12">
+        <section className="ds-surface flex w-full max-w-[32rem] flex-col items-center rounded-card px-6 py-12 text-center sm:px-10">
+          {error ? (
+            <div role="alert" className="flex flex-col items-center">
+              <span aria-hidden className="flex size-12 items-center justify-center rounded-full bg-danger-soft text-danger ring-1 ring-danger-line ring-inset">
+                <CircleAlert strokeWidth={1.75} className="size-6" />
+              </span>
+              <h1 className="ds-display mt-5 text-heading text-fg">This interview can&apos;t be opened</h1>
+              <p className="mt-2 text-body text-fg-muted">{error}</p>
+              <div className="mt-8 flex flex-col-reverse gap-3 sm:flex-row">
+                <Link href={routeTo.report(interviewId)} className={buttonVariants({ variant: "secondary" })}>
+                  View interview status
+                </Link>
+                <Link href={ROUTES.interviews} className={buttonVariants({ variant: "primary" })}>
+                  Back to interviews
+                </Link>
+              </div>
             </div>
-            <h3 className="text-lg sm:text-xl font-bold mb-2">This interview can&apos;t be opened</h3>
-            <p className="w-full text-sm sm:text-base text-on-surface-variant">{error}</p>
-            <div className="flex flex-wrap justify-center gap-3 mt-6">
-              <Link
-                href={ROUTES.interviews}
-                className="px-6 py-2.5 rounded-xl bg-primary text-white text-xs font-bold shadow-md hover:bg-[#4338CA] transition-all active:scale-95"
-              >
-                Back to Interviews
-              </Link>
-              <Link
-                href={routeTo.report(interviewId)}
-                className="px-6 py-2.5 rounded-xl border border-outline-variant/30 text-xs font-bold text-on-surface hover:bg-surface-container transition-colors"
-              >
-                View Report Status
-              </Link>
+          ) : (
+            <div role="status" aria-live="polite" className="flex flex-col items-center">
+              <span aria-hidden className="relative flex size-14 items-center justify-center">
+                <span className="absolute inset-0 rounded-full bg-brand-soft ring-1 ring-memory-line ring-inset motion-safe:animate-pulse" />
+                <LoaderCircle strokeWidth={1.75} className="relative size-6 text-brand motion-safe:animate-spin" />
+              </span>
+              <h1 className="ds-display mt-5 text-heading text-fg">{roomShown ? "Closing the interview room" : "Opening your interview"}</h1>
+              <p className="mt-2 text-body text-fg-muted">
+                {roomShown ? "One moment." : "Restoring your session and connecting to your interviewer."}
+              </p>
             </div>
-          </>
-        ) : (
-          <>
-            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-6 animate-pulse">
-              <span className="material-symbols-outlined text-primary text-3xl animate-spin">progress_activity</span>
-            </div>
-            <h3 className="text-lg sm:text-xl font-bold mb-2">Resuming your interview…</h3>
-            <p className="w-full text-sm sm:text-base text-on-surface-variant">
-              Restoring your session and reconnecting. This will only take a moment.
-            </p>
-          </>
-        )}
-      </div>
-    </main>
+          )}
+        </section>
+      </main>
+    </div>
   );
 }
