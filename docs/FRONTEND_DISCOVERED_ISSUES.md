@@ -43,6 +43,9 @@ proposed investigation. Never include secrets, tokens or environment values.
 | FDI-019 | Memory insights endpoint is a 501 placeholder | Interview setup | P3 | open |
 | FDI-020 | Cancelling while questions are generated still uses up an interview | Interview setup | P3 | decision |
 | FDI-021 | Role edits in setup live only in browser storage | Interview setup | P3 | decision |
+| FDI-022 | Voice check tests a different token route and endpoint than the live interview | Voice check | P2 | decision |
+| FDI-023 | useDeepgram can leave the microphone open | Voice check | P2 | open |
+| FDI-024 | Voice check confirms permission, not that audio is captured | Voice check | P3 | decision |
 
 ---
 
@@ -114,6 +117,7 @@ that owns them. These are not logic issues.
 - **Investigate**: Switch to `errorResponse(reason, "...")`. Look for other routes with the same pattern.
 - **Also found** (dashboard, 2026-10-11): `app/api/user/profile/route.ts` returns `reason.message` the same way in GET and PATCH (`failure(message, 500)`). The dashboard shows a generic message instead.
 - **Also found** (interview setup, 2026-10-11): `app/api/user/usage/route.ts:37` returns `error.message` on 500. The setup page only hides the usage panel when it fails.
+- **Also found** (voice check, 2026-10-11): `app/api/speech/token/route.ts` returns `reason.message` on 500, and `hooks/useDeepgram.ts` appends it to its "Token request failed: …" error. The redesigned check shows only plain guidance, never that text.
 
 ## FDI-005: Experience is required but never used
 
@@ -256,3 +260,30 @@ that owns them. These are not logic issues.
 - **Impact**: The role sent for an interview comes from client-side state rather than the profile or the request form fields. Edits on the setup page apply to that interview and are not saved to the profile (the page says so). The API schema marks `role` optional, but the service rejects a missing role with `INTERVIEW_CONFIG_INCOMPLETE` (400), so an empty role produces a different error than other validation failures (422). The redesign now blocks an empty role on the client.
 - **Evidence**: Read; browser-tested that the request body carries the edited role.
 - **Investigate**: Send the role explicitly from the setup form, and make `role` required in `StartInterviewSchema` so validation errors are consistent.
+
+## FDI-022: Voice check tests a different token route and endpoint than the live interview
+
+- **Found during**: Voice check redesign (2026-10-11)
+- **Location**: `hooks/useDeepgram.ts` (used by `/interviews/check`) gets a token from `GET /api/speech/token` and opens `wss://api.deepgram.com/v1/listen`; `hooks/useVoiceAgent.ts` (live interview) gets a token from `GET /api/interview/voice/token` and opens `wss://agent.deepgram.com/v1/agent/converse` (`lib/deepgram/voice-agent/connection.ts`)
+- **Impact**: The check proves microphone access and that Deepgram can be reached with a browser token, but not the exact connection the interview uses. The check can pass while the interview connection fails (for example agent-specific errors or a different rate limit), or fail for listen-only reasons.
+- **Evidence**: Read. The redesigned check only claims what it actually tests ("reach the voice service").
+- **Investigate**: Decide whether the check should exercise the voice-agent token route and endpoint (without starting the interview), or keep it as a general connectivity check.
+
+## FDI-023: useDeepgram can leave the microphone open
+
+- **Found during**: Voice check redesign
+- **Location**: `hooks/useDeepgram.ts`
+  - `socket.onerror` and an unclean `onclose` set the error state but don't call `cleanup()`, so the microphone stream stays open while the error shows.
+  - `connect()` skips duplicates by reading `state` from the last render, so two calls in the same tick both run. The second overwrites `streamRef` and `socketRef`, and the first stream and socket are never released.
+  - A retry after a socket error also overwrites `streamRef` without stopping the previous stream.
+- **Impact**: The browser's microphone indicator can stay on, and an open stream can outlive the page after a client-side navigation (only the latest stream is stopped on unmount).
+- **Evidence**: Browser-tested with mocked `getUserMedia`/`WebSocket` (harness, deleted afterwards): two same-tick starts opened two streams and two sockets; a socket error kept the stream until retry or leave. The redesigned page avoids all three cases without touching the hook: a synchronous guard allows one start at a time, and Try again calls the hook's own `disconnect()` before reconnecting (verified: the old track is stopped before the new microphone request).
+- **Investigate**: In the hook, release the stream on socket error or unclean close, guard `connect()` with a ref instead of render state, and stop any existing stream before requesting a new one.
+
+## FDI-024: Voice check confirms permission, not that audio is captured
+
+- **Found during**: Voice check redesign
+- **Location**: `hooks/useDeepgram.ts` (opens the microphone stream but never reads or sends audio)
+- **Impact**: A muted or wrong input device still passes the check; the user only finds out in the interview.
+- **Evidence**: Read. The page does not show an input level or claim that sound was heard.
+- **Investigate**: Product decision on adding a real input-level indicator (Web Audio analyser on the existing stream) to the check.
