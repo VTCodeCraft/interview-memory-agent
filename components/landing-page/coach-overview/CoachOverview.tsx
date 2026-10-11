@@ -22,11 +22,13 @@ export default function CoachOverview() {
           <p className="ds-display text-balance text-[clamp(1.625rem,1.1rem+2.2cqw,2.75rem)] leading-[1.1] font-semibold tracking-[-0.03em] text-fg">
             {TITLE.lead} <span className="text-brand">{TITLE.accent}</span>
           </p>
-          <ul className="mx-auto mt-3 flex max-w-[52rem] flex-wrap items-center justify-center gap-x-3 gap-y-1 text-small text-fg-muted @xl:text-body">
+          {/* Separators only where the list fits on one line (@4xl), so a
+              bullet never starts a wrapped line on narrow widths. */}
+          <ul className="mx-auto mt-3 flex max-w-[52rem] flex-wrap items-center justify-center gap-x-5 gap-y-1 text-small text-fg-muted @xl:text-body @4xl:gap-x-3">
             {SUBTITLE.map((item, index) => (
               <li key={item} className="flex items-center gap-3">
                 {index > 0 && (
-                  <span aria-hidden className="text-fg-subtle">
+                  <span aria-hidden className="hidden text-fg-subtle @4xl:inline">
                     &bull;
                   </span>
                 )}
