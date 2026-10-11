@@ -1,5 +1,4 @@
-import Image from "next/image";
-import { ArrowDown, ArrowRight, CalendarDays, Clock, FileText, Mic, Square, Star, Trophy } from "lucide-react";
+import { ArrowDown, ArrowRight, AudioLines, CalendarDays, Clock, FileText, Mic, Square, Star, Trophy } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { ENGINE, HOW, HOW_NOTE, INTERVIEW, PROVIDE, REPORT } from "./data";
@@ -60,13 +59,14 @@ export function InterviewPanel() {
           </span>
         </div>
 
-        <Image
-          src="/landing/ava.png"
-          alt=""
-          width={126}
-          height={126}
-          className="mt-1 size-24 rounded-full bg-sunken object-cover @xl:size-[6.5rem]"
-        />
+        {/* Status orb, as on the live interview screen: a filled circle in the
+            state colour with the "speaking" icon and a soft pulsing ring. */}
+        <span aria-hidden className="relative mt-1 flex size-24 items-center justify-center @xl:size-[6.5rem]">
+          <span className="absolute inset-0 rounded-full bg-brand-soft ring-1 ring-memory-line ring-inset motion-safe:animate-pulse" />
+          <span className="relative flex size-16 items-center justify-center rounded-full bg-brand text-on-brand shadow-raised @xl:size-[4.5rem]">
+            <AudioLines strokeWidth={1.75} className="size-7" />
+          </span>
+        </span>
         <p className="mt-3 text-heading font-semibold text-fg">{INTERVIEW.name}</p>
         <p className="text-small text-fg-muted">{INTERVIEW.role}</p>
 
