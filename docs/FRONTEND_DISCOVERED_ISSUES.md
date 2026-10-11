@@ -39,6 +39,10 @@ proposed investigation. Never include secrets, tokens or environment values.
 | FDI-015 | No way to list all interviews with their status | Dashboard | P2 | decision |
 | FDI-016 | Failed report generation is not surfaced outside the report URL | Dashboard | P3 | open |
 | FDI-017 | Interview type stored in two formats | Dashboard | P3 | open |
+| FDI-018 | Interview analytics row is never updated | Interview setup | P3 | decision |
+| FDI-019 | Memory insights endpoint is a 501 placeholder | Interview setup | P3 | open |
+| FDI-020 | Cancelling while questions are generated still uses up an interview | Interview setup | P3 | decision |
+| FDI-021 | Role edits in setup live only in browser storage | Interview setup | P3 | decision |
 
 ---
 
@@ -109,6 +113,7 @@ that owns them. These are not logic issues.
 - **Evidence**: Read. The redesigned form never displays 500 text; it shows a generic message (browser-tested with a simulated 500).
 - **Investigate**: Switch to `errorResponse(reason, "...")`. Look for other routes with the same pattern.
 - **Also found** (dashboard, 2026-10-11): `app/api/user/profile/route.ts` returns `reason.message` the same way in GET and PATCH (`failure(message, 500)`). The dashboard shows a generic message instead.
+- **Also found** (interview setup, 2026-10-11): `app/api/user/usage/route.ts:37` returns `error.message` on 500. The setup page only hides the usage panel when it fails.
 
 ## FDI-005: Experience is required but never used
 
@@ -219,3 +224,35 @@ that owns them. These are not logic issues.
 - **Impact**: Every screen that shows or compares interview types must map both formats; renaming a label in setup would silently change stored data.
 - **Evidence**: Read. The dashboard maps both formats in `app/(app)/interviews/_components/dashboard-data.ts` (`typeLabel`).
 - **Investigate**: Store one canonical key on interviews and map to labels in the UI; migrate existing rows if needed.
+
+## FDI-018: Interview analytics row is never updated
+
+- **Found during**: Interview setup redesign (2026-10-11)
+- **Location**: Prisma `InterviewAnalytics` (`totalInterviews`, `averageScore`, `currentStreak`, `readinessScore`); created empty in `services/auth.service.ts` and `app/api/auth/me/route.ts`; no code updates it (only `prisma/seed.ts` writes values)
+- **Impact**: `GET /api/user/profile` returns `analytics` with zeros forever. The old setup page used `totalInterviews` to choose between a "Welcome" card and a "Dynamic Insights" card with a "Readiness Score", so real users always saw the welcome card and the insights card could never show real data. The redesign no longer reads this row; nothing else in the UI should until it is populated.
+- **Evidence**: Read (repository-wide search for writers of `interviewAnalytics`).
+- **Investigate**: Decide whether to maintain these aggregates (for example when a report is saved) or remove the model. `/api/analytics` already computes totals from reports.
+
+## FDI-019: Memory insights endpoint is a 501 placeholder
+
+- **Found during**: Interview setup redesign
+- **Location**: `app/api/memory/insights/route.ts` (always 501 "not available in this environment"); `lib/rate-limit/config.ts:158` still has a rule for it
+- **Impact**: The old setup page and old dashboard called it; both redesigns removed those calls, so nothing in the UI uses it now. Remaining risk is confusion for future pages.
+- **Evidence**: Read; repository search shows no UI callers after the redesigns.
+- **Investigate**: Implement it with the Cognee dataset or remove the route and its rate-limit rule.
+
+## FDI-020: Cancelling while questions are generated still uses up an interview
+
+- **Found during**: Interview setup redesign
+- **Location**: `services/usage.service.ts` (`COUNTED_STATUSES` includes `CANCELLED`); `services/interview.service.ts` limit check counts the same statuses
+- **Impact**: A user who cancels during question generation (before the interview starts) loses one of their interviews for the window. The setup page states this before they confirm, as the old page did.
+- **Evidence**: Read; the cancel dialog copy was kept consistent with this rule.
+- **Investigate**: Product decision on whether interviews cancelled before going live should count.
+
+## FDI-021: Role edits in setup live only in browser storage
+
+- **Found during**: Interview setup redesign
+- **Location**: `store/useSettingsStore.ts` (`targetRole`, persisted to `localStorage` key `ima-settings`); `hooks/useInterview.ts` sends `role: targetRole` to `POST /api/interview/start`; the setup page overwrites it from the profile on each load
+- **Impact**: The role sent for an interview comes from client-side state rather than the profile or the request form fields. Edits on the setup page apply to that interview and are not saved to the profile (the page says so). The API schema marks `role` optional, but the service rejects a missing role with `INTERVIEW_CONFIG_INCOMPLETE` (400), so an empty role produces a different error than other validation failures (422). The redesign now blocks an empty role on the client.
+- **Evidence**: Read; browser-tested that the request body carries the edited role.
+- **Investigate**: Send the role explicitly from the setup form, and make `role` required in `StartInterviewSchema` so validation errors are consistent.
