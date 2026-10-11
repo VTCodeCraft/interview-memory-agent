@@ -1,147 +1,170 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import ReportDetailCard from "@/components/reports/ReportDetailCard";
-import { API, ROUTES, routeTo } from "@/lib/utils/constants";
-import type { Report } from "@/types";
+import { Suspense, useEffect, useMemo, useState } from "react";
+import { usePathname, useSearchParams } from "next/navigation";
+import { RotateCw } from "lucide-react";
 
+import { Alert } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { ROW_LABELS, loadReports, type ReportsData } from "./_components/reports-data";
+import {
+  DEFAULT_VIEW,
+  PAGE_SIZE,
+  effectiveView,
+  filterRows,
+  isFiltering,
+  parseView,
+  sortRows,
+  summarize,
+  toRows,
+  viewQuery,
+  type ReportsView,
+} from "./_components/reports-list";
+import { NoReports, ReportsHeader, ReportsList, ReportsSkeleton, ReportsSummary } from "./_components/ReportsSections";
+
+type LoadState = { status: "loading" } | { status: "error" } | { status: "ready"; data: ReportsData };
+
+/**
+ * /reports: every finished interview's report, newest first, plus the one
+ * still being generated. Rows open /reports/[interviewId]. Nothing here is
+ * estimated: scores, types, levels and dates come straight from the reports.
+ */
 export default function ReportsPage() {
   return (
-    <Suspense fallback={null}>
-      <ReportsPageInner />
-    </Suspense>
-  );
-}
-
-type PendingReport = {
-  interviewId: string;
-  role: string;
-  company: string | null;
-  customCompanyName: string | null;
-  status: string;
-  createdAt: string;
-};
-
-function ReportsPageInner() {
-  const router = useRouter();
-  const [reports, setReports] = useState<Report[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [pending, setPending] = useState<PendingReport | null>(null);
-
-  async function loadReports() {
-    try {
-      const r = await fetch(API.reports, { cache: "no-store" });
-      const j = await r.json();
-      setReports(j.data ?? []);
-    } catch (e) {
-      console.error("Failed to load reports", e);
-    }
-  }
-
-  async function loadPending() {
-    try {
-      const r = await fetch(API.pendingReport, { cache: "no-store" });
-      const j = await r.json();
-      setPending((j.data as PendingReport | null) ?? null);
-    } catch (e) {
-      console.error("Failed to load pending report", e);
-    }
-  }
-
-  useEffect(() => {
-    let cancelled = false;
-
-    async function run() {
-      await Promise.all([loadReports(), loadPending()]);
-      if (!cancelled) setLoading(false);
-    }
-
-    run();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  return (
-    <div className="flex-1 bg-background text-on-surface font-body-md flex">
-
-      {/* Main Content Area */}
-      <main className="w-full p-4 sm:p-gutter pt-6 flex-1">
-        <div className="max-w-[1000px] mx-auto space-y-6 lg:space-y-lg pb-xxl">
-          
-          {/* Header Section */}
-          <header className="space-y-sm mb-8">
-            <span className="inline-flex items-center gap-sm bg-primary-fixed text-primary font-bold text-[11px] uppercase tracking-wider px-4 py-1.5 rounded-full">
-              <span className="material-symbols-outlined text-[14px]">analytics</span>
-              Feedback Reports
-            </span>
-            <h2 className="text-2xl md:text-4xl font-extrabold text-on-surface">Your performance reports.</h2>
-            <p className="text-sm text-on-surface-variant max-w-2xl leading-relaxed">
-              Review detailed evaluations, criterion breakdowns, and AI-compiled tips from your mock interview sessions.
-            </p>
-          </header>
-
-          {/* Pending report banner */}
-          {pending && (
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 bg-primary/5 border border-primary/20 rounded-2xl">
-              <div className="flex items-start gap-3">
-                <span className="material-symbols-outlined text-primary text-2xl shrink-0">schedule</span>
-                <div>
-                  <h3 className="text-sm font-bold text-on-surface">Your report is being generated</h3>
-                  <p className="text-xs text-on-surface-variant mt-0.5">
-                    {(pending.customCompanyName || pending.company)
-                      ? `${pending.role} · ${pending.customCompanyName || pending.company}`
-                      : pending.role}
-                    {" — evaluation is queued due to high demand. We will generate it automatically in the background."}
-                  </p>
-                </div>
-              </div>
-              <Link
-                href={routeTo.report(pending.interviewId)}
-                className="shrink-0 text-xs font-bold text-primary hover:underline"
-              >
-                View status
-              </Link>
-            </div>
-          )}
-
-          {loading ? (
-            <div className="flex items-center justify-center p-12 text-sm text-on-surface-variant gap-2">
-              <span className="material-symbols-outlined animate-spin">progress_activity</span>
-              Loading feedback reports...
-            </div>
-          ) : reports.length === 0 ? (
-            <div className="flex flex-col items-center justify-center p-12 bg-white border border-outline-variant/30 rounded-xxl shadow-xl text-center max-w-2xl mx-auto min-h-[300px]">
-              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-6">
-                <span className="material-symbols-outlined text-primary text-3xl">rate_review</span>
-              </div>
-              <h3 className="text-xl font-bold mb-2">No Reports Yet</h3>
-              <p className="text-sm text-on-surface-variant mb-6">
-                Complete your first practice session to receive a structured evaluation on communication, technical accuracy, and domain expertise.
-              </p>
-              <button
-                onClick={() => router.push(ROUTES.newInterview)}
-                className="bg-primary text-white px-8 py-3 rounded-xl text-xs font-bold shadow-lg hover:bg-[#4338CA] transition-all active:scale-95 cursor-pointer flex items-center gap-2"
-              >
-                <span className="material-symbols-outlined text-sm">mic</span>
-                Start First Mock Session
-              </button>
-            </div>
-          ) : (
-            <div className="space-y-8">
-              {reports.map((report) => (
-                <ReportDetailCard
-                  key={report.id}
-                  report={report}
-                  href={routeTo.report(report.interviewId)}
-                />
-              ))}
-            </div>
-          )}
+    <div className="ds-page flex-1">
+      <main className="ds-container pt-8 pb-16 sm:pt-10 lg:pt-12 lg:pb-24">
+        <div className="flex flex-col gap-8">
+          <ReportsHeader />
+          {/* useSearchParams needs a Suspense boundary. */}
+          <Suspense fallback={<ReportsSkeleton />}>
+            <ReportsContent />
+          </Suspense>
         </div>
       </main>
     </div>
   );
+}
+
+function ReportsContent() {
+  const [state, setState] = useState<LoadState>({ status: "loading" });
+  const [attempt, setAttempt] = useState(0);
+  const [view, setView] = useUrlView();
+  const [limit, setLimit] = useState(PAGE_SIZE);
+
+  useEffect(() => {
+    let cancelled = false;
+    loadReports().then(
+      (data) => {
+        if (!cancelled) setState({ status: "ready", data });
+      },
+      (error) => {
+        console.error("[Reports] load failed", error);
+        if (!cancelled) setState({ status: "error" });
+      },
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, [attempt]);
+
+  const rows = useMemo(
+    () => (state.status === "ready" ? toRows(state.data.reports, state.data.pending, ROW_LABELS) : []),
+    [state],
+  );
+
+  if (state.status === "loading") return <ReportsSkeleton />;
+
+  if (state.status === "error") {
+    return (
+      <Alert
+        tone="danger"
+        title="Your reports didn't load"
+        action={
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => {
+              setState({ status: "loading" });
+              setAttempt((count) => count + 1);
+            }}
+          >
+            <RotateCw aria-hidden strokeWidth={1.75} />
+            Try again
+          </Button>
+        }
+      >
+        Check your connection and try again.
+      </Alert>
+    );
+  }
+
+  if (rows.length === 0) return <NoReports />;
+
+  const active = effectiveView(view, rows);
+  const matches = sortRows(filterRows(rows, active), active.sort);
+  const summary = summarize(rows);
+
+  const change = (next: ReportsView) => {
+    setView(next);
+    setLimit(PAGE_SIZE);
+  };
+
+  return (
+    <div className="flex flex-col gap-6">
+      {summary && <ReportsSummary summary={summary} />}
+      <ReportsList
+        rows={rows}
+        shown={matches.slice(0, limit)}
+        matchCount={matches.length}
+        view={active}
+        filtering={isFiltering(active)}
+        onViewChange={(partial) => change({ ...active, ...partial })}
+        onReset={() => change({ ...DEFAULT_VIEW, sort: active.sort })}
+        onShowMore={() => setLimit((count) => count + PAGE_SIZE)}
+      />
+    </div>
+  );
+}
+
+/**
+ * Search, filters and sort live in the query string, so opening a report and
+ * coming back (or reloading) keeps them. Local state is the source of truth
+ * while the page is open; the URL mirrors it with history.replaceState (no
+ * navigation, no new history entries).
+ *
+ * The router reports our own writes back a moment later, possibly more than
+ * one at once while someone is typing. Those are matched against the queue of
+ * writes it hasn't caught up with yet. Any other URL change (for example the
+ * Reports tab in the navigation, which goes to plain /reports) is a real
+ * navigation, and the view follows it.
+ */
+function useUrlView(): [ReportsView, (view: ReportsView) => void] {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const urlQuery = searchParams.toString();
+
+  const [view, setViewState] = useState(() => parseView(searchParams));
+  const [seen, setSeen] = useState(urlQuery);
+  const [pending, setPending] = useState<string[]>([]);
+
+  if (urlQuery !== seen) {
+    setSeen(urlQuery);
+    const index = pending.lastIndexOf(urlQuery);
+    if (index >= 0) {
+      setPending(pending.slice(index + 1));
+    } else {
+      setPending([]);
+      setViewState(parseView(searchParams));
+    }
+  }
+
+  const setView = (next: ReportsView) => {
+    setViewState(next);
+    const query = viewQuery(next);
+    // Writing the URL that's already there changes nothing, so nothing comes back.
+    if (query !== window.location.search) setPending((queue) => [...queue, query.slice(1)]);
+    window.history.replaceState(null, "", `${pathname}${query}`);
+  };
+
+  return [view, setView];
 }
