@@ -35,6 +35,10 @@ proposed investigation. Never include secrets, tokens or environment values.
 | FDI-011 | Profile accepts TEXT / HYBRID interview modes | Onboarding | P3 | decision |
 | FDI-012 | Placeholder and unverified external links | Landing | P3 | open |
 | FDI-013 | Clerk application still named "Congee" | Landing | P3 | open |
+| FDI-014 | Profile API sends the full resume record, including extracted text, to the browser | Dashboard | P2 | open |
+| FDI-015 | No way to list all interviews with their status | Dashboard | P2 | decision |
+| FDI-016 | Failed report generation is not surfaced outside the report URL | Dashboard | P3 | open |
+| FDI-017 | Interview type stored in two formats | Dashboard | P3 | open |
 
 ---
 
@@ -45,9 +49,11 @@ that owns them. These are not logic issues.
 
 | ID | Item | Location | Deferred to |
 |---|---|---|---|
-| FE-001 | Account menu icons use Material Symbols; Precision uses Lucide (stroke 1.75) | `components/common/AccountMenu.tsx` (`MenuIcon`) | Shared app navigation |
-| FE-002 | Account menu "My Dashboard" during onboarding goes to `/interviews`, which sends incomplete users straight back to onboarding | `components/common/AccountMenu.tsx`, used by `app/onboarding/layout.tsx` | Shared app navigation |
+| FE-001 | ~~Account menu icons use Material Symbols; Precision uses Lucide (stroke 1.75)~~ Resolved in the shared navigation work (2026-10-11): Lucide icons | `components/common/AccountMenu.tsx` (`MenuIcon`) | Done |
+| FE-002 | ~~Account menu "My Dashboard" during onboarding goes to `/interviews`, which sends incomplete users straight back to onboarding~~ Resolved (2026-10-11): `AccountMenu` takes `dashboardHref`; onboarding and the landing nav link to `/onboarding` (keeping a safe `next`) via `lib/routing/dashboard-link.ts`. Remaining: the legacy `components/Header.tsx` on `/privacy` and `/terms` can't know onboarding status, so it still links `/interviews`, which the guard redirects to `/onboarding?next=%2Finterviews` (no loop). | `components/common/AccountMenu.tsx`, `app/onboarding/layout.tsx`, `components/landing-page/Navbar.tsx` | Done (legal pages: their redesign) |
 | FE-003 | `Footer` `variant="minimal"` is no longer used (onboarding has its own footer) | `components/Footer.tsx` | Clean-up with the legal pages or the shared layout |
+| FE-004 | App pages not yet redesigned keep the legacy look (`bg-background` #FAF6FD, Material Symbols, legacy type scale) under the new Precision navigation, so there is a visible seam between the nav and their content. Only their sidebar wrappers were changed. | `app/(app)/reports`, `reports/[id]`, `memory`, `analytics`, `profile`, `interviews/new` | Each page's own redesign |
+| FE-005 | Two legacy layout details were offset for the sticky nav and should be rebuilt with their pages: the fixed right panel on `/memory` (now starts below the nav at `xl`) and the sticky left column on `/profile` (now clears the nav) | `app/(app)/memory/page.tsx`, `app/(app)/profile/page.tsx` | Memory and Profile redesigns |
 
 ---
 
@@ -102,6 +108,7 @@ that owns them. These are not logic issues.
 - **Impact**: Internal error text (for example Prisma messages) can reach the client. Other routes use `errorResponse()` in `lib/utils/api.ts`, which logs the real error and returns a friendly one.
 - **Evidence**: Read. The redesigned form never displays 500 text; it shows a generic message (browser-tested with a simulated 500).
 - **Investigate**: Switch to `errorResponse(reason, "...")`. Look for other routes with the same pattern.
+- **Also found** (dashboard, 2026-10-11): `app/api/user/profile/route.ts` returns `reason.message` the same way in GET and PATCH (`failure(message, 500)`). The dashboard shows a generic message instead.
 
 ## FDI-005: Experience is required but never used
 
@@ -180,3 +187,35 @@ that owns them. These are not logic issues.
 - **Impact**: The sign-in and sign-up modals show the wrong product name.
 - **Evidence**: Flagged during landing work (2026-10-10). Can't be checked or changed from the repository.
 - **Investigate**: The owner renames the application in the Clerk Dashboard.
+
+## FDI-014: Profile API sends the full resume record, including extracted text, to the browser
+
+- **Found during**: Dashboard redesign (2026-10-11)
+- **Location**: `app/api/user/profile/route.ts` (`latestResume: profile.resumes[0]`), `services/user.service.ts` `getFullProfile` (`resumes` included without a `select`)
+- **Impact**: Every call to `GET /api/user/profile` returns the latest resume's full extracted `rawText` and storage metadata, although the dashboard and other pages only need the file name and date. Larger responses on each page load, and personal data sent to the browser that isn't needed there.
+- **Evidence**: Read only. The redesigned dashboard reads only `originalFileName` and `uploadedAt`.
+- **Investigate**: Select only the fields the UI needs (for example `originalFileName`, `pageCount`, `uploadedAt`). Check whether any page actually needs `rawText` before removing it.
+
+## FDI-015: No way to list all interviews with their status
+
+- **Found during**: Dashboard redesign
+- **Location**: `app/api/interview/history/route.ts` (returns `listReports`, interviews with a report only), `services/report.service.ts` `getPendingReportInterview` (`findFirst`, latest only)
+- **Impact**: The dashboard can show finished interviews with reports, the single active interview and the latest report still being generated. Interviews that were cancelled, failed, or ended without a report job never appear. If two reports are generating at once, only the newest is visible.
+- **Evidence**: Read. The dashboard was built on the existing endpoints and shows exactly these states (browser-tested with simulated responses).
+- **Investigate**: Product decision on whether users should see every interview. If yes, add a read-only list of the user's interviews with status and report state (reusing `getInterviewReportView` states), then show it on the dashboard and reports pages.
+
+## FDI-016: Failed report generation is not surfaced outside the report URL
+
+- **Found during**: Dashboard redesign
+- **Location**: `services/report.service.ts` `getPendingReportInterview` (doc comment says it covers failed evaluations, but the query only matches jobs with status `PENDING` or `PROCESSING`); `getInterviewReportView` does return a `failed` state
+- **Impact**: When report generation fails, nothing on the dashboard or reports list points the user to it. They only see the failure if they open that interview's report URL.
+- **Evidence**: Read only.
+- **Investigate**: Decide whether failed jobs should appear (with a retry where supported). Align the doc comment with the query either way.
+
+## FDI-017: Interview type stored in two formats
+
+- **Found during**: Dashboard redesign
+- **Location**: `Interview.interviewType` stores the setup label (`"Technical"`, `"Behavioral"`, `"System Design"`, from `app/(app)/interviews/new/page.tsx`); `UserProfile.interviewTypes` stores keys (`"technical"`, `"behavioral"`, `"system_design"`)
+- **Impact**: Every screen that shows or compares interview types must map both formats; renaming a label in setup would silently change stored data.
+- **Evidence**: Read. The dashboard maps both formats in `app/(app)/interviews/_components/dashboard-data.ts` (`typeLabel`).
+- **Investigate**: Store one canonical key on interviews and map to labels in the UI; migrate existing rows if needed.
