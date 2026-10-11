@@ -1,8 +1,10 @@
+import { Suspense } from "react";
 import Link from "next/link";
 
 import AccountMenu from "@/components/common/AccountMenu";
 import Logo from "@/components/landing-page/Logo";
 import { APP_NAME, ROUTES } from "@/lib/utils/constants";
+import { OnboardingAccountMenu } from "./_components/OnboardingAccountMenu";
 
 // Completion check + redirect live in page.tsx, which can read `?next=`.
 // Focused setup frame: logo and account menu (for signing out), no product
@@ -18,7 +20,9 @@ export default function OnboardingLayout({
         <div className="ds-container flex h-nav items-center justify-between gap-6">
           <Logo priority />
           <div className="flex size-8 items-center justify-center">
-            <AccountMenu />
+            <Suspense fallback={<AccountMenu dashboardHref={ROUTES.onboarding} />}>
+              <OnboardingAccountMenu />
+            </Suspense>
           </div>
         </div>
       </header>

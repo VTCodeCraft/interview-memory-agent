@@ -7,7 +7,8 @@ import { Menu, X } from "lucide-react";
 
 import AccountMenu from "@/components/common/AccountMenu";
 import { buttonVariants } from "@/components/ui/button";
-import { POST_AUTH_REDIRECT, ROUTES } from "@/lib/utils/constants";
+import { dashboardHref } from "@/lib/routing/dashboard-link";
+import { POST_AUTH_REDIRECT } from "@/lib/utils/constants";
 import { cn } from "@/lib/utils";
 import type { AuthState } from "./AuthCta";
 import Logo from "./Logo";
@@ -29,7 +30,8 @@ export default function Navbar({ clerkId, setupDone }: AuthState) {
   const [open, setOpen] = useState(false);
   const panelId = useId();
   const toggleRef = useRef<HTMLButtonElement>(null);
-  const dashboardHref = setupDone ? ROUTES.interviews : ROUTES.onboarding;
+  // Onboarding first while setup is incomplete (same target for the menu item).
+  const dashboard = dashboardHref(setupDone);
 
   useEffect(() => {
     if (!open) return;
@@ -73,11 +75,11 @@ export default function Navbar({ clerkId, setupDone }: AuthState) {
         <div className="flex items-center gap-2">
           {clerkId ? (
             <>
-              <Link href={dashboardHref} className={buttonVariants({ variant: "primary", size: "sm" })}>
+              <Link href={dashboard} className={buttonVariants({ variant: "primary", size: "sm" })}>
                 Dashboard
               </Link>
               <div className="flex size-8 items-center justify-center">
-                <AccountMenu />
+                <AccountMenu dashboardHref={dashboard} />
               </div>
             </>
           ) : (
