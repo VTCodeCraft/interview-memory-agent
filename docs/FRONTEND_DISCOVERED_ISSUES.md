@@ -46,6 +46,8 @@ proposed investigation. Never include secrets, tokens or environment values.
 | FDI-022 | Voice check tests a different token route and endpoint than the live interview | Voice check | P2 | decision |
 | FDI-023 | useDeepgram can leave the microphone open | Voice check | P2 | open |
 | FDI-024 | Voice check confirms permission, not that audio is captured | Voice check | P3 | decision |
+| FDI-025 | Natural completion can send `POST /api/interview/end` more than once | Live interview | P3 | verify |
+| FDI-026 | Interview duration is not available to the live room | Live interview | P3 | decision |
 
 ---
 
@@ -61,6 +63,7 @@ that owns them. These are not logic issues.
 | FE-003 | `Footer` `variant="minimal"` is no longer used (onboarding has its own footer) | `components/Footer.tsx` | Clean-up with the legal pages or the shared layout |
 | FE-004 | App pages not yet redesigned keep the legacy look (`bg-background` #FAF6FD, Material Symbols, legacy type scale) under the new Precision navigation, so there is a visible seam between the nav and their content. Only their sidebar wrappers were changed. | `app/(app)/reports`, `reports/[id]`, `memory`, `analytics`, `profile`, `interviews/new` | Each page's own redesign |
 | FE-005 | Two legacy layout details were offset for the sticky nav and should be rebuilt with their pages: the fixed right panel on `/memory` (now starts below the nav at `xl`) and the sticky left column on `/profile` (now clears the nav) | `app/(app)/memory/page.tsx`, `app/(app)/profile/page.tsx` | Memory and Profile redesigns |
+| FE-006 | `components/interview/QuestionCard.tsx` (`InterviewStepCard`) is not imported anywhere and still uses legacy styles (zinc, uppercase labels); the live room shows the current question itself | `components/interview/QuestionCard.tsx` | Clean-up pass (delete) |
 
 ---
 
@@ -268,6 +271,12 @@ that owns them. These are not logic issues.
 - **Impact**: The check proves microphone access and that Deepgram can be reached with a browser token, but not the exact connection the interview uses. The check can pass while the interview connection fails (for example agent-specific errors or a different rate limit), or fail for listen-only reasons.
 - **Evidence**: Read. The redesigned check only claims what it actually tests ("reach the voice service").
 - **Investigate**: Decide whether the check should exercise the voice-agent token route and endpoint (without starting the interview), or keep it as a general connectivity check.
+- **Compatibility audit (live interview redesign, 2026-10-12)**: Read only; no backend changes.
+  - Shared: both routes require a signed-in user, return 501 when Deepgram isn't configured, and mint the token with the same `createDeepgramToken` (`services/deepgram.service.ts`). Both have the same rate limits (30 per minute, 2 per second; `lib/rate-limit/config.ts`).
+  - Different on the live route: a 300 s token (the check uses the 30 s default); an ownership check when `interviewId` is passed (404 otherwise); a 403 when another `clientId` holds the session; and a side effect, `markDeepgramStart(interviewId)`, on every token, including each Reconnect.
+  - Different endpoint and protocol: the check opens `/v1/listen` (speech-to-text only); the interview opens `/v1/agent/converse` (agent settings, speech output, function calls). A Deepgram project or plan without agent access passes the check and fails the interview.
+  - The live hook maps every token failure (403 takeover, 404, 429, 5xx) to the same `voiceStartFailed` message, so the room cannot tell these apart; it offers Reconnect for all of them.
+  - A check route can't simply reuse `/api/interview/voice/token` with an `interviewId`: that would record a Deepgram start on the interview. A no-`interviewId` call to that route avoids the side effect but still doesn't test the agent endpoint.
 
 ## FDI-023: useDeepgram can leave the microphone open
 
@@ -287,3 +296,19 @@ that owns them. These are not logic issues.
 - **Impact**: A muted or wrong input device still passes the check; the user only finds out in the interview.
 - **Evidence**: Read. The page does not show an input level or claim that sound was heard.
 - **Investigate**: Product decision on adding a real input-level indicator (Web Audio analyser on the existing stream) to the check.
+
+## FDI-025: Natural completion can send `POST /api/interview/end` more than once
+
+- **Found during**: Live interview redesign (2026-10-12)
+- **Location**: `components/interview/VoiceInterview.tsx` (natural-completion effect: 2.5 s after any finishing state, `POST /api/interview/end`, then `goToReport`); `hooks/useVoiceAgent.ts` (`advanceTurn` schedules `finishInterview` 5 s after the last answer, which also POSTs `/api/interview/end`)
+- **Impact**: Normally the page posts first and `goToReport` calls `stop()`, which sets `finishedRef` so the hook's later call returns early. If the page's request takes longer than about 2.5 s, the hook's call starts before `stop()`. Its move to `EVALUATING` also restarts the page's timer while `navigatedRef` is still unset, so a third request is possible. The end route is mostly idempotent (cached report check, `upsert` on the job, `finalizeDeepgram` checks status first), but concurrent requests can race on the job `upsert` (unique `interviewId`) and on `finalizeDeepgram`'s read-then-write, and each one triggers `process-reports`.
+- **Evidence**: Read. Simulated in the browser with stubbed APIs (harness, deleted afterwards): with a fast end response, exactly one `POST /end` and one report navigation. The slow-response case was not simulated.
+- **Investigate**: Have one owner for ending (the hook or the page), or set the page's guard before the request instead of after it. Confirm the end route tolerates concurrent calls.
+
+## FDI-026: Interview duration is not available to the live room
+
+- **Found during**: Live interview redesign
+- **Location**: `GET /api/interview/[id]` returns `startedAt`, but `hooks/useInterview.ts` does not keep it (`types/interview.ts` has no `startedAt`); `services/answer.service.ts` sets `startedAt` only when the first answer is saved
+- **Impact**: The old room showed a timer that started when the component mounted, so it reset on every reconnect or reload and did not reflect the interview's real duration. The redesign removed it rather than show a misleading number. Progress ("Question X of Y") comes from the hook and is real.
+- **Evidence**: Read.
+- **Investigate**: Product decision on whether a duration is wanted. If so, record when the voice session first starts and expose it to the client, or show elapsed time since `startedAt` and label it as time since the first answer.
