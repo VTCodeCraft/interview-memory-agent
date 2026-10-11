@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import Sidebar from "@/components/common/Sidebar";
 import ReportDetailCard from "@/components/reports/ReportDetailCard";
 import { requireOnboardedUser } from "@/lib/auth/app-user";
 import { ROUTES, routeTo } from "@/lib/utils/constants";
@@ -28,9 +27,8 @@ export default async function ReportDetailPage({
   if (!view) notFound();
 
   return (
-    <div className="min-h-screen bg-background text-on-surface font-body-md flex">
-      <Sidebar />
-      <main className="w-full lg:ml-64 lg:w-[calc(100%-16rem)] p-4 sm:p-gutter pt-20 lg:pt-6 min-h-screen flex-1">
+    <div className="flex-1 bg-background text-on-surface font-body-md flex">
+      <main className="w-full p-4 sm:p-gutter pt-6 flex-1">
         <div className="max-w-[1000px] mx-auto space-y-6 lg:space-y-lg pb-xxl">
           <Link
             href={ROUTES.reports}

@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
-import Sidebar from "@/components/common/Sidebar";
 import { API, ROUTES } from "@/lib/utils/constants";
 import type { MemoryNode, Report } from "@/types";
 import {
@@ -110,10 +109,9 @@ export default function MemoryPage() {
   const isEmpty = !loadingReports && reports.length === 0;
 
   return (
-    <div className="min-h-screen bg-background text-on-surface font-body-md flex">
-      <Sidebar />
+    <div className="flex-1 bg-background text-on-surface font-body-md flex">
 
-      <main className="w-full lg:ml-64 xl:mr-80 lg:w-[calc(100%-16rem)] xl:w-[calc(100%-36rem)] p-4 sm:p-gutter pt-20 lg:pt-6 min-h-screen flex-1 overflow-x-hidden">
+      <main className="w-full xl:mr-80 xl:w-[calc(100%-20rem)] p-4 sm:p-gutter pt-6 flex-1 overflow-x-hidden">
         <div className="max-w-[1200px] mx-auto space-y-16 lg:space-y-xxl pb-xxl">
 
           {/* Header — always visible */}
@@ -514,7 +512,7 @@ export default function MemoryPage() {
       </main>
 
       {/* Right Sidebar */}
-      <aside className="fixed right-0 top-0 h-full w-80 bg-surface border-l border-outline-variant/30 p-lg overflow-y-auto hidden xl:flex flex-col gap-6">
+      <aside className="fixed right-0 top-nav bottom-0 w-80 bg-surface border-l border-outline-variant/30 p-lg overflow-y-auto hidden xl:flex flex-col gap-6">
         <div className="flex items-center gap-4 mb-4">
           <div className="w-12 h-12 rounded-full overflow-hidden bg-primary-container flex items-center justify-center shrink-0">
             {avatarUrl ? (

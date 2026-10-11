@@ -3,7 +3,6 @@
 import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import Sidebar from "@/components/common/Sidebar";
 import ReportDetailCard from "@/components/reports/ReportDetailCard";
 import { API, ROUTES, routeTo } from "@/lib/utils/constants";
 import type { Report } from "@/types";
@@ -66,12 +65,10 @@ function ReportsPageInner() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-background text-on-surface font-body-md flex">
-      {/* Sidebar Navigation */}
-      <Sidebar />
+    <div className="flex-1 bg-background text-on-surface font-body-md flex">
 
       {/* Main Content Area */}
-      <main className="w-full lg:ml-64 lg:w-[calc(100%-16rem)] p-4 sm:p-gutter pt-20 lg:pt-6 min-h-screen flex-1">
+      <main className="w-full p-4 sm:p-gutter pt-6 flex-1">
         <div className="max-w-[1000px] mx-auto space-y-6 lg:space-y-lg pb-xxl">
           
           {/* Header Section */}

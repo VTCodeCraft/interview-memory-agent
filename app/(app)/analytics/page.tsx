@@ -1,6 +1,5 @@
 import Link from "next/link";
 
-import Sidebar from "@/components/common/Sidebar";
 import { requireOnboardedUser } from "@/lib/auth/app-user";
 import { ROUTES } from "@/lib/utils/constants";
 import { listReports } from "@/services/report.service";
@@ -16,9 +15,8 @@ export default async function AnalyticsPage() {
   const summary = summarizeAnalytics(await listReports(user.id));
 
   return (
-    <div className="min-h-screen bg-background text-on-surface font-body-md flex">
-      <Sidebar />
-      <main className="w-full lg:ml-64 lg:w-[calc(100%-16rem)] p-4 sm:p-gutter pt-20 lg:pt-6 min-h-screen flex-1">
+    <div className="flex-1 bg-background text-on-surface font-body-md flex">
+      <main className="w-full p-4 sm:p-gutter pt-6 flex-1">
         <div className="max-w-[1000px] mx-auto space-y-6 lg:space-y-lg pb-xxl">
           <header className="space-y-sm mb-8">
             <span className="inline-flex items-center gap-sm bg-primary-fixed text-primary font-bold text-[11px] uppercase tracking-wider px-4 py-1.5 rounded-full">

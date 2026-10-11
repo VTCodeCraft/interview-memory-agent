@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { useUser, useClerk } from "@clerk/nextjs";
-import Sidebar from "@/components/common/Sidebar";
 import { useSettingsStore } from "@/store/useSettingsStore";
 import { API } from "@/lib/utils/constants";
 import type { AIProvider, Report } from "@/types";
@@ -319,16 +318,14 @@ export default function ProfilePage() {
       : null;
 
   return (
-    <div className="min-h-screen bg-background text-on-surface font-body-md flex">
-      {/* Sidebar Navigation */}
-      <Sidebar />
+    <div className="flex-1 bg-background text-on-surface font-body-md flex">
 
       {/* Main Content Area */}
-      <main className="w-full lg:ml-64 lg:w-[calc(100%-16rem)] p-4 sm:p-gutter pt-20 lg:pt-6 min-h-screen flex-1">
+      <main className="w-full p-4 sm:p-gutter pt-6 flex-1">
         <div className="max-w-[1200px] mx-auto grid grid-cols-1 lg:grid-cols-[16rem_1fr] xl:grid-cols-[16rem_1fr_18rem] gap-6 lg:gap-xl pb-32">
 
           {/* Left Side Settings Menu */}
-          <div className="w-full space-y-1 lg:sticky lg:top-6 lg:self-start">
+          <div className="w-full space-y-1 lg:sticky lg:top-[calc(var(--spacing-nav)+1.5rem)] lg:self-start">
             <div className="flex lg:flex-col gap-1 overflow-x-auto lg:overflow-visible pb-2 lg:pb-0">
               <h3 className="hidden lg:block text-[10px] font-bold text-on-surface-variant px-4 py-2 uppercase tracking-wider">Personal</h3>
               <button

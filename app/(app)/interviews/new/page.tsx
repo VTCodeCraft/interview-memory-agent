@@ -32,7 +32,6 @@ const setupSchema = z.object({
 import { useInterview } from "@/hooks/useInterview";
 import { useSettingsStore } from "@/store/useSettingsStore";
 import { ROUTES, routeTo } from "@/lib/utils/constants";
-import Sidebar from "@/components/common/Sidebar";
 import { toast } from "react-hot-toast";
 
 /**
@@ -371,11 +370,10 @@ export default function NewInterviewPage() {
       : null;
 
   return (
-      <div className="min-h-screen bg-background text-on-surface font-body-md flex">
-        <Sidebar />
+      <div className="flex-1 bg-background text-on-surface font-body-md flex">
 
         {/* Main Content Area */}
-        <main className="w-full lg:ml-64 lg:w-[calc(100%-16rem)] p-4 sm:p-gutter pt-20 lg:pt-6 min-h-screen flex-1">
+        <main className="w-full p-4 sm:p-gutter pt-6 flex-1">
           <div className="max-w-[1000px] mx-auto space-y-6 lg:space-y-lg pb-xxl">
           {/* Header Section */}
           <header className="mb-8 max-w-3xl">
