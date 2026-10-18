@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import type { Report } from "@/types";
 import {
   DEFAULT_VIEW,
+  availableControls,
   displayScore,
   effectiveView,
   filterRows,
@@ -154,8 +155,27 @@ describe("view state", () => {
   });
 
   it("drops filters that match nothing in the data", () => {
-    const rows = [row("a", "2026-10-01", 80)];
-    expect(effectiveView({ ...DEFAULT_VIEW, type: "Behavioral", level: "Senior+" }, rows)).toMatchObject({ type: "all", level: "Senior+" });
+    const rows = [row("a", "2026-10-01", 80), row("b", "2026-10-02", 70, { type: "Behavioral", level: "Junior" })];
+    expect(effectiveView({ ...DEFAULT_VIEW, type: "System design", level: "Junior" }, rows)).toMatchObject({ type: "all", level: "Junior" });
+  });
+
+  it("ignores URL values whose control isn't on screen", () => {
+    // Three rows, one type and one level among them: no search box, no type or level select.
+    const rows = [row("a", "2026-10-01", 80), row("b", "2026-10-02", 70), row("p", "2026-10-03", null, { type: null, level: null })];
+    expect(availableControls(rows)).toEqual({ toolbar: true, search: false, type: false, level: false });
+    expect(effectiveView({ q: "google", type: "Technical", level: "Senior+", sort: "oldest" }, rows)).toEqual({
+      ...DEFAULT_VIEW,
+      sort: "oldest",
+    });
+    // A single report has no toolbar at all, so nothing from the URL applies.
+    expect(availableControls([rows[0]]).toolbar).toBe(false);
+    expect(effectiveView({ q: "x", type: "Technical", level: "all", sort: "score-low" }, [rows[0]])).toEqual(DEFAULT_VIEW);
+  });
+
+  it("shows search from six rows and selects only when there's a choice", () => {
+    const many = Array.from({ length: 6 }, (_, i) => row(`r${i}`, "2026-10-01", 70, i === 0 ? { type: "Behavioral" } : {}));
+    expect(availableControls(many)).toEqual({ toolbar: true, search: true, type: true, level: false });
+    expect(effectiveView({ ...DEFAULT_VIEW, q: "front", type: "Behavioral" }, many)).toMatchObject({ q: "front", type: "Behavioral" });
   });
 
   it("knows when a filter is applied", () => {

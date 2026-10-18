@@ -15,6 +15,7 @@ import { dateParts } from "@/app/(app)/interviews/_components/dashboard-data";
 import {
   PAGE_SIZE,
   SORTS,
+  availableControls,
   displayScore,
   meterWidth,
   optionCounts,
@@ -23,9 +24,6 @@ import {
   type ReportsView,
   type SortKey,
 } from "./reports-list";
-
-/** Show the search box once there's enough to search. */
-const SEARCH_MIN_ROWS = 6;
 
 /* ── Small pieces ───────────────────────────────────────────────────────── */
 
@@ -129,6 +127,7 @@ export function ReportsList({
   onShowMore: () => void;
 }) {
   const toolbarRef = useRef<HTMLDivElement>(null);
+  const controls = availableControls(rows);
   const types = optionCounts(rows, "type");
   const levels = optionCounts(rows, "level");
   const remaining = matchCount - shown.length;
@@ -176,7 +175,7 @@ export function ReportsList({
         </p>
       </div>
 
-      {rows.length > 1 && (
+      {controls.toolbar && (
         <div
           ref={toolbarRef}
           role="group"
@@ -184,25 +183,25 @@ export function ReportsList({
           className="flex flex-col gap-3 border-b border-line-subtle bg-canvas/60 px-5 py-3 sm:px-6 lg:flex-row lg:items-center"
         >
           <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:gap-3">
-            {rows.length >= SEARCH_MIN_ROWS && (
+            {controls.search && (
               <SearchField value={view.q} onChange={(q) => onViewChange({ q })} />
             )}
-            {types.length > 1 && (
+            {controls.type && (
               <ToolbarSelect
                 label="Interview type"
                 value={view.type}
                 onChange={(type) => onViewChange({ type })}
                 options={[{ value: "all", label: "All types" }, ...types.map(([value, count]) => ({ value, label: `${value} (${count})` }))]}
-                className={levels.length > 1 ? undefined : "col-span-2"}
+                className={controls.level ? undefined : "col-span-2"}
               />
             )}
-            {levels.length > 1 && (
+            {controls.level && (
               <ToolbarSelect
                 label="Level"
                 value={view.level}
                 onChange={(level) => onViewChange({ level })}
                 options={[{ value: "all", label: "All levels" }, ...levels.map(([value, count]) => ({ value, label: `${value} (${count})` }))]}
-                className={types.length > 1 ? undefined : "col-span-2"}
+                className={controls.type ? undefined : "col-span-2"}
               />
             )}
             <ToolbarSelect

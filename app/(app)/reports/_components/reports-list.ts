@@ -159,16 +159,34 @@ export function optionCounts(rows: ReportRow[], field: "type" | "level") {
   return [...counts.entries()].sort(([a], [b]) => rank(a) - rank(b) || a.localeCompare(b));
 }
 
+/** Show the search box once there's enough to search. */
+export const SEARCH_MIN_ROWS = 6;
+
+/** Which toolbar controls the data supports; the toolbar renders exactly these. */
+export function availableControls(rows: ReportRow[]) {
+  const toolbar = rows.length > 1;
+  return {
+    toolbar,
+    search: toolbar && rows.length >= SEARCH_MIN_ROWS,
+    type: toolbar && optionCounts(rows, "type").length > 1,
+    level: toolbar && optionCounts(rows, "level").length > 1,
+  };
+}
+
 /**
- * A type or level that isn't in the data (an old link, or a report since
- * removed) would hide everything with no visible way out, so it is ignored.
+ * The view actually applied. A value from the URL only counts when its
+ * control is on screen and the value exists in the data; otherwise an old
+ * link (or a report since removed) could hide rows with no visible way to
+ * see why or undo it.
  */
 export function effectiveView(view: ReportsView, rows: ReportRow[]): ReportsView {
-  const has = (field: "type" | "level", value: string) => value === "all" || rows.some((row) => row[field] === value);
+  const controls = availableControls(rows);
+  const has = (field: "type" | "level", value: string) => rows.some((row) => row[field] === value);
   return {
-    ...view,
-    type: has("type", view.type) ? view.type : "all",
-    level: has("level", view.level) ? view.level : "all",
+    q: controls.search ? view.q : "",
+    type: controls.type && has("type", view.type) ? view.type : "all",
+    level: controls.level && has("level", view.level) ? view.level : "all",
+    sort: controls.toolbar ? view.sort : "newest",
   };
 }
 
