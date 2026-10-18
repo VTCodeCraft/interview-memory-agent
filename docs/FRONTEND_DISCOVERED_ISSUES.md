@@ -51,6 +51,8 @@ proposed investigation. Never include secrets, tokens or environment values.
 | FDI-027 | Evaluation scores are saved without validation | Reports list | P2 | open |
 | FDI-028 | Per-question feedback is generated but never stored | Reports list | P2 | open |
 | FDI-029 | Report history is unpaginated and returns full report bodies | Reports list | P3 | open |
+| FDI-030 | Historical progress is generated but not stored | Report detail | P3 | decision |
+| FDI-031 | Every category is scored for every interview type | Report detail | P3 | decision |
 
 ---
 
@@ -64,11 +66,12 @@ that owns them. These are not logic issues.
 | FE-001 | ~~Account menu icons use Material Symbols; Precision uses Lucide (stroke 1.75)~~ Resolved in the shared navigation work (2026-10-11): Lucide icons | `components/common/AccountMenu.tsx` (`MenuIcon`) | Done |
 | FE-002 | ~~Account menu "My Dashboard" during onboarding goes to `/interviews`, which sends incomplete users straight back to onboarding~~ Resolved (2026-10-11): `AccountMenu` takes `dashboardHref`; onboarding and the landing nav link to `/onboarding` (keeping a safe `next`) via `lib/routing/dashboard-link.ts`. Remaining: the legacy `components/Header.tsx` on `/privacy` and `/terms` can't know onboarding status, so it still links `/interviews`, which the guard redirects to `/onboarding?next=%2Finterviews` (no loop). | `components/common/AccountMenu.tsx`, `app/onboarding/layout.tsx`, `components/landing-page/Navbar.tsx` | Done (legal pages: their redesign) |
 | FE-003 | `Footer` `variant="minimal"` is no longer used (onboarding has its own footer) | `components/Footer.tsx` | Clean-up with the legal pages or the shared layout |
-| FE-004 | App pages not yet redesigned keep the legacy look (`bg-background` #FAF6FD, Material Symbols, legacy type scale) under the new Precision navigation, so there is a visible seam between the nav and their content. Only their sidebar wrappers were changed. | `app/(app)/reports/[id]`, `memory`, `analytics`, `profile` (`interviews/new` and `/reports` are done) | Each page's own redesign |
+| FE-004 | App pages not yet redesigned keep the legacy look (`bg-background` #FAF6FD, Material Symbols, legacy type scale) under the new Precision navigation, so there is a visible seam between the nav and their content. Only their sidebar wrappers were changed. | `app/(app)/memory`, `analytics`, `profile` (`interviews/new`, `/reports` and `/reports/[id]` are done) | Each page's own redesign |
 | FE-005 | Two legacy layout details were offset for the sticky nav and should be rebuilt with their pages: the fixed right panel on `/memory` (now starts below the nav at `xl`) and the sticky left column on `/profile` (now clears the nav) | `app/(app)/memory/page.tsx`, `app/(app)/profile/page.tsx` | Memory and Profile redesigns |
 | FE-006 | `components/interview/QuestionCard.tsx` (`InterviewStepCard`) is not imported anywhere and still uses legacy styles (zinc, uppercase labels); the live room shows the current question itself | `components/interview/QuestionCard.tsx` | Clean-up pass (delete) |
-| FE-007 | Report presentation is repeated between the dashboard and `/reports`: the date with mono digits, the score with `/100`, and the label helpers (imported from the dashboard's `dashboard-data.ts`). `components/reports/ReportCard.tsx` is not imported anywhere. | `app/(app)/interviews/_components`, `app/(app)/reports/_components`, `components/reports/ReportCard.tsx` | `/reports/[id]` redesign (move shared pieces to `components/reports`, delete `ReportCard`) |
+| FE-007 | Report presentation is repeated on the dashboard, `/reports` and `/reports/[id]`: the date with mono digits, the score with `/100` and the score bar, and the label helpers (imported from the dashboard's `dashboard-data.ts`). `components/reports/ReportCard.tsx` and `ReportDetailCard.tsx` were deleted with the report page redesign (both unused by then). | `app/(app)/interviews/_components`, `app/(app)/reports/_components`, `app/(app)/reports/[id]/_components` | A shared clean-up pass (move the pieces to `components/reports`) |
 | FE-008 | `/reports` does not refresh by itself when a processing report finishes; the row links to the report page, which has its own refresh button. Polling the existing pending-report endpoint is possible but was left out to keep requests to page loads. | `app/(app)/reports/page.tsx` | Product decision |
+| FE-009 | `/reports/[id]` now has a `loading.tsx`, so the page streams. When the id is unknown or not the user's, `notFound()` still shows the not-found UI (with `noindex`), but a direct page load now returns HTTP 200 instead of 404, as Next.js does for streamed responses. The route is signed-in only, so this affects no crawler; deleting `loading.tsx` restores the 404 at the cost of no loading state. | `app/(app)/reports/[id]/loading.tsx` | Keep unless a 404 status is needed |
 
 ---
 
@@ -229,6 +232,7 @@ that owns them. These are not logic issues.
 - **Impact**: When report generation fails, nothing on the dashboard or reports list points the user to it. They only see the failure if they open that interview's report URL.
 - **Evidence**: Read only.
 - **Investigate**: Decide whether failed jobs should appear (with a retry where supported). Align the doc comment with the query either way.
+- **Also affects `/reports/[id]` (2026-10-19)**: the failed state can only say that generation failed after several attempts. The job's `failureReason` and `lastError` are not exposed, and nothing re-queues a `FAILED` job (`POST /api/interview/end` leaves an existing job as it is), so the page offers no retry.
 - **Also affects `/reports` (2026-10-12)**: the list has no failed state to show, so a failed report is simply absent from it.
 
 ## FDI-017: Interview type stored in two formats
@@ -319,6 +323,7 @@ that owns them. These are not logic issues.
 - **Impact**: The old room showed a timer that started when the component mounted, so it reset on every reconnect or reload and did not reflect the interview's real duration. The redesign removed it rather than show a misleading number. Progress ("Question X of Y") comes from the hook and is real.
 - **Evidence**: Read.
 - **Investigate**: Product decision on whether a duration is wanted. If so, record when the voice session first starts and expose it to the client, or show elapsed time since `startedAt` and label it as time since the first answer.
+- **Also affects `/reports/[id]` (2026-10-19)**: the old report card showed a duration computed from `startedAt` to `endedAt`, i.e. from the first saved answer, not from the start of the interview. The redesigned page leaves it out.
 
 ## FDI-027: Evaluation scores are saved without validation
 
@@ -335,6 +340,7 @@ that owns them. These are not logic issues.
 - **Impact**: The evaluator produces feedback and a 0-10 score for each question, but it is lost once the job finishes. The report page's per-question section never renders for a saved report. The `/reports` copy avoids promising question-by-question feedback for this reason.
 - **Evidence**: Read only.
 - **Investigate**: Store per-question feedback (a JSON column or a related table) or stop requesting it from the evaluator. Decide before the `/reports/[id]` redesign.
+- **Also affects `/reports/[id]` (2026-10-19)**: the redesigned page has no per-question section, since the data is always empty.
 
 ## FDI-029: Report history is unpaginated and returns full report bodies
 
@@ -343,3 +349,19 @@ that owns them. These are not logic issues.
 - **Impact**: Every visit to the dashboard or `/reports` downloads every report the user has, including strengths, weaknesses, missing topics and recommendations, which the list does not show. The payload grows with each interview. The list renders 20 rows at a time, but that does not reduce the download.
 - **Evidence**: Read.
 - **Investigate**: Add a summary shape (id, interview context, overall score, dates) with cursor pagination for lists, and keep full bodies for the report page.
+
+## FDI-030: Historical progress is generated but not stored
+
+- **Found during**: Report detail redesign (2026-10-19)
+- **Location**: `lib/ai/evaluationPromptBuilder.ts` asks for `historicalProgress` when past interviews exist; `services/interview.service.ts` returns it; `app/api/cron/process-reports/route.ts` passes only `overallTrend` to `persistInterviewMemory`; `services/report.service.ts` (`saveReport`, `prismaReportToReport`) never stores or returns it
+- **Impact**: The comparison with past sessions (improved, regressed, stable, still weak) is produced and then lost. The old report card had a "Progress vs. past sessions" section that could never render; the redesigned page does not show one.
+- **Evidence**: Read only.
+- **Investigate**: Product decision: store it with the report (and show it), or stop asking the evaluator for it.
+
+## FDI-031: Every category is scored for every interview type
+
+- **Found during**: Report detail redesign
+- **Location**: `lib/ai/prompts/evaluation.ts` requires all five category scores (technical, communication, confidence, behavioral, problem solving) as numbers; `prisma/schema.prisma` stores them as non-null `Float`
+- **Impact**: A behavioral interview still gets a technical score and a technical interview a behavioral score, with no way to mark a category as not assessed. The report page shows every category that has a number, labelled as scored by an AI evaluator, and cannot tell which ones are meaningful for the interview type.
+- **Evidence**: Read only.
+- **Investigate**: Decide which categories apply to each interview type; allow null (not assessed) in the schema and prompt, and show only assessed categories.
