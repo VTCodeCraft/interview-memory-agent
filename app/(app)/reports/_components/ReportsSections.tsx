@@ -44,10 +44,11 @@ function DateText({ iso }: { iso: string }) {
   );
 }
 
-function ScoreValue({ score, size = "md" }: { score: number; size?: "md" | "lg" }) {
+/** `labelled`: the score is already named by its context (a summary label). */
+function ScoreValue({ score, size = "md", labelled = false }: { score: number; size?: "md" | "lg"; labelled?: boolean }) {
   return (
     <span className="inline-flex items-baseline gap-0.5 whitespace-nowrap">
-      <span className="sr-only">Score </span>
+      {!labelled && <span className="sr-only">Score </span>}
       <span className={cn("font-data font-semibold tabular-nums text-fg", size === "lg" ? "text-metric-sm" : "text-body")}>
         {displayScore(score)}
       </span>
@@ -84,10 +85,10 @@ export function ReportsSummary({ summary }: { summary: ReportSummary }) {
           <span className="font-data text-metric-sm text-fg tabular-nums">{summary.count}</span>
         </Stat>
         <Stat label="Average score">
-          <ScoreValue score={summary.average} size="lg" />
+          <ScoreValue score={summary.average} size="lg" labelled />
         </Stat>
         <Stat label="Highest score">
-          <ScoreValue score={summary.highest} size="lg" />
+          <ScoreValue score={summary.highest} size="lg" labelled />
         </Stat>
       </dl>
     </Panel>
@@ -214,13 +215,13 @@ export function ReportsList({
           </div>
           {/* Always present, so the count is announced when filters change. */}
           <p aria-live="polite" className="sr-only">
-            {filtering ? `${matchCount} of ${rows.length} shown` : ""}
+            {filtering ? `${matchCount} of ${rows.length} reports match` : ""}
           </p>
           {filtering && (
             <div className="flex min-h-8 items-center justify-between gap-3 lg:ml-auto">
               <p className="text-small text-fg-muted">
                 <span className="font-data tabular-nums text-fg">{matchCount}</span> of{" "}
-                <span className="font-data tabular-nums">{rows.length}</span> shown
+                <span className="font-data tabular-nums">{rows.length}</span> match
               </p>
               <Button variant="ghost" size="sm" onClick={reset} className="-mr-2">
                 Reset
