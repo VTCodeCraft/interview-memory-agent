@@ -125,6 +125,12 @@ describe("scores", () => {
       highest: 80,
     });
   });
+
+  it("counts every finished report, but averages only those with a score", () => {
+    const unscored = row("c", "2026-10-04", null, { status: "ready" });
+    expect(summarize([row("a", "2026-10-01", 80), row("b", "2026-10-02", 60), unscored])).toEqual({ count: 3, average: 70, highest: 80 });
+    expect(summarize([row("a", "2026-10-01", 80), unscored])).toBeNull();
+  });
 });
 
 describe("view state", () => {

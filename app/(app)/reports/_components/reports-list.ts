@@ -79,12 +79,17 @@ export interface ReportSummary {
   highest: number;
 }
 
-/** Totals over finished reports only. Null until there are two, when a summary adds anything. */
+/**
+ * Totals over finished reports. The count matches the list; the average and
+ * highest use the reports that have a score. Null until two are scored, when
+ * a summary adds anything.
+ */
 export function summarize(rows: ReportRow[]): ReportSummary | null {
-  const scores = rows.flatMap((row) => (row.status === "ready" && row.score !== null ? [row.score] : []));
+  const finished = rows.filter((row) => row.status === "ready");
+  const scores = finished.flatMap((row) => (row.score !== null ? [row.score] : []));
   if (scores.length < 2) return null;
   return {
-    count: scores.length,
+    count: finished.length,
     average: displayScore(scores.reduce((sum, score) => sum + score, 0) / scores.length),
     highest: displayScore(Math.max(...scores)),
   };
