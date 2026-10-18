@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/feedback";
 import { Input, Select } from "@/components/ui/input";
+import { LinkPending } from "@/components/ui/link-pending";
 import { ROUTES, routeTo } from "@/lib/utils/constants";
 import { cn } from "@/lib/utils";
 import { Panel } from "@/app/(app)/interviews/_components/DashboardSections";
@@ -305,7 +306,9 @@ function ReportRowLink({ row }: { row: ReportRow }) {
         <DateText iso={row.date} />
       </span>
 
-      <span className="col-start-2 row-start-1 flex items-center justify-end gap-3 md:col-start-3 md:row-span-2">
+      <span className="relative col-start-2 row-start-1 flex items-center justify-end gap-3 md:col-start-3 md:row-span-2">
+        {/* Mobile rows have no chevron: show the wait in the gap beside the score instead. */}
+        <LinkPending className="absolute right-full mr-0.5 size-3.5 md:hidden" />
         {processing ? (
           <Badge tone="neutral">
             <LoaderCircle aria-hidden strokeWidth={2} className="motion-safe:animate-spin" />
@@ -325,10 +328,15 @@ function ReportRowLink({ row }: { row: ReportRow }) {
         )}
       </span>
 
-      <ChevronRight
-        aria-hidden
-        strokeWidth={1.75}
-        className="hidden size-4 text-fg-subtle transition-transform duration-(--duration-fast) ease-standard motion-safe:group-hover:translate-x-0.5 md:col-start-4 md:row-span-2 md:row-start-1 md:block"
+      {/* The report page has no loading.js (it keeps real 404s), so show the wait here. */}
+      <LinkPending
+        className="hidden md:col-start-4 md:row-span-2 md:row-start-1 md:inline-flex"
+        idle={
+          <ChevronRight
+            strokeWidth={1.75}
+            className="size-4 text-fg-subtle transition-transform duration-(--duration-fast) ease-standard motion-safe:group-hover:translate-x-0.5"
+          />
+        }
       />
     </Link>
   );

@@ -20,7 +20,7 @@ import {
   type PendingView,
 } from "./report-view";
 
-/* ── Frame (shared by the page, loading, not-found and error) ───────────── */
+/* ── Frame (shared by the page, not-found and error) ───────────────────── */
 
 export function ReportFrame({ children }: { children: ReactNode }) {
   return (
@@ -134,9 +134,14 @@ function ScorePanel({ report }: { report: Report }) {
 
       {categories.length > 0 && (
         <div className="border-t border-line-subtle px-5 py-5 sm:px-6">
-          <h3 className="text-label font-semibold text-fg-muted">Score breakdown</h3>
+          {/* Not "breakdown": the overall score is rated on its own, not computed from these. */}
+          <h3 id="category-title" className="text-label font-semibold text-fg-muted">
+            Category scores
+          </h3>
+          {/* FDI-031: every category is rated whatever the interview type, so say so. */}
+          <p className="mt-1 text-label text-fg-subtle">Rated on their own, whatever the interview type.</p>
           {/* Two or three columns while the panel is full width; one in the desktop sidebar. */}
-          <ul role="list" className="mt-3 grid gap-x-6 gap-y-3.5 min-[360px]:grid-cols-2 sm:grid-cols-3 lg:grid-cols-1">
+          <ul role="list" aria-labelledby="category-title" className="mt-3 grid gap-x-6 gap-y-3.5 min-[360px]:grid-cols-2 sm:grid-cols-3 lg:grid-cols-1">
             {categories.map((category) => (
               <li key={category.key}>
                 <span className="flex items-baseline justify-between gap-3 text-small">

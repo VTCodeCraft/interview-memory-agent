@@ -6,6 +6,7 @@ import { ArrowRight, AudioLines, Check, ChevronRight, FileText, LoaderCircle, Ta
 
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { LinkPending } from "@/components/ui/link-pending";
 import { Select } from "@/components/ui/input";
 import { ROUTES, routeTo } from "@/lib/utils/constants";
 import { cn } from "@/lib/utils";
@@ -43,7 +44,7 @@ function TextLink({ href, children }: { href: string; children: ReactNode }) {
       className="inline-flex min-h-8 shrink-0 items-center gap-1 rounded-control text-small font-medium text-brand underline-offset-4 hover:text-brand-hover hover:underline focus-ring"
     >
       {children}
-      <ArrowRight aria-hidden strokeWidth={1.75} className="size-3.5" />
+      <LinkPending idle={<ArrowRight strokeWidth={1.75} className="size-3.5" />} className="size-3.5" />
     </Link>
   );
 }
@@ -408,10 +409,14 @@ function RowLink({ href, children }: { href: string; children: ReactNode }) {
       className="group flex items-center gap-4 px-5 py-4 transition-[background-color] duration-(--duration-fast) ease-standard hover:bg-sunken/60 focus-visible:bg-sunken/60 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-focus sm:px-6"
     >
       {children}
-      <ChevronRight
-        aria-hidden
-        strokeWidth={1.75}
-        className="size-4 shrink-0 text-fg-subtle transition-transform duration-(--duration-fast) ease-standard group-hover:translate-x-0.5"
+      {/* The report page has no loading.js (it keeps real 404s), so show the wait here. */}
+      <LinkPending
+        idle={
+          <ChevronRight
+            strokeWidth={1.75}
+            className="size-4 text-fg-subtle transition-transform duration-(--duration-fast) ease-standard group-hover:translate-x-0.5"
+          />
+        }
       />
     </Link>
   );
