@@ -58,6 +58,9 @@ proposed investigation. Never include secrets, tokens or environment values.
 | FDI-034 | Question generation recalls memory even for first-time users | Memory | P3 | open |
 | FDI-035 | Memory save and recall failures are invisible to the user | Memory | P3 | decision |
 | FDI-036 | `/api/analytics` averages scores across interview types and returns empty topic lists | Analytics | P3 | open |
+| FDI-037 | Memory can't be turned off; Profile's memory switches only changed browser storage | Profile | P2 | decision |
+| FDI-038 | Account deletion keeps a record and may over-count carried-over interviews | Profile | P2 | open |
+| FDI-039 | Setup preselects a saved company or type only if it's one of the presets | Profile | P3 | open |
 
 ---
 
@@ -71,13 +74,13 @@ that owns them. These are not logic issues.
 | FE-001 | ~~Account menu icons use Material Symbols; Precision uses Lucide (stroke 1.75)~~ Resolved in the shared navigation work (2026-10-11): Lucide icons | `components/common/AccountMenu.tsx` (`MenuIcon`) | Done |
 | FE-002 | ~~Account menu "My Dashboard" during onboarding goes to `/interviews`, which sends incomplete users straight back to onboarding~~ Resolved (2026-10-11): `AccountMenu` takes `dashboardHref`; onboarding and the landing nav link to `/onboarding` (keeping a safe `next`) via `lib/routing/dashboard-link.ts`. Remaining: the legacy `components/Header.tsx` on `/privacy` and `/terms` can't know onboarding status, so it still links `/interviews`, which the guard redirects to `/onboarding?next=%2Finterviews` (no loop). | `components/common/AccountMenu.tsx`, `app/onboarding/layout.tsx`, `components/landing-page/Navbar.tsx` | Done (legal pages: their redesign) |
 | FE-003 | `Footer` `variant="minimal"` is no longer used (onboarding has its own footer) | `components/Footer.tsx` | Clean-up with the legal pages or the shared layout |
-| FE-004 | App pages not yet redesigned keep the legacy look (`bg-background` #FAF6FD, Material Symbols, legacy type scale) under the new Precision navigation, so there is a visible seam between the nav and their content. Only their sidebar wrappers were changed. | `app/(app)/analytics`, `profile` (`interviews/new`, `/reports`, `/reports/[id]` and `/memory` are done) | Each page's own redesign |
-| FE-005 | Two legacy layout details were offset for the sticky nav and should be rebuilt with their pages: ~~the fixed right panel on `/memory`~~ (removed with the Memory redesign, 2026-10-19) and the sticky left column on `/profile` (now clears the nav) | `app/(app)/profile/page.tsx` | Profile redesign |
+| FE-004 | ~~App pages not yet redesigned keep the legacy look (`bg-background` #FAF6FD, Material Symbols, legacy type scale) under the new Precision navigation, so there is a visible seam between the nav and their content. Only their sidebar wrappers were changed.~~ Resolved for the signed-in pages (2026-10-27): `/interviews/new`, `/reports`, `/reports/[id]`, `/memory`, `/analytics` and `/profile` are redesigned. | `app/(app)/*` | Done |
+| FE-005 | ~~Two legacy layout details were offset for the sticky nav and should be rebuilt with their pages: ~~the fixed right panel on `/memory`~~ (removed with the Memory redesign, 2026-10-19) and the sticky left column on `/profile` (now clears the nav)~~ Resolved (2026-10-27): the Profile redesign has no sticky column or tabs. | `app/(app)/profile/page.tsx` | Done |
 | FE-006 | `components/interview/QuestionCard.tsx` (`InterviewStepCard`) is not imported anywhere and still uses legacy styles (zinc, uppercase labels); the live room shows the current question itself | `components/interview/QuestionCard.tsx` | Clean-up pass (delete) |
 | FE-007 | Report presentation is repeated on the dashboard, `/reports`, `/reports/[id]` and `/memory` (the date only): the date with mono digits, the score with `/100` and the score bar, and the label helpers (imported from the dashboard's `dashboard-data.ts`). `components/reports/ReportCard.tsx` and `ReportDetailCard.tsx` were deleted with the report page redesign (both unused by then). | `app/(app)/interviews/_components`, `app/(app)/reports/_components`, `app/(app)/reports/[id]/_components` | A shared clean-up pass (move the pieces to `components/reports`) |
 | FE-008 | `/reports` does not refresh by itself when a processing report finishes; the row links to the report page, which has its own refresh button. Polling the existing pending-report endpoint is possible but was left out to keep requests to page loads. | `app/(app)/reports/page.tsx` | Product decision |
 | FE-009 | ~~`loading.tsx` on `/reports/[id]` made `notFound()` stream with HTTP 200~~ Resolved (2026-10-19): measured on a production build with a reproduction of the route's structure (async auth-like layout, dynamic page, `notFound()` after an await): 200 with `loading.tsx`, 404 without, for browsers and Googlebot alike. Next.js commits the status once a fallback streams, and the only pre-stream alternative is a database check in `proxy`, which is auth territory. `loading.tsx` was removed, so unknown and foreign ids return 404 again; links that open a report (`/reports` rows, dashboard rows and text links) show a spinner through `useLinkStatus` (`components/ui/link-pending.tsx`) while the page loads (keyboard Enter and repeated clicks checked; only the last clicked link shows it). Re-measured with the real `AppShell` layout and not-found page: unknown ids 404 for browsers and Googlebot. Remaining gaps: the spinner is `aria-hidden`, so screen readers hear nothing until the report page renders (the old skeleton announced "Loading report"); and the live room's report links ("View interview status", "View report", the automatic hand-off) have no inline indicator, though the hand-off shows "Closing the interview room". Not verified signed in. | `app/(app)/reports/[id]`, `components/ui/link-pending.tsx` | Done |
-| FE-010 | Profile's "weekly goal" setting (`useSettingsStore.weeklyGoal`, browser storage only) lost its only display when the old `/memory` page was redesigned. Restored on `/analytics` (2026-10-27) as "This week: N of a weekly goal of G", counting finished interviews in the current Monday-to-Sunday week (viewer's time zone). Remaining: the goal lives in one browser, and the store's default (3) can't be told apart from a chosen 3, so the page says "It's 3 unless you've changed it"; started or cancelled interviews don't count (FDI-015). | `app/(app)/profile/page.tsx`, `store/useSettingsStore.ts` | Profile redesign (store the goal with the profile if it should follow the user) |
+| FE-010 | Profile's "weekly goal" setting (`useSettingsStore.weeklyGoal`, browser storage only) lost its only display when the old `/memory` page was redesigned. Restored on `/analytics` (2026-10-27) as "This week: N of a weekly goal of G", counting finished interviews in the current Monday-to-Sunday week (viewer's time zone). Remaining: the goal lives in one browser, and the store's default (3) can't be told apart from a chosen 3, so the page says "It's 3 unless you've changed it"; started or cancelled interviews don't count (FDI-015). Profile (2026-10-27) now labels the setting "Saved in this browser only, not to your account", links to Analytics, accepts whole numbers from 1 (invalid input is not stored and reverts on blur), and keeps the store key and default unchanged. | `app/(app)/profile/_components/SettingsSections.tsx` (`WeeklyGoalCard`), `store/useSettingsStore.ts` | Product decision (store the goal with the profile if it should follow the user) |
 | FE-011 | The dashboard summary ("Average score", "Latest score" vs previous) and the `/reports` summary ("Average score", "Highest score") average or compare overall scores across all interview types. `/analytics` keeps types apart because technical, behavioral and system-design scores aren't equivalent. | `app/(app)/interviews/_components/DashboardSections.tsx` (`SummaryStats`), `app/(app)/reports/_components/reports-list.ts` (`summarize`) | Product decision; align those summaries with Analytics if wanted |
 
 ---
@@ -222,6 +225,7 @@ that owns them. These are not logic issues.
 - **Impact**: Every call to `GET /api/user/profile` returns the latest resume's full extracted `rawText` and storage metadata, although the dashboard and other pages only need the file name and date. Larger responses on each page load, and personal data sent to the browser that isn't needed there.
 - **Evidence**: Read only. The redesigned dashboard reads only `originalFileName` and `uploadedAt`.
 - **Investigate**: Select only the fields the UI needs (for example `originalFileName`, `pageCount`, `uploadedAt`). Check whether any page actually needs `rawText` before removing it.
+- **Note (Profile redesign, 2026-10-27)**: `/profile` also reads only `originalFileName`, `pageCount` and `uploadedAt`.
 
 ## FDI-015: No way to list all interviews with their status
 
@@ -284,6 +288,7 @@ that owns them. These are not logic issues.
 - **Impact**: The role sent for an interview comes from client-side state rather than the profile or the request form fields. Edits on the setup page apply to that interview and are not saved to the profile (the page says so). The API schema marks `role` optional, but the service rejects a missing role with `INTERVIEW_CONFIG_INCOMPLETE` (400), so an empty role produces a different error than other validation failures (422). The redesign now blocks an empty role on the client.
 - **Evidence**: Read; browser-tested that the request body carries the edited role.
 - **Investigate**: Send the role explicitly from the setup form, and make `role` required in `StartInterviewSchema` so validation errors are consistent.
+- **Note (Profile redesign, 2026-10-27)**: `/profile` now shows the role saved to the account (the old page showed the browser value, which defaults to "Software Engineer") and, as before, copies it into the browser store on load and after a successful save, so setup keeps working the same way.
 
 ## FDI-022: Voice check tests a different token route and endpoint than the live interview
 
@@ -383,6 +388,7 @@ that owns them. These are not logic issues.
 - **Impact**: The route never reads Cognee. It rebuilds "memory" from the user's last 10 reports in Postgres, adds headings as nodes, and invents an "Evident Skills / Knowledge" group by repeating the first four strengths with a "Demonstrated:" prefix. Profile shows the number of these entries as memory facts, including the headings and repeats, and the number does not change after "Reset memory" because the reports remain. The old `/memory` page displayed these groups as "Structured AI Memory"; the redesign no longer calls the route.
 - **Evidence**: Read.
 - **Investigate**: Retire the route or make it return real memory (see FDI-019); change Profile's count and wording in the Profile redesign.
+- **Update (Profile redesign, 2026-10-27)**: `/profile` no longer calls the route and shows no memory counts, "Active Sync" status or pulsing indicator. Nothing in the app calls `API.memory` now; the route itself remains.
 
 ## FDI-033: "Reset memory" deletes only the Cognee dataset, and its copy says more
 
@@ -391,6 +397,7 @@ that owns them. These are not logic issues.
 - **Impact**: The reset removes the user's Cognee dataset only. Reports, interviews and the profile stay, and the report details on `/memory` stay visible (the redesigned page says so). The route's own comment says it is meant for account deletion and "should NOT be called for normal interview cancellation or individual report deletion", yet Profile uses it as an everyday reset.
 - **Evidence**: Read. Not run: the reset was not exercised.
 - **Investigate**: Confirm the intended use of `/api/cognee/forget`, then align the Profile copy (memory only, reports kept) in the Profile redesign.
+- **Update (Profile redesign, 2026-10-27)**: Copy aligned: "Deletes your saved interview memory. Your reports and profile stay." The confirmation dialog adds that scores are kept and that memory builds again from the next report. The call is unchanged (`DELETE /api/cognee/forget` with the account's user id; success only when the response has `ok: true`). Still not exercised against a real Cognee instance; the success and failure paths were tested with mocked responses only. Still to confirm: that saving a report after a reset recreates the dataset.
 
 ## FDI-034: Question generation recalls memory even for first-time users
 
@@ -415,3 +422,27 @@ that owns them. These are not logic issues.
 - **Impact**: The endpoint's average mixes technical, behavioral and system-design scores, which aren't equivalent, and its topic fields promise data that is never produced. The old `/analytics` page showed the same cross-type average. The redesigned page doesn't call the endpoint; it groups the finished reports from `GET /api/interview/history` by interview type in the browser.
 - **Evidence**: Read.
 - **Investigate**: Either remove the endpoint and the unused hook, or return per-type summaries and drop the empty topic fields.
+
+## FDI-037: Memory can't be turned off; Profile's memory switches only changed browser storage
+
+- **Found during**: Cross-page audit and Profile redesign (2026-10-27)
+- **Location**: `store/useSettingsStore.ts` (`persistentContext`, `gapAnalysis`, persisted to `localStorage` key `ima-settings`); the old `app/(app)/profile/page.tsx` ("Persistent Context", "Skill Gap Analysis" switches)
+- **Impact**: The switches looked like privacy controls but nothing read them: memory was still saved after each report and recalled for question generation and evaluation whatever they said. The redesigned Profile removes them and says plainly that there's no setting to turn memory off; the reset (FDI-033) is the only control. The two store fields are now unused (as is `voiceEnabled`); the store was left unchanged so existing browser data stays readable.
+- **Evidence**: Read; repository-wide search found no reader of `persistentContext`, `gapAnalysis` or `voiceEnabled` outside the store.
+- **Investigate**: Product and privacy decision. If users should be able to opt out of memory, it needs a server-side, per-account setting checked in `persistInterviewMemory` and the recall helpers. Then remove the unused store fields.
+
+## FDI-038: Account deletion keeps a record and may over-count carried-over interviews
+
+- **Found during**: Profile redesign (2026-10-27)
+- **Location**: `lib/auth/sync-user.ts` `deleteClerkUserFromDatabase` (writes `accountDeletionLog` with email, full name and `usedCount`; `notifyAccountDeleted` logs the same and can post it to an operator webhook; `forget()` errors are swallowed); `services/usage.service.ts` `getCurrentWindowInterviewCount` (adds `usedCount` from deletions in the current window)
+- **Impact**: "Delete account" doesn't remove everything: a record of the email, name and interview count is kept, and the operator is notified. Profile now says so in the confirmation dialog ("We keep a record of your email, name and how many interviews you used..."). `usedCount` counts every interview the account ever had, in any status and from any date, but is carried over in full when the deletion falls in the current window, so someone who deletes and signs up again in the same month can be charged for interviews from earlier months. If Cognee deletion fails during account deletion, the memory dataset can remain with no retry.
+- **Evidence**: Read. The delete flow itself was not run (mocked failure path only).
+- **Investigate**: Count only interviews in the current window, in the counted statuses; decide how long the record is kept and disclose it on the Privacy page (FDI-003); retry or flag failed Cognee deletions.
+
+## FDI-039: Setup preselects a saved company or type only if it's one of the presets
+
+- **Found during**: Profile redesign (2026-10-27)
+- **Location**: `app/(app)/interviews/new/page.tsx` (`isPresetCompany(p.targetCompanies?.[0])`, `typeFromProfileKey(p.interviewTypes?.[0])`)
+- **Impact**: Profile keeps and shows saved values that aren't in the preset lists (for example a company saved through an older client), and says the first pick is preselected in setup. If the first pick isn't a preset, setup preselects nothing for it. Rare today, because both onboarding and Profile only offer the presets.
+- **Evidence**: Read; Profile tested with a mocked profile containing a custom company and type (they stay selected and are sent back unchanged).
+- **Investigate**: Either let setup accept any saved company, or have Profile flag non-preset values.
