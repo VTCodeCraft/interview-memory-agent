@@ -40,7 +40,7 @@ proposed investigation. Never include secrets, tokens or environment values.
 | FDI-016 | Failed report generation is not surfaced outside the report URL | Dashboard | P3 | open |
 | FDI-017 | Interview type stored in two formats | Dashboard | P3 | open |
 | FDI-018 | Interview analytics row is never updated | Interview setup | P3 | decision |
-| FDI-019 | Memory insights endpoint is a 501 placeholder | Interview setup | P3 | open |
+| FDI-019 | Memory insights and timeline endpoints are 501 placeholders; no endpoint returns saved memory | Interview setup | P2 | open |
 | FDI-020 | Cancelling while questions are generated still uses up an interview | Interview setup | P3 | decision |
 | FDI-021 | Role edits in setup live only in browser storage | Interview setup | P3 | decision |
 | FDI-022 | Voice check tests a different token route and endpoint than the live interview | Voice check | P2 | decision |
@@ -53,6 +53,10 @@ proposed investigation. Never include secrets, tokens or environment values.
 | FDI-029 | Report history is unpaginated and returns full report bodies | Reports list | P3 | open |
 | FDI-030 | Historical progress is generated but not stored | Report detail | P3 | decision |
 | FDI-031 | Every category is scored for every interview type | Report detail | P3 | decision |
+| FDI-032 | `/api/memory/graph` is not memory; Profile counts its entries as memory facts | Memory | P2 | open |
+| FDI-033 | "Reset memory" deletes only the Cognee dataset, and its copy says more | Memory | P2 | verify |
+| FDI-034 | Question generation recalls memory even for first-time users | Memory | P3 | open |
+| FDI-035 | Memory save and recall failures are invisible to the user | Memory | P3 | decision |
 
 ---
 
@@ -66,12 +70,13 @@ that owns them. These are not logic issues.
 | FE-001 | ~~Account menu icons use Material Symbols; Precision uses Lucide (stroke 1.75)~~ Resolved in the shared navigation work (2026-10-11): Lucide icons | `components/common/AccountMenu.tsx` (`MenuIcon`) | Done |
 | FE-002 | ~~Account menu "My Dashboard" during onboarding goes to `/interviews`, which sends incomplete users straight back to onboarding~~ Resolved (2026-10-11): `AccountMenu` takes `dashboardHref`; onboarding and the landing nav link to `/onboarding` (keeping a safe `next`) via `lib/routing/dashboard-link.ts`. Remaining: the legacy `components/Header.tsx` on `/privacy` and `/terms` can't know onboarding status, so it still links `/interviews`, which the guard redirects to `/onboarding?next=%2Finterviews` (no loop). | `components/common/AccountMenu.tsx`, `app/onboarding/layout.tsx`, `components/landing-page/Navbar.tsx` | Done (legal pages: their redesign) |
 | FE-003 | `Footer` `variant="minimal"` is no longer used (onboarding has its own footer) | `components/Footer.tsx` | Clean-up with the legal pages or the shared layout |
-| FE-004 | App pages not yet redesigned keep the legacy look (`bg-background` #FAF6FD, Material Symbols, legacy type scale) under the new Precision navigation, so there is a visible seam between the nav and their content. Only their sidebar wrappers were changed. | `app/(app)/memory`, `analytics`, `profile` (`interviews/new`, `/reports` and `/reports/[id]` are done) | Each page's own redesign |
-| FE-005 | Two legacy layout details were offset for the sticky nav and should be rebuilt with their pages: the fixed right panel on `/memory` (now starts below the nav at `xl`) and the sticky left column on `/profile` (now clears the nav) | `app/(app)/memory/page.tsx`, `app/(app)/profile/page.tsx` | Memory and Profile redesigns |
+| FE-004 | App pages not yet redesigned keep the legacy look (`bg-background` #FAF6FD, Material Symbols, legacy type scale) under the new Precision navigation, so there is a visible seam between the nav and their content. Only their sidebar wrappers were changed. | `app/(app)/analytics`, `profile` (`interviews/new`, `/reports`, `/reports/[id]` and `/memory` are done) | Each page's own redesign |
+| FE-005 | Two legacy layout details were offset for the sticky nav and should be rebuilt with their pages: ~~the fixed right panel on `/memory`~~ (removed with the Memory redesign, 2026-10-19) and the sticky left column on `/profile` (now clears the nav) | `app/(app)/profile/page.tsx` | Profile redesign |
 | FE-006 | `components/interview/QuestionCard.tsx` (`InterviewStepCard`) is not imported anywhere and still uses legacy styles (zinc, uppercase labels); the live room shows the current question itself | `components/interview/QuestionCard.tsx` | Clean-up pass (delete) |
-| FE-007 | Report presentation is repeated on the dashboard, `/reports` and `/reports/[id]`: the date with mono digits, the score with `/100` and the score bar, and the label helpers (imported from the dashboard's `dashboard-data.ts`). `components/reports/ReportCard.tsx` and `ReportDetailCard.tsx` were deleted with the report page redesign (both unused by then). | `app/(app)/interviews/_components`, `app/(app)/reports/_components`, `app/(app)/reports/[id]/_components` | A shared clean-up pass (move the pieces to `components/reports`) |
+| FE-007 | Report presentation is repeated on the dashboard, `/reports`, `/reports/[id]` and `/memory` (the date only): the date with mono digits, the score with `/100` and the score bar, and the label helpers (imported from the dashboard's `dashboard-data.ts`). `components/reports/ReportCard.tsx` and `ReportDetailCard.tsx` were deleted with the report page redesign (both unused by then). | `app/(app)/interviews/_components`, `app/(app)/reports/_components`, `app/(app)/reports/[id]/_components` | A shared clean-up pass (move the pieces to `components/reports`) |
 | FE-008 | `/reports` does not refresh by itself when a processing report finishes; the row links to the report page, which has its own refresh button. Polling the existing pending-report endpoint is possible but was left out to keep requests to page loads. | `app/(app)/reports/page.tsx` | Product decision |
 | FE-009 | ~~`loading.tsx` on `/reports/[id]` made `notFound()` stream with HTTP 200~~ Resolved (2026-10-19): measured on a production build with a reproduction of the route's structure (async auth-like layout, dynamic page, `notFound()` after an await): 200 with `loading.tsx`, 404 without, for browsers and Googlebot alike. Next.js commits the status once a fallback streams, and the only pre-stream alternative is a database check in `proxy`, which is auth territory. `loading.tsx` was removed, so unknown and foreign ids return 404 again; links that open a report (`/reports` rows, dashboard rows and text links) show a spinner through `useLinkStatus` (`components/ui/link-pending.tsx`) while the page loads (keyboard Enter and repeated clicks checked; only the last clicked link shows it). Re-measured with the real `AppShell` layout and not-found page: unknown ids 404 for browsers and Googlebot. Remaining gaps: the spinner is `aria-hidden`, so screen readers hear nothing until the report page renders (the old skeleton announced "Loading report"); and the live room's report links ("View interview status", "View report", the automatic hand-off) have no inline indicator, though the hand-off shows "Closing the interview room". Not verified signed in. | `app/(app)/reports/[id]`, `components/ui/link-pending.tsx` | Done |
+| FE-010 | Profile's "weekly goal" setting (`useSettingsStore.weeklyGoal`, browser storage only) was displayed only on the old `/memory` page (sessions this week vs goal). The Memory redesign (2026-10-19) dropped that and the other score analytics it showed (category deltas, confidence chart, key improvements, company averages, streak), so the setting currently has no visible effect. | `app/(app)/profile/page.tsx`, `store/useSettingsStore.ts`, `lib/utils/memoryInsights.ts` | Analytics redesign (show it there) or Profile redesign (remove the setting) |
 
 ---
 
@@ -258,6 +263,7 @@ that owns them. These are not logic issues.
 - **Impact**: The old setup page and old dashboard called it; both redesigns removed those calls, so nothing in the UI uses it now. Remaining risk is confusion for future pages.
 - **Evidence**: Read; repository search shows no UI callers after the redesigns.
 - **Investigate**: Implement it with the Cognee dataset or remove the route and its rate-limit rule.
+- **Update (Memory redesign, 2026-10-19)**: `GET`/`POST /api/memory/timeline` are also 501 placeholders. No route returns the saved Cognee memory to the browser; Cognee is read only on the server (`recallCandidateMemory` in `services/promptBuilder.service.ts` when questions are prepared, `recallHistoricalMemory` in `services/interview.service.ts` during evaluation). `/memory` therefore explains memory and shows the finished-report details it is built from, and says the saved memory can't be shown. Raised to P2 because the Memory page cannot show its own subject.
 
 ## FDI-020: Cancelling while questions are generated still uses up an interview
 
@@ -365,3 +371,35 @@ that owns them. These are not logic issues.
 - **Impact**: A behavioral interview still gets a technical score and a technical interview a behavioral score, with no way to mark a category as not assessed. The report page shows every category that has a number under "Category scores" (not "breakdown": the overall score is rated on its own) with the note "Rated on their own, whatever the interview type", but it cannot tell which ones are meaningful.
 - **Evidence**: Read only.
 - **Investigate**: Decide which categories apply to each interview type; allow null (not assessed) in the schema and prompt, and show only assessed categories.
+
+## FDI-032: `/api/memory/graph` is not memory; Profile counts its entries as memory facts
+
+- **Found during**: Memory redesign (2026-10-19)
+- **Location**: `app/api/memory/graph/route.ts` (`API.memory`); `app/(app)/profile/page.tsx` (`memoryNodeCount`, "Memory Facts", "facts stored", "facts recalled")
+- **Impact**: The route never reads Cognee. It rebuilds "memory" from the user's last 10 reports in Postgres, adds headings as nodes, and invents an "Evident Skills / Knowledge" group by repeating the first four strengths with a "Demonstrated:" prefix. Profile shows the number of these entries as memory facts, including the headings and repeats, and the number does not change after "Reset memory" because the reports remain. The old `/memory` page displayed these groups as "Structured AI Memory"; the redesign no longer calls the route.
+- **Evidence**: Read.
+- **Investigate**: Retire the route or make it return real memory (see FDI-019); change Profile's count and wording in the Profile redesign.
+
+## FDI-033: "Reset memory" deletes only the Cognee dataset, and its copy says more
+
+- **Found during**: Memory redesign
+- **Location**: `app/(app)/profile/page.tsx` ("Danger Zone: Reset Memory", "Permanently delete all stored interview context and learning data"); `app/api/cognee/forget/route.ts` → `forget()` in `services/cognee.service.ts`
+- **Impact**: The reset removes the user's Cognee dataset only. Reports, interviews and the profile stay, and the report details on `/memory` stay visible (the redesigned page says so). The route's own comment says it is meant for account deletion and "should NOT be called for normal interview cancellation or individual report deletion", yet Profile uses it as an everyday reset.
+- **Evidence**: Read. Not run: the reset was not exercised.
+- **Investigate**: Confirm the intended use of `/api/cognee/forget`, then align the Profile copy (memory only, reports kept) in the Profile redesign.
+
+## FDI-034: Question generation recalls memory even for first-time users
+
+- **Found during**: Memory redesign
+- **Location**: `services/promptBuilder.service.ts` `prepareInterviewPrompt` (counts the user's `COMPLETED` interviews into `priorCompleted`, with a comment saying Cognee is skipped for first-time users, then calls `recallCandidateMemory` unconditionally)
+- **Impact**: Every question generation waits on a Cognee recall, including a user's first interview when there is nothing to recall. It adds latency and a failure surface; a failure falls back to no memory, so generation still works.
+- **Evidence**: Read.
+- **Investigate**: Skip the recall when `priorCompleted === 0`, as the comment intends.
+
+## FDI-035: Memory save and recall failures are invisible to the user
+
+- **Found during**: Memory redesign
+- **Location**: `services/memory.service.ts` `persistInterviewMemory` (errors logged, never thrown); recall helpers in `services/cognee.service.ts` (errors return empty context); `InterviewPipelineUsage.cogneeSaveStatus` is recorded but not exposed; `GET /api/cognee/health` writes a test memory, so it can't serve as a UI status check
+- **Impact**: There is no reliable way for the UI to say whether a report was saved to memory, whether memory is configured, or whether the last interview used it. `/memory` therefore makes no live-status claim (the old page showed "AI Memory syncing live..." unconditionally) and says that interviews and reports still work if memory is unavailable.
+- **Evidence**: Read.
+- **Investigate**: Product decision on exposing a read-only memory status (for example per-report save status from the pipeline usage row, or a side-effect-free health check).
