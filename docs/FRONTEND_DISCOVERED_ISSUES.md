@@ -57,6 +57,7 @@ proposed investigation. Never include secrets, tokens or environment values.
 | FDI-033 | "Reset memory" deletes only the Cognee dataset, and its copy says more | Memory | P2 | verify |
 | FDI-034 | Question generation recalls memory even for first-time users | Memory | P3 | open |
 | FDI-035 | Memory save and recall failures are invisible to the user | Memory | P3 | decision |
+| FDI-036 | `/api/analytics` averages scores across interview types and returns empty topic lists | Analytics | P3 | open |
 
 ---
 
@@ -76,7 +77,8 @@ that owns them. These are not logic issues.
 | FE-007 | Report presentation is repeated on the dashboard, `/reports`, `/reports/[id]` and `/memory` (the date only): the date with mono digits, the score with `/100` and the score bar, and the label helpers (imported from the dashboard's `dashboard-data.ts`). `components/reports/ReportCard.tsx` and `ReportDetailCard.tsx` were deleted with the report page redesign (both unused by then). | `app/(app)/interviews/_components`, `app/(app)/reports/_components`, `app/(app)/reports/[id]/_components` | A shared clean-up pass (move the pieces to `components/reports`) |
 | FE-008 | `/reports` does not refresh by itself when a processing report finishes; the row links to the report page, which has its own refresh button. Polling the existing pending-report endpoint is possible but was left out to keep requests to page loads. | `app/(app)/reports/page.tsx` | Product decision |
 | FE-009 | ~~`loading.tsx` on `/reports/[id]` made `notFound()` stream with HTTP 200~~ Resolved (2026-10-19): measured on a production build with a reproduction of the route's structure (async auth-like layout, dynamic page, `notFound()` after an await): 200 with `loading.tsx`, 404 without, for browsers and Googlebot alike. Next.js commits the status once a fallback streams, and the only pre-stream alternative is a database check in `proxy`, which is auth territory. `loading.tsx` was removed, so unknown and foreign ids return 404 again; links that open a report (`/reports` rows, dashboard rows and text links) show a spinner through `useLinkStatus` (`components/ui/link-pending.tsx`) while the page loads (keyboard Enter and repeated clicks checked; only the last clicked link shows it). Re-measured with the real `AppShell` layout and not-found page: unknown ids 404 for browsers and Googlebot. Remaining gaps: the spinner is `aria-hidden`, so screen readers hear nothing until the report page renders (the old skeleton announced "Loading report"); and the live room's report links ("View interview status", "View report", the automatic hand-off) have no inline indicator, though the hand-off shows "Closing the interview room". Not verified signed in. | `app/(app)/reports/[id]`, `components/ui/link-pending.tsx` | Done |
-| FE-010 | Profile's "weekly goal" setting (`useSettingsStore.weeklyGoal`, browser storage only) was displayed only on the old `/memory` page (sessions this week vs goal). The Memory redesign (2026-10-19) dropped that and the other score analytics it showed (category deltas, confidence chart, key improvements, company averages, streak), so the setting currently has no visible effect. | `app/(app)/profile/page.tsx`, `store/useSettingsStore.ts`, `lib/utils/memoryInsights.ts` | Analytics redesign (show it there) or Profile redesign (remove the setting) |
+| FE-010 | Profile's "weekly goal" setting (`useSettingsStore.weeklyGoal`, browser storage only) lost its only display when the old `/memory` page was redesigned. Restored on `/analytics` (2026-10-27) as "This week: N of a weekly goal of G", counting finished interviews in the current Monday-to-Sunday week (viewer's time zone). Remaining: the goal lives in one browser, and the store's default (3) can't be told apart from a chosen 3, so the page says "It's 3 unless you've changed it"; started or cancelled interviews don't count (FDI-015). | `app/(app)/profile/page.tsx`, `store/useSettingsStore.ts` | Profile redesign (store the goal with the profile if it should follow the user) |
+| FE-011 | The dashboard summary ("Average score", "Latest score" vs previous) and the `/reports` summary ("Average score", "Highest score") average or compare overall scores across all interview types. `/analytics` keeps types apart because technical, behavioral and system-design scores aren't equivalent. | `app/(app)/interviews/_components/DashboardSections.tsx` (`SummaryStats`), `app/(app)/reports/_components/reports-list.ts` (`summarize`) | Product decision; align those summaries with Analytics if wanted |
 
 ---
 
@@ -247,6 +249,7 @@ that owns them. These are not logic issues.
 - **Impact**: Every screen that shows or compares interview types must map both formats; renaming a label in setup would silently change stored data.
 - **Evidence**: Read. The dashboard maps both formats in `app/(app)/interviews/_components/dashboard-data.ts` (`typeLabel`).
 - **Investigate**: Store one canonical key on interviews and map to labels in the UI; migrate existing rows if needed.
+- **Also affects `/analytics` (2026-10-27)**: `POST /api/interview/start` accepts any string as `interviewType` (`z.string().min(1)`). Analytics tidies stored values before labelling (trims, treats spaces, underscores and hyphens alike, groups unknown types case-insensitively, blank counts as "Type not recorded"), so `System Design`, `system_design` and `system-design` form one group and no report is dropped. The shared `typeLabel` used by the dashboard and `/reports` only handles case and spaces, so for an unusual spelling (for example `system-design` or a padded value) the "View reports" link from Analytics may not match those rows in the `/reports` type filter.
 
 ## FDI-018: Interview analytics row is never updated
 
@@ -255,6 +258,7 @@ that owns them. These are not logic issues.
 - **Impact**: `GET /api/user/profile` returns `analytics` with zeros forever. The old setup page used `totalInterviews` to choose between a "Welcome" card and a "Dynamic Insights" card with a "Readiness Score", so real users always saw the welcome card and the insights card could never show real data. The redesign no longer reads this row; nothing else in the UI should until it is populated.
 - **Evidence**: Read (repository-wide search for writers of `interviewAnalytics`).
 - **Investigate**: Decide whether to maintain these aggregates (for example when a report is saved) or remove the model. `/api/analytics` already computes totals from reports.
+- **Also affects `/analytics` (2026-10-27)**: the redesigned page shows no streak or readiness score, because the only persisted values (`currentStreak`, `readinessScore`) are never updated. It computes everything from finished reports instead.
 
 ## FDI-019: Memory insights endpoint is a 501 placeholder
 
@@ -403,3 +407,11 @@ that owns them. These are not logic issues.
 - **Impact**: There is no reliable way for the UI to say whether a report was saved to memory, whether memory is configured, or whether the last interview used it. `/memory` therefore makes no live-status claim (the old page showed "AI Memory syncing live..." unconditionally) and says that interviews and reports still work if memory is unavailable.
 - **Evidence**: Read.
 - **Investigate**: Product decision on exposing a read-only memory status (for example per-report save status from the pipeline usage row, or a side-effect-free health check).
+
+## FDI-036: `/api/analytics` averages scores across interview types and returns empty topic lists
+
+- **Found during**: Analytics redesign (2026-10-27)
+- **Location**: `app/api/analytics/route.ts` → `services/analytics.service.ts` `summarizeAnalytics` (`averageScore` over every report; `strongestTopics` and `weakestTopics` always `[]`); `hooks/useAnalytics.ts` (calls it, but nothing imports the hook)
+- **Impact**: The endpoint's average mixes technical, behavioral and system-design scores, which aren't equivalent, and its topic fields promise data that is never produced. The old `/analytics` page showed the same cross-type average. The redesigned page doesn't call the endpoint; it groups the finished reports from `GET /api/interview/history` by interview type in the browser.
+- **Evidence**: Read.
+- **Investigate**: Either remove the endpoint and the unused hook, or return per-type summaries and drop the empty topic fields.

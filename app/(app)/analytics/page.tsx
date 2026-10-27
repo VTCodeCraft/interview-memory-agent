@@ -1,59 +1,97 @@
-import Link from "next/link";
+"use client";
 
-import { requireOnboardedUser } from "@/lib/auth/app-user";
-import { ROUTES } from "@/lib/utils/constants";
-import { listReports } from "@/services/report.service";
-import { summarizeAnalytics } from "@/services/analytics.service";
+import { useEffect, useMemo, useState } from "react";
+import { RotateCw } from "lucide-react";
+
+import { Alert } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { ROW_LABELS, loadReports, type ReportsData } from "@/app/(app)/reports/_components/reports-data";
+import { groupByType, toAnalyticsRows } from "./_components/analytics-data";
+import {
+  AboutAnalytics,
+  ActivityPanel,
+  AnalyticsHeader,
+  AnalyticsSkeleton,
+  NoAnalytics,
+  TypeSection,
+} from "./_components/AnalyticsSections";
+
+type LoadState = { status: "loading" } | { status: "error" } | { status: "ready"; data: ReportsData };
 
 /**
- * /analytics — route shell for the upcoming analytics page. Only shows the
- * totals the existing analytics service actually computes (the same data as
- * GET /api/analytics); no other metrics are implied.
+ * /analytics: score history from finished reports, one section per interview
+ * type, plus weekly activity. Reads the same endpoints as /reports:
+ *   GET /api/interview/history         finished reports (required)
+ *   GET /api/interview/pending-report  a report still being prepared (optional)
+ * Runs in the browser so weeks follow the viewer's time zone and the weekly
+ * goal (browser storage) is available.
  */
-export default async function AnalyticsPage() {
-  const user = await requireOnboardedUser();
-  const summary = summarizeAnalytics(await listReports(user.id));
+export default function AnalyticsPage() {
+  const [state, setState] = useState<LoadState>({ status: "loading" });
+  const [attempt, setAttempt] = useState(0);
+
+  useEffect(() => {
+    let cancelled = false;
+    loadReports().then(
+      (data) => {
+        if (!cancelled) setState({ status: "ready", data });
+      },
+      (error) => {
+        console.error("[Analytics] load failed", error);
+        if (!cancelled) setState({ status: "error" });
+      },
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, [attempt]);
+
+  const rows = useMemo(() => (state.status === "ready" ? toAnalyticsRows(state.data.reports, ROW_LABELS) : null), [state]);
+  const groups = useMemo(() => (rows ? groupByType(rows) : []), [rows]);
+  const pending =
+    state.status === "ready" && state.data.pending && !state.data.reports.some((report) => report.interviewId === state.data.pending?.interviewId)
+      ? 1
+      : 0;
 
   return (
-    <div className="flex-1 bg-background text-on-surface font-body-md flex">
-      <main className="w-full p-4 sm:p-gutter pt-6 flex-1">
-        <div className="max-w-[1000px] mx-auto space-y-6 lg:space-y-lg pb-xxl">
-          <header className="space-y-sm mb-8">
-            <span className="inline-flex items-center gap-sm bg-primary-fixed text-primary font-bold text-[11px] uppercase tracking-wider px-4 py-1.5 rounded-full">
-              <span className="material-symbols-outlined text-[14px]">monitoring</span>
-              Analytics
-            </span>
-            <h1 className="text-2xl md:text-4xl font-extrabold text-on-surface">Your progress.</h1>
-            <p className="text-sm text-on-surface-variant max-w-2xl leading-relaxed">
-              Detailed analytics are not available yet. Score breakdowns and trends from your
-              reports are currently shown on{" "}
-              <Link href={ROUTES.interviews} className="text-primary font-semibold hover:underline">
-                Interviews
-              </Link>{" "}
-              and{" "}
-              <Link href={ROUTES.memory} className="text-primary font-semibold hover:underline">
-                Memory
-              </Link>
-              .
-            </p>
-          </header>
-
-          <section className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            <div className="p-6 rounded-2xl bg-white border border-outline-variant/30 shadow-sm">
-              <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider mb-1">
-                Completed reports
-              </p>
-              <p className="text-3xl font-extrabold text-primary">{summary.interviewCount}</p>
+    <div className="ds-page flex-1">
+      <main className="ds-container pt-8 pb-16 sm:pt-10 lg:pt-12 lg:pb-24">
+        <div className="flex flex-col gap-8">
+          <AnalyticsHeader rows={rows} pendingCount={pending} />
+          <div className="grid gap-6 lg:grid-cols-12 lg:gap-8">
+            <div className="flex min-w-0 flex-col gap-6 lg:col-span-8">
+              {state.status === "loading" && <AnalyticsSkeleton />}
+              {state.status === "error" && (
+                <Alert
+                  tone="danger"
+                  title="Your analytics didn't load"
+                  action={
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => {
+                        setState({ status: "loading" });
+                        setAttempt((count) => count + 1);
+                      }}
+                    >
+                      <RotateCw aria-hidden strokeWidth={1.75} />
+                      Try again
+                    </Button>
+                  }
+                >
+                  Analytics comes from your reports. Check your connection and try again.
+                </Alert>
+              )}
+              {rows && rows.length === 0 && <NoAnalytics pending={pending > 0} />}
+              {groups.map((group) => (
+                <TypeSection key={group.type ?? "none"} group={group} />
+              ))}
             </div>
-            <div className="p-6 rounded-2xl bg-white border border-outline-variant/30 shadow-sm">
-              <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider mb-1">
-                Average overall score
-              </p>
-              <p className="text-3xl font-extrabold text-primary">
-                {summary.interviewCount > 0 ? `${summary.averageScore}%` : "—"}
-              </p>
-            </div>
-          </section>
+            <aside aria-label="Activity and notes" className="flex min-w-0 flex-col gap-6 lg:col-span-4">
+              {rows && <ActivityPanel rows={rows} />}
+              <AboutAnalytics />
+            </aside>
+          </div>
         </div>
       </main>
     </div>
