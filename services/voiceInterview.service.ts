@@ -30,7 +30,10 @@ type StoredQuestionsBlob = {
 /** Question shape returned to the client for the voice session. */
 export interface VoiceQuestion {
   sequence: number;
-  /** Natural-speech text the agent speaks verbatim. Falls back to displayQuestion. */
+  /**
+   * Generated conversational phrasing. Not spoken: the agent speaks
+   * displayQuestion so speech matches the question card (spokenQuestionText).
+   */
   ttsTranscript: string;
   /** Human-readable question text (for the transcript UI). */
   displayQuestion: string;

@@ -8,6 +8,7 @@ Generate 8-10 highly personalized interview questions based on the candidate's p
 2. The interview should feel like a real human conversation, not an exam.
 3. Personalize questions using the candidate's Resume Projects, Technologies, Skills, and Experience.
 4. Do NOT ask about technologies not present in the resume unless strictly required by the Job Description.
+5. ttsTranscript must ask exactly the same question as displayQuestion and name the same projects, companies and technologies. Only the phrasing may be more conversational.
 
 # AI Output format:
 You must return ONLY valid JSON matching this schema:

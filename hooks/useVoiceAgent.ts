@@ -6,6 +6,7 @@ import { AgentConnection } from "@/lib/deepgram/voice-agent/connection";
 import type { AgentServerMessage } from "@/lib/deepgram/voice-agent/connection";
 import { MicRecorder } from "@/lib/deepgram/voice-agent/audio/mic-recorder";
 import { PcmPlayer } from "@/lib/deepgram/voice-agent/audio/pcm-player";
+import { spokenQuestionText } from "@/lib/deepgram/voice-agent/question-text";
 import {
   AGENT_INPUT_SAMPLE_RATE,
   AGENT_KEEPALIVE_MS,
@@ -332,10 +333,8 @@ export function useVoiceAgent(): UseVoiceAgentReturn {
       question: VoiceQuestion | VoiceInterviewInput["questions"][number],
       leadIn?: string
     ) => {
-      const text =
-        ("ttsTranscript" in question && question.ttsTranscript) ||
-        ("prompt" in question && (question as { prompt?: string }).prompt) ||
-        "";
+      // Same text as the question card (and the report), see spokenQuestionText.
+      const text = spokenQuestionText(question);
       if (!text) {
         warn("injectQuestion: no text for sequence", question.sequence);
         return;
@@ -384,7 +383,7 @@ export function useVoiceAgent(): UseVoiceAgentReturn {
       (x) => x.sequence === currentSequenceRef.current
     );
     if (!q) return "";
-    return q.ttsTranscript || q.prompt || "";
+    return spokenQuestionText(q);
   }, []);
 
   /**
