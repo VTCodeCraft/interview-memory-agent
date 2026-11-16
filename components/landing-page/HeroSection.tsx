@@ -35,7 +35,7 @@ export default function HeroSection({
             </a>
           </div>
           <p className="text-small text-fg-subtle">
-            Free plan with {limit} interviews a {period}. Runs in your browser.
+            Free to use, with {limit} interviews a {period}. Runs in your browser.
           </p>
         </div>
       </div>

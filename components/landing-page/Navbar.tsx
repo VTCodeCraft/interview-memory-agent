@@ -7,6 +7,7 @@ import { Menu, X } from "lucide-react";
 
 import AccountMenu from "@/components/common/AccountMenu";
 import { buttonVariants } from "@/components/ui/button";
+import { FEATURES } from "@/lib/config/features";
 import { dashboardHref } from "@/lib/routing/dashboard-link";
 import { POST_AUTH_REDIRECT } from "@/lib/utils/constants";
 import { cn } from "@/lib/utils";
@@ -17,7 +18,7 @@ const LINKS = [
   { label: "Features", href: "#features" },
   { label: "How it works", href: "#how-it-works" },
   { label: "Reports", href: "#reports" },
-  { label: "Pricing", href: "#pricing" },
+  ...(FEATURES.pricing ? [{ label: "Pricing", href: "#pricing" }] : []),
   { label: "FAQ", href: "#faq" },
 ];
 

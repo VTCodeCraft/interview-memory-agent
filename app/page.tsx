@@ -1,4 +1,5 @@
 import { getAppUser } from "@/lib/auth/app-user";
+import { FEATURES } from "@/lib/config/features";
 import { getLimits } from "@/lib/config/limits";
 
 import Navbar from "@/components/landing-page/Navbar";
@@ -35,7 +36,7 @@ export default async function Home() {
         <CoreFeaturesSection />
         <HowItWorksSection {...auth} />
         <ReportsSection />
-        <PricingSection {...auth} limit={limit} period={period} />
+        {FEATURES.pricing && <PricingSection {...auth} limit={limit} period={period} />}
         <FaqSection limit={limit} period={period} />
         <FinalCtaSection {...auth} />
       </main>
