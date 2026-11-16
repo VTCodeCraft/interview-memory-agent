@@ -13,11 +13,14 @@ export interface MicRecorderOptions {
   targetSampleRate: number;
   /** Called with each linear16 PCM chunk (transferable ArrayBuffer). */
   onChunk: (chunk: ArrayBuffer) => void;
+  /** Called when the audio context is paused or resumed by the browser. */
+  onStateChange?: () => void;
 }
 
 export class MicRecorder {
   private readonly targetSampleRate: number;
   private readonly onChunk: (chunk: ArrayBuffer) => void;
+  private readonly onStateChange?: () => void;
 
   private stream: MediaStream | null = null;
   private ctx: AudioContext | null = null;
@@ -27,6 +30,21 @@ export class MicRecorder {
   constructor(options: MicRecorderOptions) {
     this.targetSampleRate = options.targetSampleRate;
     this.onChunk = options.onChunk;
+    this.onStateChange = options.onStateChange;
+  }
+
+  /**
+   * True while the browser keeps the audio context paused. Chrome does this
+   * when the page hasn't been clicked yet (e.g. after a reload); no mic audio
+   * is processed until resume() runs after a user gesture.
+   */
+  get suspended(): boolean {
+    return isPaused(this.ctx);
+  }
+
+  /** Resume a paused context. Only succeeds after a user gesture. */
+  resume(): Promise<void> {
+    return this.ctx && isPaused(this.ctx) ? this.ctx.resume() : Promise.resolve();
   }
 
   /** Request the mic and begin streaming PCM chunks. Throws if permission denied. */
@@ -45,6 +63,10 @@ export class MicRecorder {
       (window as unknown as { webkitAudioContext: typeof AudioContext })
         .webkitAudioContext;
     this.ctx = new Ctx();
+    this.ctx.onstatechange = () => this.onStateChange?.();
+    // Starts paused when the page has no user activation; try anyway (works
+    // when the user clicked earlier), the caller offers a button otherwise.
+    if (isPaused(this.ctx)) void this.ctx.resume().catch(() => {});
 
     this.source = this.ctx.createMediaStreamSource(this.stream);
     // Buffer size 4096 balances latency vs callback overhead.
@@ -89,10 +111,18 @@ export class MicRecorder {
       this.stream = null;
     }
     if (this.ctx) {
+      this.ctx.onstatechange = null;
       void this.ctx.close();
       this.ctx = null;
     }
   }
+}
+
+/** "suspended" everywhere; Safari can also report "interrupted". */
+export function isPaused(ctx: AudioContext | null): boolean {
+  if (!ctx) return false;
+  const state = ctx.state as string;
+  return state === "suspended" || state === "interrupted";
 }
 
 /** Linear-interpolation downsample from `inputRate` to `outputRate`. */

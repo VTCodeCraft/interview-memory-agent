@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { AgentConnection } from "@/lib/deepgram/voice-agent/connection";
 import type { AgentServerMessage } from "@/lib/deepgram/voice-agent/connection";
@@ -147,6 +147,15 @@ interface StartResult {
 export interface UseVoiceAgentReturn {
   start: (interview: VoiceInterviewInput) => Promise<StartResult>;
   stop: () => void;
+  /**
+   * True while the browser keeps the speaker or microphone audio paused
+   * (autoplay policy: the page hasn't been clicked since it loaded). The
+   * session is connected, but nothing is heard or captured until
+   * resumeAudio() runs from a user gesture.
+   */
+  audioBlocked: boolean;
+  /** Resume paused audio. Call from a click or key press. */
+  resumeAudio: () => void;
 }
 
 /**
@@ -193,6 +202,21 @@ export function useVoiceAgent(): UseVoiceAgentReturn {
   const currentAgentSpeechKindRef = useRef<"question" | "other" | null>(null);
   /** Handler attached to window unload events so we always tear the socket down. */
   const unloadHandlerRef = useRef<(() => void) | null>(null);
+  /** Document click/key listener that resumes paused audio (autoplay policy). */
+  const gestureHandlerRef = useRef<(() => void) | null>(null);
+
+  const [audioBlocked, setAudioBlocked] = useState(false);
+
+  /** Re-read whether the browser is holding either audio context paused. */
+  const refreshAudioBlocked = useCallback(() => {
+    setAudioBlocked(Boolean(micRef.current?.suspended || playerRef.current?.suspended));
+  }, []);
+
+  /** Resume both contexts; succeeds only when called from a user gesture. */
+  const resumeAudio = useCallback(() => {
+    void micRef.current?.resume().catch(() => {});
+    void playerRef.current?.resume().catch(() => {});
+  }, []);
 
   const clearSilenceTimer = useCallback(() => {
     if (silenceTimerRef.current) {
@@ -242,6 +266,12 @@ export function useVoiceAgent(): UseVoiceAgentReturn {
       window.removeEventListener("pagehide", unloadHandlerRef.current);
       unloadHandlerRef.current = null;
     }
+    if (gestureHandlerRef.current && typeof document !== "undefined") {
+      document.removeEventListener("pointerdown", gestureHandlerRef.current, true);
+      document.removeEventListener("keydown", gestureHandlerRef.current, true);
+      gestureHandlerRef.current = null;
+    }
+    setAudioBlocked(false);
   }, [clearTurnTimers]);
 
   const stop = useCallback(() => {
@@ -1114,9 +1144,11 @@ export function useVoiceAgent(): UseVoiceAgentReturn {
         return { ok: false, error: FRIENDLY.voiceStartFailed };
       }
 
-      // 2. Prepare playback + open the agent socket.
+      // 2. Prepare playback + open the agent socket. The context is created
+      // now so a browser-paused context is detected before the agent speaks.
       const player = new PcmPlayer(AGENT_OUTPUT_SAMPLE_RATE);
       playerRef.current = player;
+      player.prepare(refreshAudioBlocked);
 
       const conn = new AgentConnection({
         onMessage: handleMessage,
@@ -1163,6 +1195,15 @@ export function useVoiceAgent(): UseVoiceAgentReturn {
         window.addEventListener("pagehide", unloadHandlerRef.current);
       }
 
+      // Chrome keeps audio paused on a page that hasn't been clicked since it
+      // loaded (refresh, Reconnect, opening the URL directly). Any click or key
+      // press on the page resumes it; the room also shows a button for this.
+      if (typeof document !== "undefined") {
+        gestureHandlerRef.current = () => resumeAudio();
+        document.addEventListener("pointerdown", gestureHandlerRef.current, true);
+        document.addEventListener("keydown", gestureHandlerRef.current, true);
+      }
+
       // 3. Settings must be the first frame after open.
       log("start: sending Settings");
       currentAgentSpeechAllowedRef.current = true;
@@ -1180,10 +1221,12 @@ export function useVoiceAgent(): UseVoiceAgentReturn {
         const mic = new MicRecorder({
           targetSampleRate: AGENT_INPUT_SAMPLE_RATE,
           onChunk: (chunk) => conn.sendMedia(chunk),
+          onStateChange: refreshAudioBlocked,
         });
         micRef.current = mic;
         await mic.start();
-        log("start: microphone active");
+        refreshAudioBlocked();
+        log("start: microphone active", mic.suspended ? "(paused by the browser until the page is clicked)" : "");
       } catch (err) {
         const name = err instanceof DOMException ? err.name : "";
         const message =
@@ -1200,8 +1243,8 @@ export function useVoiceAgent(): UseVoiceAgentReturn {
 
       return { ok: true };
     },
-    [cleanup, failVoiceAgent, handleMessage, store, transition]
+    [cleanup, failVoiceAgent, handleMessage, refreshAudioBlocked, resumeAudio, store, transition]
   );
 
-  return { start, stop };
+  return { start, stop, audioBlocked, resumeAudio };
 }

@@ -1,3 +1,5 @@
+import { isPaused } from "./mic-recorder";
+
 /**
  * Gapless streaming player for raw linear16 PCM produced by the Voice Agent.
  *
@@ -16,10 +18,31 @@ export class PcmPlayer {
   /** Sources currently scheduled — tracked so barge-in can stop them. */
   private sources = new Set<AudioBufferSourceNode>();
   private onPlaybackEnd?: () => void;
+  private onStateChange?: () => void;
 
   constructor(sampleRate: number, onPlaybackEnd?: () => void) {
     this.sampleRate = sampleRate;
     this.onPlaybackEnd = onPlaybackEnd;
+  }
+
+  /**
+   * Create the AudioContext now (instead of on the first chunk) so a context
+   * the browser keeps paused is noticed before the interviewer speaks.
+   * Audio queued while paused plays in order once resume() succeeds.
+   */
+  prepare(onStateChange?: () => void): void {
+    this.onStateChange = onStateChange;
+    this.ensureContext();
+  }
+
+  /** True while the browser keeps playback paused (no click on the page yet). */
+  get suspended(): boolean {
+    return isPaused(this.ctx);
+  }
+
+  /** Resume a paused context. Only succeeds after a user gesture. */
+  resume(): Promise<void> {
+    return this.ctx && isPaused(this.ctx) ? this.ctx.resume() : Promise.resolve();
   }
 
   /** Lazily create/resume the AudioContext (must follow a user gesture). */
@@ -30,9 +53,10 @@ export class PcmPlayer {
         (window as unknown as { webkitAudioContext: typeof AudioContext })
           .webkitAudioContext;
       this.ctx = new Ctx({ sampleRate: this.sampleRate });
+      this.ctx.onstatechange = () => this.onStateChange?.();
     }
-    if (this.ctx.state === "suspended") {
-      void this.ctx.resume();
+    if (isPaused(this.ctx)) {
+      void this.ctx.resume().catch(() => {});
     }
     return this.ctx;
   }
@@ -96,6 +120,7 @@ export class PcmPlayer {
   dispose(): void {
     this.clear();
     if (this.ctx) {
+      this.ctx.onstatechange = null;
       void this.ctx.close();
       this.ctx = null;
     }

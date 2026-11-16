@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight, RotateCw } from "lucide-react";
 
+import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { useVoiceAgent } from "@/hooks/useVoiceAgent";
 import { useVoiceAgentStore } from "@/store/useVoiceAgentStore";
@@ -37,7 +38,7 @@ const VOICE_TIPS = [
  */
 export default function VoiceInterview({ interview, onExit }: VoiceInterviewProps) {
   const router = useRouter();
-  const { start, stop } = useVoiceAgent();
+  const { start, stop, audioBlocked, resumeAudio } = useVoiceAgent();
   const { state, turns, error, currentQuestion, totalQuestions } = useVoiceAgentStore();
   const clientId = useInterviewStore((s) => s.clientId);
 
@@ -254,6 +255,21 @@ export default function VoiceInterview({ interview, onExit }: VoiceInterviewProp
         <div className="ds-container flex min-h-full flex-col gap-4 py-4 sm:gap-5 sm:py-6 lg:grid lg:h-full lg:min-h-0 lg:grid-cols-[minmax(0,23rem)_minmax(0,1fr)] lg:grid-rows-1 lg:gap-8 lg:py-8">
           {/* Status, question and voice commands */}
           <div className="flex min-h-0 shrink-0 flex-col gap-4 lg:overflow-y-auto lg:pb-1">
+            {/* The browser keeps audio paused until the page is clicked (e.g. after
+                a reload); any click resumes it, this makes the step obvious. */}
+            {audioBlocked && !finishing && !problem && !isEvicted && (
+              <Alert
+                tone="warning"
+                title="Sound and microphone are paused"
+                action={
+                  <Button size="sm" onClick={resumeAudio}>
+                    Turn on sound and microphone
+                  </Button>
+                }
+              >
+                Your browser paused audio when this page loaded. Turn it on to hear the interviewer and let them hear you.
+              </Alert>
+            )}
             <section
               aria-label="Interview status"
               className="ds-surface flex items-center gap-4 rounded-card p-4 sm:p-5 lg:flex-col lg:gap-4 lg:px-6 lg:py-6 lg:text-center"
